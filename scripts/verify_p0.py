@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check P0 provenance and traceability; this does not test the application."""
+"""Check versioned handoff provenance and current traceability; this does not test the application."""
 
 import hashlib
 import json
@@ -26,23 +26,29 @@ def git(*args):
 
 
 def main():
-    manifest = json.loads(read("docs/handoff/MANIFEST.json"))
-    documents = manifest["documents"]
-    require(len(documents) == 8, "Expected eight original handoff documents")
-    paths = [entry["repository_path"] for entry in documents]
-    require(len(set(paths)) == len(paths), "Duplicate document path")
-    members = [entry["archive_member"] for entry in documents]
-    require(len(set(members)) == len(members), "Duplicate archive member")
-    for entry in documents:
-        path = (ROOT / entry["repository_path"]).resolve()
-        require(path.is_relative_to(ROOT), "Manifest path outside repository")
-        data = path.read_bytes()
-        require(len(data) == entry["size_bytes"], f"Size mismatch: {path.name}")
-        require(
-            hashlib.sha256(data).hexdigest() == entry["sha256"],
-            f"Source document changed: {path.name}",
-        )
-    print("PASS: eight source documents match recorded sizes and SHA-256")
+    manifest = json.loads(read("docs/handoff/v1.0/MANIFEST.json"))
+    current = json.loads(read("docs/handoff/v1.3/MANIFEST.json"))
+    require(current["version"] == "1.3", "Unexpected active specification version")
+    for version, source, count in [("1.0", manifest, 8), ("1.3", current, 4)]:
+        documents = source["documents"]
+        require(len(documents) == count, f"Unexpected {version} source count")
+        members = [entry["archive_member"] for entry in documents]
+        require(len(set(members)) == count, "Duplicate archive member")
+        paths = []
+        for entry in documents:
+            # v1.0 manifest is immutable; archive layout follows original members.
+            member = Path(entry["archive_member"])
+            relative = (Path("docs/handoff/v1.0") / Path(*member.parts[1:])
+                        if version == "1.0" else Path(entry["repository_path"]))
+            path = (ROOT / relative).resolve()
+            require(path.is_relative_to(ROOT), "Manifest path outside repository")
+            paths.append(path)
+            data = path.read_bytes()
+            require(len(data) == entry["size_bytes"], f"Size mismatch: {relative}")
+            require(hashlib.sha256(data).hexdigest() == entry["sha256"],
+                    f"Source changed: {relative}")
+        require(len(set(paths)) == count, "Duplicate document path")
+        print(f"PASS: v{version}, {count} sources match sizes and SHA-256")
 
     baseline = manifest["baseline_commit"]
     agents = (ROOT / "AGENTS.md").read_bytes()
@@ -63,31 +69,31 @@ def main():
     source_rows = re.findall(pattern, spec, re.M)
     actual_rows = re.findall(pattern, matrix, re.M)
     require(source_rows == actual_rows, "Requirements missing, duplicated or reprioritized")
-    require(len(source_rows) == 82, "Unexpected requirement baseline")
-    require(len({row[0] for row in source_rows}) == 82, "Duplicate requirement ID")
+    require(len(source_rows) == 180, "Unexpected requirement baseline")
+    require(len({row[0] for row in source_rows}) == 180, "Duplicate requirement ID")
     require(
-        sum(priority == "MUST" for _, priority in source_rows) == 70,
+        sum(priority == "MUST" for _, priority in source_rows) == 174,
         "Unexpected MUST count",
     )
     for line in matrix.splitlines():
         if re.match(pattern, line):
             require(line.split("|")[-2].strip() in {"INCOMPLETE", "BLOCKED", "DONE"}, "Invalid implementation status")
-    print("PASS: all 66 FR and 16 NFR mapped, priorities intact, 70 MUST")
+    print("PASS: all 135 FR and 45 NFR mapped, priorities intact, 174 MUST")
 
     screens = re.findall(r"^\| (S-\d+) \|", spec, re.M)
     require(screens == re.findall(r"^\| (S-\d+) \|", matrix, re.M), "Screen coverage differs")
-    require(len(screens) == 22, "Expected 22 screens")
-    scenarios = re.findall(r"^\d+\. \*\*(A\d+) —", spec, re.M)
+    require(len(screens) == 29, "Expected 29 screens")
+    scenarios = re.findall(r"^(?:\d+\. |[-] )\*\*(A\d+)(?: —| /)", spec, re.M)
     qa = read("docs/QA_TEST_PLAN.md")
     require(scenarios == re.findall(r"^\| (A\d+) \|", qa, re.M), "E2E coverage differs")
-    require(len(scenarios) == 12, "Expected 12 E2E scenarios")
+    require(len(scenarios) == 43, "Expected 43 E2E scenarios")
     checks = re.findall(
         r"^- \[ \] ([A-G]-\d+):",
-        read("docs/checklists/ACCEPTANCE_CHECKLIST.md"),
+        read("docs/handoff/v1.0/checklists/ACCEPTANCE_CHECKLIST.md"),
         re.M,
     )
     require(len(checks) == len(set(checks)) == 52, "Unexpected checklist baseline")
-    print("PASS: 22 screens, 12 planned E2E scenarios, 52 original acceptance checks")
+    print("PASS: 29 screens, 43 planned E2E scenarios, 52 original acceptance checks")
 
     baseline_paths = set(git("ls-tree", "-r", "--name-only", baseline).decode().splitlines())
     require(baseline_paths == {"AGENTS.md", "README.md"}, "Baseline inventory differs")
