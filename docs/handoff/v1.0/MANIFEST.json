@@ -1,0 +1,57 @@
+{
+  "archive_name": "KraPiva_2.0_Codex_Handoff_Package.zip",
+  "archive_sha256": "01acbb943f9c794b5eaf181027407498ee0a98c79ae071e1fbfbcbc844ac78e3",
+  "archive_size_bytes": 52300,
+  "baseline_commit": "634feca5d14ed0463d9e6ef7268be1b9e23c48ef",
+  "agents_sha256": "7604ef0d9e9255a4e8af6b57949d803a5ccbf87a49925a386c2e19b65a2ae389",
+  "documents": [
+    {
+      "archive_member": "KraPiva_2.0_handoff/README_START_HERE.md",
+      "repository_path": "docs/handoff/README_START_HERE.md",
+      "size_bytes": 5044,
+      "sha256": "04bf311d4cb0eb9bc1f37a606c084a8ef610e0bf82bcd78c414f8833ab0bc4c2"
+    },
+    {
+      "archive_member": "KraPiva_2.0_handoff/codex/CODEX_MASTER_PROMPT.md",
+      "repository_path": "docs/handoff/CODEX_MASTER_PROMPT.md",
+      "size_bytes": 28171,
+      "sha256": "8e455bfeba868b72ab154531bfa24af80ea6f87ea188ad66ad68be414c2b34e9"
+    },
+    {
+      "archive_member": "KraPiva_2.0_handoff/checklists/ACCEPTANCE_CHECKLIST.md",
+      "repository_path": "docs/checklists/ACCEPTANCE_CHECKLIST.md",
+      "size_bytes": 9670,
+      "sha256": "a16c7ae74173eea160a42ff042aaaf7457ab9dc4179320ecf68e8de6e4ef2776"
+    },
+    {
+      "archive_member": "KraPiva_2.0_handoff/docs/TECHNICAL_SPECIFICATION.md",
+      "repository_path": "docs/TECHNICAL_SPECIFICATION.md",
+      "size_bytes": 79989,
+      "sha256": "9c5a563a49451c6c217329f0e741982da195be15ce42a8655b1ff67134415205"
+    },
+    {
+      "archive_member": "KraPiva_2.0_handoff/docs/ARCHITECTURE_BLUEPRINT.md",
+      "repository_path": "docs/ARCHITECTURE_BLUEPRINT.md",
+      "size_bytes": 9254,
+      "sha256": "6498ad177cf130c215d342bc88d962a9f137489fad19d461fe2fe22a0df692b7"
+    },
+    {
+      "archive_member": "KraPiva_2.0_handoff/docs/BRAND_BRIEF.md",
+      "repository_path": "docs/BRAND_BRIEF.md",
+      "size_bytes": 4556,
+      "sha256": "283da3dc27737d712866b75296832d6980ecd86db7d6077be8c5fcc9d9e93059"
+    },
+    {
+      "archive_member": "KraPiva_2.0_handoff/docs/DECISIONS_AND_SCOPE.md",
+      "repository_path": "docs/DECISIONS_AND_SCOPE.md",
+      "size_bytes": 6582,
+      "sha256": "01514c8b694901be63828782de8d0d1a4ea79107d06fe08c0f1f41f56fc627c1"
+    },
+    {
+      "archive_member": "KraPiva_2.0_handoff/docs/SCREEN_MAP_AND_FLOWS.md",
+      "repository_path": "docs/SCREEN_MAP_AND_FLOWS.md",
+      "size_bytes": 6261,
+      "sha256": "b4f4374f69cb1b611f09d7721ea2bb3c9d469da62d82fbf9590ead04576bd50b"
+    }
+  ]
+}
