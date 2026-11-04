@@ -67,6 +67,12 @@ jobs:
           java-version: '21'
       - name: Verify wrapper
         run: echo '2db75c40782f5e8ba1fc278a5574bab070adccb2d21ca5a6e5ed840888448046  android/gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
+      - name: Set up Android command-line tools
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+        with:
+          cmdline-tools-version: '12266719'
+          packages: 'platform-tools'
+          log-accepted-android-sdk-licenses: false
       - name: Install pinned SDK packages
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Build and lint
