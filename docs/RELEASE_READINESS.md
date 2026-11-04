@@ -1,23 +1,27 @@
 # Готовность KraPiva 2.0
 
-**Релиз не готов.** Текущий результат — P0 (требования и репозиторий).
-Приложение, API и БД не созданы; работающая социальная сеть не заявляется.
+**Релиз не готов.** Завершены P0 и локальные проверки основы P1.
+Реализованы Android splash/стартовый экран/диалог, brand assets и HTTP liveness.
+БД, аккаунтов, каталога, социальной сети и остальных пользовательских функций
+пока нет. P2 не начат и требует нового сообщения владельца «Продолжай».
 
-Точная разбивка всех 82 FR/NFR, 22 экранов и дополнительных обязательств —
-[REQUIREMENTS_MATRIX.md](REQUIREMENTS_MATRIX.md). Все продуктовые требования
-пока INCOMPLETE; все A1–A12 — NOT RUN. 70 нумерованных MUST ещё не закрыты.
+[Матрица требований](REQUIREMENTS_MATRIX.md): NFR-001 DONE; остальные 81 FR/NFR
+пока INCOMPLETE, из них 69 MUST. A1–A12 NOT RUN; реальный HTTP P1 не является
+продуктовым E2E клиента и сервера.
 
-| Группа | Состояние | Что требуется |
+| Группа | Состояние | Доказательство / следующий шаг |
 |---|---|---|
-| Репозиторий/документы P0 | Проверки в [отчёте P0](stages/P0.md) | Сохранённые входы, решения, проверяемый baseline |
-| Android/backend builds, API/SQL и миграции | INCOMPLETE | P1/P2, реальные clean builds и постоянство |
-| Auth/profile/catalog/checkins/social | INCOMPLETE | P3–P6, клиент↔API и A1–A7/A9/A12 |
-| Badges/venues/moderation | INCOMPLETE | P7, A8/A10/A11 |
-| Media/ACL/offline/security/restore | INCOMPLETE | P2–P8, негативные тесты и фактический restore |
-| Brand assets/accessibility/screenshots | INCOMPLETE | P1/P8, реальные ресурсы и Android проверки |
-| Debug APK/hash/CI | INCOMPLETE | P1/P9; на P0 сборки не запускались |
-| Production в РФ и доступ без VPN | BLOCKED | Нет подтверждённых провайдера/бюджета/домена/почты/инфраструктурного размещения |
-| Юридическая готовность и выпуск | BLOCKED | Нет профильного review, ключей release, решения о публикации |
+| P0 provenance/requirements | DONE | cf4d28a, восемь неизменённых документов |
+| Android source build | DONE (NFR-001) | P1 clean assembleDebug/lintDebug; запуск на устройстве NOT RUN |
+| HTTP process foundation | PASS | P1 TypeScript build, четыре настоящих локальных HTTP/config/process tests |
+| CI foundation | См. [отчёт P1](stages/P1.md) | build/lint/HTTP/assets; нет migration/contract suite до P2 |
+| Brand vectors/PNGs/icons/tokens | PASS, частичное X-05 | Экспорты/контраст/XML проверены; функциональные screenshots/TalkBack NOT RUN |
+| SQL/migrations/OpenAPI/media/SMTP | INCOMPLETE | P2 |
+| Auth/profile/catalog/checkins/social | INCOMPLETE | P3–P6 |
+| Badges/venues/moderation | INCOMPLETE | P7 |
+| Offline/security/restore/license audit | INCOMPLETE | P8 |
+| Production РФ и доступ без VPN | BLOCKED | Провайдер/бюджет/домен/почта/размещение не подтверждены |
+| Юридическая готовность и выпуск | BLOCKED | Нет legal review, release signing и решения о публикации |
 
-Production-блокеры не препятствуют локальным P1–P8. Статус релиза обновляется
-по фактическим результатам, а не по числу написанных документов.
+Нет разрешения на merge, deployment, покупки или выпуск. Локальная APK
+подписана автоматически созданным debug key, не опубликована, не release candidate.

@@ -2,3 +2,7 @@
 # Preserve the source bytes and their SHA-256; retain other whitespace checks.
 docs/TECHNICAL_SPECIFICATION.md whitespace=-blank-at-eol
 docs/SCREEN_MAP_AND_FLOWS.md whitespace=-blank-at-eol
+
+# Keep the generated wrapper portable; normalize only these launch scripts.
+android/gradlew text eol=lf
+android/gradlew.bat text eol=crlf

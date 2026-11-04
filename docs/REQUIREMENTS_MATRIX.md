@@ -1,6 +1,6 @@
 # Матрица требований 2.0
 
-Источник: [ТЗ 1.0](TECHNICAL_SPECIFICATION.md). Срез P0, 2026-11-04.
+Источник: [ТЗ 1.0](TECHNICAL_SPECIFICATION.md). Срез P1, 2026-11-04.
 
 В ТЗ **66 FR** (56 MUST, 9 SHOULD, 1 LATER) и **16 NFR** (14 MUST,
 2 SHOULD): всего 82 нумерованных требования. Номера FR имеют пропуски.
@@ -8,10 +8,11 @@
 
 `INCOMPLETE` = не реализовано/не доказано; `BLOCKED` = конкретный внешний
 блокер; `DONE` = есть код и пройденная проверка всего критерия.
-Пока **ни одно продуктовое требование не DONE**. Все пути к коду/тестам в
-таблице — **планируемые**, файлов ещё нет; проверки **NOT RUN**. Это не
-свидетельства реализации. При выполнении строки заменить планы точными
-существующими путями, командой, результатом и ссылкой на коммит.
+**NFR-001 выполнено:** Android clean build и lint прошли, команда и среда в
+[отчёте P1](stages/P1.md). Остальные продуктовые требования остаются INCOMPLETE.
+Пути в незавершённых строках — планируемые, а не доказательство наличия кода;
+их продуктовые проверки NOT RUN. P1 HTTP/lifecycle tests описаны отдельно и
+не засчитываются за A1–A12.
 
 ## FR и NFR
 
@@ -83,14 +84,14 @@
 | FR-093 | MUST | Панель или защищённые административные API для управления предложениями позиций, списком баров, жалобами и правами. UI admin может быть минимальным, но **операции должны реально работать**. | P2/P7/P8 | `backend/media/; backend/moderation/; backend/operations/` | `tests/e2e/moderation_media/`: A11, роли, EXIF, media ACL, audit и retention; NOT RUN | INCOMPLETE |
 | FR-094 | MUST | Протоколирование административных изменений: кто, что, когда, без открытых персональных данных/секретов в общих логах. | P2/P7/P8 | `backend/media/; backend/moderation/; backend/operations/` | `tests/e2e/moderation_media/`: A11, роли, EXIF, media ACL, audit и retention; NOT RUN | INCOMPLETE |
 | FR-095 | MUST | Политика удаления и сроки хранения фото, записей и аккаунта; поведение на разных устройствах. | P2/P7/P8 | `backend/media/; backend/moderation/; backend/operations/` | `tests/e2e/moderation_media/`: A11, роли, EXIF, media ACL, audit и retention; NOT RUN | INCOMPLETE |
-| NFR-001 | MUST | Сборка Android в чистой среде документированной командой; отсутствуют локальные пути в репозитории. | P1/P8 | `infra/; .github/workflows/; android/; backend/` | `tests/security/; tests/operations/; android/app/src/androidTest/`: регрессия, безопасность, сборка и эксплуатация согласно критерию; NOT RUN | INCOMPLETE |
+| NFR-001 | MUST | Сборка Android в чистой среде документированной командой; отсутствуют локальные пути в репозитории. | P1 | `android/gradlew`, `android/app/build.gradle.kts` | `./gradlew --no-daemon clean assembleDebug lintDebug`: PASS; [P1](stages/P1.md) | DONE |
 | NFR-002 | MUST | Настоящий клиент-серверный E2E: клиент обращается к реальному API/БД и сохраняет результат после restart; mock только для тестов/dev с явной маркировкой. | P8 | `infra/; .github/workflows/; android/; backend/` | `tests/security/; tests/operations/; android/app/src/androidTest/`: регрессия, безопасность, сборка и эксплуатация согласно критерию; NOT RUN | INCOMPLETE |
 | NFR-003 | MUST | Код и БД без встроенных секретов, приватных ключей, пользовательских токенов; `.env.example`, безопасный secrets workflow. | P8 | `infra/; .github/workflows/; android/; backend/` | `tests/security/; tests/operations/; android/app/src/androidTest/`: регрессия, безопасность, сборка и эксплуатация согласно критерию; NOT RUN | INCOMPLETE |
 | NFR-004 | MUST | TLS на внешних соединениях; безопасные сессии, ограничение попыток входа, пароль не хранится в открытом виде. | P8 | `infra/; .github/workflows/; android/; backend/` | `tests/security/; tests/operations/; android/app/src/androidTest/`: регрессия, безопасность, сборка и эксплуатация согласно критерию; NOT RUN | INCOMPLETE |
 | NFR-005 | MUST | Авторизация **на сервере** для каждого владельческого объекта, защита от IDOR и утечек скрытого контента. | P8 | `infra/; .github/workflows/; android/; backend/` | `tests/security/; tests/operations/; android/app/src/androidTest/`: регрессия, безопасность, сборка и эксплуатация согласно критерию; NOT RUN | INCOMPLETE |
 | NFR-006 | MUST | Данные граждан РФ — проверить требования локализации, хранение и обработку, включая логи, файлы и бэкапы; эксплуатация без VPN. | P8 | `infra/; .github/workflows/; android/; backend/` | `tests/security/; tests/operations/; android/app/src/androidTest/`: регрессия, безопасность, сборка и эксплуатация согласно критерию; NOT RUN | INCOMPLETE |
 | NFR-007 | MUST | Модерация пользовательского контента и антиспам; журнал действий администраторов. | P8 | `infra/; .github/workflows/; android/; backend/` | `tests/security/; tests/operations/; android/app/src/androidTest/`: регрессия, безопасность, сборка и эксплуатация согласно критерию; NOT RUN | INCOMPLETE |
-| NFR-008 | MUST | CI: сборка Android, backend tests, migration tests, статический анализ, API contract/integration checks, отсутствие секретов. | P1/P8 | `infra/; .github/workflows/; android/; backend/` | `tests/security/; tests/operations/; android/app/src/androidTest/`: регрессия, безопасность, сборка и эксплуатация согласно критерию; NOT RUN | INCOMPLETE |
+| NFR-008 | MUST | CI: сборка Android, backend tests, migration tests, статический анализ, API contract/integration checks, отсутствие секретов. | P1/P8 | `.github/workflows/ci.yml`; migration/API tests — P2/P8 | `tests/security/; tests/operations/; android/app/src/androidTest/`: P1 baseline build/lint/HTTP/asset checks; полный migration/API pipeline ещё не реализован; NOT RUN | INCOMPLETE |
 | NFR-009 | MUST | Нормальная деградация при потере сети, таймаутах, неправильных разрешениях, переполнении памяти, отказе хранилища. | P8 | `infra/; .github/workflows/; android/; backend/` | `tests/security/; tests/operations/; android/app/src/androidTest/`: регрессия, безопасность, сборка и эксплуатация согласно критерию; NOT RUN | INCOMPLETE |
 | NFR-010 | MUST | Атомарные миграции, безопасная резервная копия серверной БД/медиа, документированное и **проверенное** восстановление staging. | P8 | `infra/; .github/workflows/; android/; backend/` | `tests/security/; tests/operations/; android/app/src/androidTest/`: регрессия, безопасность, сборка и эксплуатация согласно критерию; NOT RUN | INCOMPLETE |
 | NFR-011 | MUST | Ограничение и оптимизация медиа, пагинация и индексы для больших списков; отсутствие всех записей в одном ответе. | P8 | `infra/; .github/workflows/; android/; backend/` | `tests/security/; tests/operations/; android/app/src/androidTest/`: регрессия, безопасность, сборка и эксплуатация согласно критерию; NOT RUN | INCOMPLETE |
