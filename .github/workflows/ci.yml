@@ -77,4 +77,11 @@ jobs:
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Build and lint
         working-directory: android
-        run: ./gradlew --no-daemon assembleDebug lintDebug
+        run: |
+          build_status=0
+          ./gradlew --no-daemon assembleDebug lintDebug || build_status=$?
+          lint_report=app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+          if [ -f "$lint_report" ]; then
+            cat "$lint_report"
+          fi
+          exit "$build_status"

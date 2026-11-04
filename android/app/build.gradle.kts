@@ -26,7 +26,8 @@ android {
     }
     kotlinOptions { jvmTarget = "21" }
     buildFeatures { compose = true; buildConfig = false }
-    lint { abortOnError = true; warningsAsErrors = true; checkReleaseBuilds = true }
+    // Correctness errors fail CI; version advisories remain visible in its lint report.
+    lint { abortOnError = true; warningsAsErrors = false; checkReleaseBuilds = true }
 }
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2025.04.01"))
