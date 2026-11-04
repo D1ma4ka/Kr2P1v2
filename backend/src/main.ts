@@ -1,11 +1,16 @@
+import {databaseConfig} from "./db/config.js";
+import {MediaService} from "./media/service.js";
+import {FileStorage} from "./media/storage.js";
 import { createPool } from "./db/pool.js";
 import { buildApp } from "./app.js";
 import { readConfig } from "./config.js";
 async function main() {
   const config = readConfig();
-  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL required");
-  const pool = createPool(process.env.DATABASE_URL);
-  const app = buildApp(config,pool);
+  const database=databaseConfig();
+  const pool = createPool(database.url,database.max);
+  const storage=new FileStorage(process.env.MEDIA_ROOT ?? "../work/media");
+  await storage.initialize();
+  const app = buildApp(config,pool,new MediaService(pool,storage));
   pool.on("error",()=>app.log.error("database connection lost"));
   app.addHook("onClose",async()=>{await pool.end();});
   let stopping = false;

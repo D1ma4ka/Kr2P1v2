@@ -1,3 +1,5 @@
+import { mediaRoutes } from "../media/routes.js";
+import type { MediaService } from "../media/service.js";
 import type { FastifyInstance } from "fastify";
 import type pg from "pg";
 import { authenticate, tokenHash } from "../identity/sessions.js";
@@ -10,9 +12,10 @@ const profileColumns = `p.user_id AS "userId",u.display_name AS "displayName",p.
  p.country,p.city,p.bio,p.gender,p.gender_visibility AS "genderVisibility",p.profile_visibility AS "profileVisibility",p.version,p.updated_at AS "updatedAt"`;
 interface ProfileUpdate { firstName: string|null; lastName: string|null; country: string|null; city: string|null;
  bio: string|null; gender: string|null; genderVisibility: string; profileVisibility: string; version: number; }
-export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool) {
+export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media?: MediaService) {
   app.decorateRequest("userId", "");
   app.addHook("onRequest",async request => { request.userId = await authenticate(pool,request.headers.authorization); });
+  if(media) app.register(async mediaApi=>mediaRoutes(mediaApi,media));
   const secure = { security: [{ bearerAuth: [] }], response: s.errors };
   app.get("/v1/me", { schema: { ...secure, response: { ...s.errors,200:s.profileSchema } } },async request => {
     const result = await pool.query(`SELECT ${profileColumns} FROM user_profiles p JOIN users u ON u.id=p.user_id WHERE p.user_id=$1`,[request.userId]);

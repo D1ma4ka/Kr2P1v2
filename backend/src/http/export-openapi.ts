@@ -1,9 +1,11 @@
+import {MediaService} from "../media/service.js";
+import {FileStorage} from "../media/storage.js";
 import { mkdir,writeFile } from "node:fs/promises";
 import { buildApp } from "../app.js";
 import { readConfig } from "../config.js";
 import { createPool } from "../db/pool.js";
 const pool=createPool('postgresql://unused@127.0.0.1/unused'); // schema generation never connects
-const app=buildApp(readConfig({NODE_ENV:'test',LOG_LEVEL:'silent'}),pool);
+const app=buildApp(readConfig({NODE_ENV:'test',LOG_LEVEL:'silent'}),pool,new MediaService(pool,new FileStorage('../work/media')));
 try {
  await app.ready(); await mkdir('../docs/api',{recursive:true});
  await writeFile('../docs/api/openapi.yaml',app.swagger({yaml:true}));

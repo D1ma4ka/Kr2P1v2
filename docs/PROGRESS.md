@@ -1,3 +1,93 @@
+# STOP — P2 WIP, остановка по лимиту и команде владельца
+
+Ветка: `codex/krapiva-2-p2`. Последнее сообщение владельца о лимитах:
+**«22 65 остановись»**. Один остаток ниже порога; владелец явно остановил работу.
+После этого не запускались новые сборки/тесты/разработка. Получен только результат
+уже запущенного runtime drill; далее документация, Git и остановка dev сервисов.
+Продолжение **только по новой команде «Продолжай»**. P3 не начинать.
+P0/P1 DONE. **P2 INCOMPLETE / WIP**, не повторять выполненные подэтапы.
+SHA этого WIP-коммита: `git log -1`; полный SHA в итоговом отчёте владельцу.
+
+## Что уже сохранено и проверено
+
+- `5b34497`: v1.3 source checker, 12 исходников/180 требований/29 экранов/43
+  запланированных E2E; исходные AGENTS и оба архива сохранены.
+- `c52b330`: PostgreSQL17, полная foundation schema, transactional/checksummed
+  migrations с lock, bounded pool, runtime role без DDL, local Compose DB.
+- `d1f17aa`: реальный `/v1` owner API, постоянные hash-only sessions/revocation,
+  profile fields, verified positions paging, checkin CRUD, durable idempotency,
+  optimistic versions, DB-wide per-account budget, OpenAPI/ACL tests.
+- Текущий WIP: private filesystem media с metadata в SQL, нормализация JPEG,
+  thumbnail, EXIF removal, limits, owner ACL, checkin attachments/deletion;
+  SMTP Mailpit с persistent volume, non-root Docker image/Compose API,
+  local-only synthetic accounts/mail CLI, DB config validation и runtime drill.
+
+## Фактические результаты до остановки
+
+- `npm run build` — PASS (TypeScript).
+- `node dist/src/http/export-openapi.js` — контракт обновлён из route schemas.
+- `node --env-file=../.env --test dist/test/*.test.js` — **9/9 PASS**, 0 skipped,
+  ~2.23 s. Реальный PostgreSQL/HTTP/SMTP, не in-memory substitutes.
+- `npm audit --audit-level=high` — **0 vulnerabilities** на момент проверки.
+- `docker compose build api` — PASS; pinned base images, TLS verification on,
+  build proxy CA только transient secret, runtime USER node.
+- `docker compose run --rm migrate`, `docker compose up -d --wait api` — PASS.
+- Уже запущенный `node --env-file=../.env test/runtime-check.mjs` завершился PASS:
+  runtime DB role не может DDL; restart API+PostgreSQL+Mailpit сохраняет accounts,
+  sessions, checkin, photo bytes и письмо; isolated pg_restore + копия media
+  восстанавливают ту же фотографию/attachment и owner ACL. Результат прочитан
+  при сохранении после команды остановки; повторный прогон не запускался.
+- `git diff --check` — PASS до финального сохранения документов.
+- Android не менялся/не собирался. GitHub CI для этих коммитов НЕ запускался.
+  Это не прохождение всех продуктовых A1–A43 и не capacity test на 500k users.
+
+## Что осталось для завершения только P2
+
+1. Проверить статус/remote, прочитать AGENTS, этот файл и stages/P2.md.
+2. Доработать P2 review и документацию: DEPLOYMENT_RU сейчас WIP, актуализировать
+   `.env.example`, backend/root README, architecture/matrix/roadmap/readiness.
+3. Обновить CI: текущий P1 job вызывает npm test без PostgreSQL/SMTP/env,
+   новые integration tests требуют настоящие сервисы. Добавить их запуск,
+   миграции/contract/runtime checks; не запускать Android без необходимости.
+   Source job `git diff --check` на всю историю также должен учитывать
+   побайтово сохранённые оригиналы ТЗ/архивов (trailing blank line в источнике).
+4. Проверить недостающие негативные случаи DB config, media/storage failures,
+   миграций/runtime readiness и границы схемы; исправления — отдельный коммит.
+   Не повторять уже пройденные проверки без изменения/конкретной причины.
+5. Решить P2-часть переносимого `API_BASE_URL`: Android BuildConfig пока не
+   содержит env URL; UI/API client остаются P3. Нельзя считать FR-118 DONE.
+6. После нужных проверок оформить итог P2, commit/push, остановиться перед P3.
+
+Открытых падений в выполненных финальных тестах нет; P2 не завершён из-за
+остановки и перечисленных проверок/CI/docs. Account signup/verification/reset,
+полная field ACL/social grants, каталог/moderation UI, карты, статистика и
+badge engine ещё не реализованы: соответствующие P3–P7, не заглушки.
+Проверенные токены — реальные серверные сессии synthetic accounts, созданные
+только явным dev CLI; это НЕ production login/регистрация.
+
+## Данные и быстрый возврат к работе
+
+Локально `.env` (0600, Git ignored), `work/dev-accounts.json` (секретные synthetic
+session tokens, Git ignored), `work/backups/<uuid>/` (synthetic SQL dump/media/
+RESULT.json, Git ignored). Не печатать и не коммитить их содержимое.
+Docker volumes `krapiva-dev_db-data`, `krapiva-dev_media-data`,
+`krapiva-dev_mail-data` сохраняются; dev контейнеры остановлены для экономии.
+Никогда не использовать `down -v` для обычной остановки.
+После разрешения: `docker compose up -d --wait db mailpit api` использует уже
+собранный локальный image; при новой среде — инструкции DEPLOYMENT_RU.
+CLI credentials живут сутки; после истечения нужен явный безопасный dev-session
+refresh, не подмена production auth. Повторное provision намеренно не затирает
+существующий файл. Backup SQL содержит только synthetic data, не GitHub storage.
+Media FS adapter рассчитан на один storage mount; scale-out требует общего
+storage/S3 adapter. При потере подтверждения COMMIT файлы сохраняются, чтобы
+не удалить потенциально записанное фото; orphan cleanup/reconciliation и
+production retention ещё требуют runbook/проверки. TLS/РФ hosting/production
+SMTP/мониторинг/нагрузка не приняты; никаких расходов/production/merge не было.
+
+---
+
+## История текущей сессии (не актуальная команда на продолжение)
+
 # P2 — активная точка продолжения
 
 Владелец разрешил только P2 по ТЗ v1.3. Ветка `codex/krapiva-2-p2`,

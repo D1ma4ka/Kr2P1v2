@@ -32,7 +32,7 @@ export async function createCheckin(pool: pg.Pool,userId: string,key: string,inp
     const previous = await client.query("SELECT request_hash,resource_id FROM idempotency_keys WHERE user_id=$1 AND key=$2 AND operation='create-checkin'",[userId,key]);
     if (previous.rows[0]) {
       if (previous.rows[0].request_hash !== hash) throw conflict();
-      const row = await getCheckin(client,userId,previous.rows[0].resource_id).catch(() => { throw conflict(); });
+      const row = await getCheckin(client,userId,previous.rows[0].resource_id).catch(error => { if(error instanceof ApiError && error.statusCode===404) throw conflict(); throw error; });
       return { row, replay: true };
     }
     const position = await client.query("SELECT id FROM beer_positions WHERE id=$1 AND status='verified' FOR SHARE",[normalized.positionId]);

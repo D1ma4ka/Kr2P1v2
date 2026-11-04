@@ -1,3 +1,4 @@
+import type { MediaService } from "./media/service.js";
 import swagger from "@fastify/swagger";
 import type pg from "pg";
 import { foundationRoutes } from "./http/routes.js";
@@ -5,7 +6,7 @@ import { ApiError } from "./http/errors.js";
 import { errors, object } from "./http/schemas.js";
 import Fastify, { LogController } from "fastify";
 import type { Config } from "./config.js";
-export function buildApp(config: Config, pool?: pg.Pool) {
+export function buildApp(config: Config, pool?: pg.Pool, media?: MediaService) {
   const app = Fastify({
     logger: { level: config.logLevel,
       redact: ["req.headers.authorization", "req.headers.cookie", "res.headers.set-cookie"] },
@@ -55,11 +56,14 @@ export function buildApp(config: Config, pool?: pg.Pool) {
   if (pool) {
     app.register(async api => {
       api.get("/health/ready",{schema:{response:{...errors,200:object({status:{type:'string',enum:['ready']}})}}},async()=>{
-        try { await pool.query("SELECT 1 FROM schema_migrations LIMIT 1"); }
+        try {
+          const result=await pool.query("SELECT name FROM schema_migrations WHERE name='002_request_budgets.sql'");
+          if(result.rowCount!==1) throw Error();
+        }
         catch { throw new ApiError(503,"UNAVAILABLE","База данных недоступна"); }
         return {status:"ready"};
       });
-      api.register(async secured => foundationRoutes(secured,pool));
+      api.register(async secured => foundationRoutes(secured,pool,media));
     });
   }
   return app;
