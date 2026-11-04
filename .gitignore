@@ -1,0 +1,39 @@
+# Original evidence and large local data
+/input/*
+!/input/README.md
+*.apk
+*.apks
+*.aab
+*.dex
+*.so
+*.db
+*.sqlite
+*.sqlite3
+
+# Raw recovery output: review individual files before importing into Git
+/work/
+/legacy/*
+!/legacy/README.md
+
+# Build output and local configuration
+.gradle/
+.kotlin/
+**/build/
+local.properties
+.idea/
+*.iml
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+
+# Credentials and signing material
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.key
+*.pem
