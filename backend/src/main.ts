@@ -1,8 +1,13 @@
+import { createPool } from "./db/pool.js";
 import { buildApp } from "./app.js";
 import { readConfig } from "./config.js";
 async function main() {
   const config = readConfig();
-  const app = buildApp(config);
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL required");
+  const pool = createPool(process.env.DATABASE_URL);
+  const app = buildApp(config,pool);
+  pool.on("error",()=>app.log.error("database connection lost"));
+  app.addHook("onClose",async()=>{await pool.end();});
   let stopping = false;
   const stop = async () => {
     if (stopping) return;
@@ -19,6 +24,6 @@ async function main() {
 }
 main().catch(() => {
   // Do not print environment values in failure diagnostics.
-  console.error("Backend startup failed; check HOST, PORT, NODE_ENV and LOG_LEVEL");
+  console.error("Backend startup failed; check HOST, PORT, NODE_ENV, LOG_LEVEL and DATABASE_URL");
   process.exitCode = 1;
 });

@@ -10,7 +10,11 @@ bounded pool, random local credentials, runtime role without DDL. Build PASS;
 реальный PostgreSQL test PASS: concurrent/repeated migrate, rollback of failed
 DDL, checksum drift, FK/unique/rating/GTIN constraints. Пустая dev DB мигрирована.
 При первом старте исправлены права читаемости init SQL (600 → 644), без потери
-volume. Следующий шаг: P2.3 HTTP contract, sessions/CRUD/ACL/concurrency.
+volume. P2.3 DONE: `/v1` owner API, sessions+revoke, profiles, verified position page,
+checkin CRUD, durable idempotency/version checks, DB-wide per-account budget.
+Real HTTP+SQL test PASS with two accounts; OpenAPI validation/drift test PASS;
+migration and process regression PASS. No public sign-up/reset/social routes.
+Следующий шаг P2.4: private media, SMTP и контейнерный API.
 
 Лимиты: достоверного API нет. Владелец сообщил «69 и 73» в этой сессии —
 оба выше порогов; это снимок, не непрерывное измерение. При недельном остатке
