@@ -1,0 +1,36 @@
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+
+# Generated files and local tools
+.idea/
+.gradle/
+.kotlin/
+**/build/
+local.properties
+node_modules/
+coverage/
+__pycache__/
+*.py[cod]
+.venv/
+work/
+artifacts/
+
+# Do not import legacy packages, catalogs or binary dumps
+*.apk
+*.aab
+*.dex
+*.smali
+*.sqlite
+*.sqlite3
+*.db
+*.zip
+*.hprof
+.DS_Store

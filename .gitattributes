@@ -1,0 +1,4 @@
+# Original handoff Markdown uses two trailing spaces for hard line breaks.
+# Preserve the source bytes and their SHA-256; retain other whitespace checks.
+docs/TECHNICAL_SPECIFICATION.md whitespace=-blank-at-eol
+docs/SCREEN_MAP_AND_FLOWS.md whitespace=-blank-at-eol
