@@ -1,37 +1,49 @@
-# Дизайн-система P1 — Craft Mark
+# Дизайн-система — цель v1.3 (Dark v1.2)
 
-Авторская пинта с пеной, геометрическое написание KRAPIVA, тёмная поверхность
-и тёплый янтарный акцент. Это направление для проверки, не утверждённый брендбук.
-Векторная геометрия создана в проекте; нет ботаники, stock-фото или импортов legacy.
+Эта документация заменяет прежнее предложенное оформление Craft Mark.
+Исходные код/токены/PNG P1 не изменены и не считаются выполнением новых FR.
+Референс reference/krapiva-dark-concept.png — обязательный стилевой ориентир,
+не готовый asset, не данные и не разрешение копировать чужие картинки.
 
-## Исходники
-
-- `assets/brand/mark.svg`, `logo.svg`, `avatar.svg` и PNG — реальные ресурсы.
-- `assets/brand/tokens.json` — токены для документации/проверки контраста.
-- `android/app/src/main/java/ru/krapiva/app/designsystem/Theme.kt` — Compose theme.
-- Android drawable/mipmap — splash, адаптивная и монохромная иконки, 5 PNG-плотностей.
-
-| Токен | Цвет | Назначение |
+| Токен | Назначение | HEX |
 |---|---|---|
-| ink | #171512 | фон, текст янтарной кнопки |
-| surface | #24201B | поверхности/диалоги |
-| amber | #E9AF61 | основной акцент |
-| cream | #F6EFE3 | основной текст |
-| muted | #C3B6A4 | вторичный текст |
-| error | #FFB4AB | сообщение об ошибке |
+| `color.background.primary` | основной фон, почти чёрный графит | `#0B0D0F` |
+| `color.background.secondary` | вторичный фон | `#171A1D` |
+| `color.surface.card` | карточки | `#1D2125` |
+| `color.surface.raised` | дополнительная поверхность | `#252A2E` |
+| `color.text.primary` | основной текст, тёплый кремовый | `#F5EBD8` |
+| `color.text.secondary` | вторичный текст, серо-бежевый | `#AAA69F` |
+| `color.accent.primary` | главный янтарный акцент, CTA, оценка | `#F5A623` |
+| `color.accent.hop` | зелёный хмель, награды, вспомогательные акценты | `#78B936` |
+| `color.accent.hop-light` | локальное подсвечивание зелёных деталей | `#9ACD45` |
+| `color.border.divider` | ненавязчивые границы и разделители | `#303438` |
 
-Отступы 8/16/24/40dp, радиусы 12/20dp. System serif для крупного заголовка,
-системный sans для остального текста; сторонние шрифты не включены.
-Размеры текста в sp, крупный заголовок 38/44sp, основной текст 17/26sp.
-Touch targets минимум 48dp, прокрутка контента и диалога, safeDrawingInsets,
-максимальная ширина 520dp. Тёмная палитра сознательно фиксирована в P1;
-светлая тема не заявляется готовой.
+Янтарь — главный CTA/active акцент, зелёный — хмель/отдельные badge детали.
+Semantic disabled/focus/error/warning/success определить и проверить на контраст
+при UI-реализации. Коррекции утверждённых цветов только по доказанной проблеме
+доступности с документированным сравнением. Фиксированная Dark; light mode вне MUST.
 
-`python scripts/check_foundation.py` проверяет контраст используемых пар ≥4.5:1,
-размеры PNG, SVG/XML и wrapper. Числовой contrast pass не заменяет TalkBack,
-масштабирование шрифта и runtime screenshots. Текущие PNG — экспорты бренда,
-**не скриншоты Android**. Скриншоты пяти функциональных экранов появятся по
-мере P3–P8; пустые макеты не выдаются за реализованные функции.
+4dp-сетка, интервалы 4/8/12/16/24/32dp, радиусы 12/16/20dp, touch target ≥48dp.
+Современный sans-serif Manrope/Inter с проверкой прав или системный fallback;
+не распространять SF Pro в Android. Кремовый текст, серо-бежевый вторичный,
+графитовые карточки, спокойные разделители, единые линейные иконки.
 
-Формы EmptyState/ErrorState/RatingInput/CheckinCard и badge icons будут
-добавляться вместе с реальными состояниями и функциями, без фальшивых данных.
+Требуемые компоненты: position/checkin cards, profile header, rating input,
+badges, empty/error/photo picker/venue row, amber button, bottom bar и beer hero.
+Они появляются вместе с реальными состояниями, не фиктивными успешными API.
+На Android TalkBack/font scaling/insets/keyboard/back; на iOS VoiceOver,
+Dynamic Type/safe areas. Визуальный baseline: home/catalog/checkin/profile/badges
+плюс loading/onboarding, реальные screenshots после реализации, сейчас NOT RUN.
+
+Motion: статичный system splash → custom beer loading лишь при реальном ожидании;
+welcome/registration hero не закрывает форму. Gravity/accelerometer, gyro optional;
+плавность/clamp, ориентация, no-sensor loop, reduced-motion static. Ориентиры
+±6–8°/около30Hz не жёсткие параметры. Нет фоновых sensors/логов/отправки на сервер.
+ADR-MOTION и unit/UI/physical tests — P3/P8, iOS эквивалент — P12/P13.
+
+## Подтверждённое состояние P1
+
+Theme.kt: ink #171512, surface #24201B, amber #E9AF61, cream #F6EFE3,
+muted #C3B6A4, serif заголовок. Mark — пинта без обязательных хмеля/углов.
+Это работающие прежние ресурсы P1; их прежний contrast PASS не доказывает
+контраст и соответствие новой темы. Заменять только в согласованном P1.1 UI-блоке.
