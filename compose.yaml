@@ -1,0 +1,21 @@
+name: krapiva-dev
+services:
+  db:
+    image: postgres:17.7-bookworm@sha256:86e0b703649d7a792bd9243ee28afc9d8f7c6b2b5638077c9d6882d4d472bbfd
+    environment:
+      POSTGRES_DB: krapiva
+      POSTGRES_USER: krapiva_owner
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD:?Generate local .env first}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Generate local .env first}
+    ports: ["127.0.0.1:55432:5432"]
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./infra/postgres/01-runtime-role.sql:/docker-entrypoint-initdb.d/01-runtime-role.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U krapiva_owner -d krapiva"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    shm_size: 128mb
+volumes:
+  db-data:

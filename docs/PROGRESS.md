@@ -5,7 +5,12 @@
 План небольших коммитов и критерии: `stages/P2.md`.
 P2.1: source checker адаптирован к двум версиям; PASS (12 исходников,
 180 требований, 29 экранов, 43 запланированных сценария). Это не тест приложения.
-Следующий шаг: P2.2 PostgreSQL/схема/миграции и реальные SQL-проверки.
+P2.2 DONE: PostgreSQL17, SQL schema, checksum ledger/transaction/advisory lock,
+bounded pool, random local credentials, runtime role without DDL. Build PASS;
+реальный PostgreSQL test PASS: concurrent/repeated migrate, rollback of failed
+DDL, checksum drift, FK/unique/rating/GTIN constraints. Пустая dev DB мигрирована.
+При первом старте исправлены права читаемости init SQL (600 → 644), без потери
+volume. Следующий шаг: P2.3 HTTP contract, sessions/CRUD/ACL/concurrency.
 
 Лимиты: достоверного API нет. Владелец сообщил «69 и 73» в этой сессии —
 оба выше порогов; это снимок, не непрерывное измерение. При недельном остатке
