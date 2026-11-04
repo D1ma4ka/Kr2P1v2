@@ -17,8 +17,10 @@ P2 выберет SQL migration runner, schema и OpenAPI, затем прове
 Media/SMTP выбор будет проверен интеграционно, а не отмечен DONE из ADR.
 
 CI — read-only permissions, pinned action SHAs, ограниченные timeout и concurrency.
-Запуск по PR при изменении кода/конфигурации/исходных требований; обычный отчёт
-этапа не вызывает новую сборку. workflow_dispatch оставлен для обоснованного
+Запуск по PR при изменении кода/конфигурации/исходных требований. Фильтр paths
+для PR учитывает совокупный diff, поэтому финальный коммит только с отчётом
+помечается `[skip ci]`, чтобы не повторять сборки неизменённого кода.
+workflow_dispatch оставлен для обоснованного
 ручного запуска. Нет deploy/release/publish steps и внешней доставки писем.
 
 Зависимости: backend package-lock; Android Gradle/AGP/Kotlin/Compose версии

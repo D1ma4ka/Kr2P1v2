@@ -9,7 +9,7 @@
 | Этап | Результат | Выходная проверка | Состояние после реализации P1 |
 |---|---|---|---|
 | P0 | Актуальный baseline, восемь исходных документов, решения и матрица | Целостность документов, сохранность AGENTS, diff, push | DONE, cf4d28a |
-| P1 | Новый Android/Compose и backend skeleton, оригинальные brand assets, design tokens, CI | Чистые сборки обеих частей, реальные ресурсы; не выдавать стартовый экран за функции | INCOMPLETE/WIP: локально PASS, CI Android SDK install FAILURE; остановлено владельцем |
+| P1 | Новый Android/Compose и backend skeleton, оригинальные brand assets, design tokens, CI | Чистые сборки обеих частей, реальные ресурсы; не выдавать стартовый экран за функции | DONE: локально PASS, все три CI job SUCCESS, 69ed3e9; см. отчёт P1 |
 | P2 | ADR стека, постоянная SQL БД, миграции, API/OpenAPI, media/SMTP инфраструктура | CRUD после restart, migration/contract/integration tests | INCOMPLETE |
 | P3 | Android↔API auth/profile/privacy/photos, reset/verify и безопасные сессии | A1/A12, IDOR, кэш изолирован по пользователю | INCOMPLETE |
 | P4 | Новый каталог/предложения/модерация, поиск, сканер и GTIN | A2/A9, камера/отказ, пустой старт, отсутствие legacy | INCOMPLETE |
