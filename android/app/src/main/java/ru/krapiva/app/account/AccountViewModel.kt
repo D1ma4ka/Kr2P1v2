@@ -128,7 +128,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     suspend fun upload(uri: Uri): String = withContext(Dispatchers.IO) {
         val resolver = getApplication<Application>().contentResolver
         val type = resolver.getType(uri) ?: "image/jpeg"
-        if (type !in setOf("image/jpeg", "image/png", "image/webp")) throw IOException("Unsupported image")
+        if (type !in setOf("image/jpeg", "image/png", "image/webp")) throw ApiFailure(415, "Выберите JPEG, PNG или WebP")
         val bytes = resolver.openInputStream(uri)?.use { input ->
             val output = java.io.ByteArrayOutputStream()
             val buffer = ByteArray(8192)

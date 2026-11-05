@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,randomBytes} from 'node:crypto';
 import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -12,6 +12,7 @@ import {testDatabase} from './database.js';
 import {FileStorage} from '../src/media/storage.js';
 import {MediaService} from '../src/media/service.js';
 import {tokenHash} from '../src/identity/sessions.js';
+import {accountMailer} from '../src/mail/accounts.js';
 
 test('P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, session rotation, profile/media ACL and deletion request',async()=>{
  const db=await testDatabase();await migrate(db.pool);
@@ -96,4 +97,23 @@ test('P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, sessio
   await db.pool.query("INSERT INTO auth_budgets(key_hash,window_start,count) VALUES($1,date_trunc('hour',now()),60) ON CONFLICT(key_hash) DO UPDATE SET count=60",[tokenHash('ip:127.0.0.1')]);
   assert.equal((await call('/v1/auth/login',{email:other,password})).status,429);
  } finally {await app.close();await db.close();await rm(directory,{recursive:true,force:true});}
+});
+
+test('account failure paths: SMTP rollback, expired tokens and independent token rate budgets',async()=>{
+ const db=await testDatabase();await migrate(db.pool);
+ const mail=accountMailer({NODE_ENV:'test',SMTP_HOST:'127.0.0.1',SMTP_PORT:'1'});
+ const app=buildApp(readConfig({NODE_ENV:'test',LOG_LEVEL:'silent'}),db.pool,undefined,mail);
+ const address=await app.listen({host:'127.0.0.1',port:0});
+ const call=(path:string,body:unknown)=>fetch(address+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+ try {
+  assert.equal((await call('/v1/auth/register',{email:'failure@example.invalid',password:'Synthetic failure password!',displayName:'Failure',adultConfirmed:true})).status,503);
+  assert.equal((await db.pool.query('SELECT 1 FROM users')).rowCount,0);
+  // Different users/codes must not share a global 10/hour verification bucket.
+  for(let i=0;i<11;i++) assert.equal((await call('/v1/auth/verify',{token:randomBytes(32).toString('base64url')})).status,401);
+  const user=(await db.pool.query("INSERT INTO users(email,display_name,adult_confirmed_at) VALUES('expired@example.invalid','Expired',now()) RETURNING id")).rows[0].id;
+  const expired=randomBytes(32).toString('base64url');
+  await db.pool.query("INSERT INTO account_tokens(user_id,purpose,token_hash,created_at,expires_at) VALUES($1,'verify_email',$2,now()-interval '2 hours',now()-interval '1 hour')",[user,tokenHash(expired)]);
+  assert.equal((await call('/v1/auth/verify',{token:expired})).status,401);
+  assert.equal((await db.pool.query('SELECT email_verified_at FROM users WHERE id=$1',[user])).rows[0].email_verified_at,null);
+ } finally {await app.close();mail.close();await db.close();}
 });

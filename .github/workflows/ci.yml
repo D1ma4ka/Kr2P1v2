@@ -38,7 +38,7 @@ jobs:
         run: |
           if [ "$EVENT_NAME" = workflow_dispatch ]; then
             echo 'android=true' >> "$GITHUB_OUTPUT"
-          elif git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- android/ assets/; then
+          elif git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- android/ assets/ .github/workflows/ci.yml; then
             echo 'android=false' >> "$GITHUB_OUTPUT"
           else
             echo 'android=true' >> "$GITHUB_OUTPUT"
@@ -74,6 +74,13 @@ jobs:
           java-version: '21'
       - name: Verify wrapper
         run: echo '2db75c40782f5e8ba1fc278a5574bab070adccb2d21ca5a6e5ed840888448046  android/gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: android-gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: android-gradle-${{ runner.os }}-
       - name: Set up Android command-line tools
         uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
         with:
@@ -114,13 +121,20 @@ jobs:
           exit 1
       - name: Boot isolated Android 35 emulator
         run: |
-          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+          if [ ! -e /dev/kvm ]; then
             echo 'BLOCKED: runner does not provide usable KVM; no device PASS claimed'
             exit 1
           fi
           sdkmanager 'emulator' 'system-images;android-35;default;x86_64'
           echo no | avdmanager create avd --force --name krapiva --package 'system-images;android-35;default;x86_64' --device pixel_2
-          "$ANDROID_HOME/emulator/emulator" -avd krapiva -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -accel on > work/android-emulator.log 2>&1 &
+          if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
+            "$ANDROID_HOME/emulator/emulator" -avd krapiva -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -accel on > work/android-emulator.log 2>&1 &
+          else
+            # Use the existing device group for this non-root process only.
+            # No chmod, udev rules, user modification or security configuration.
+            sudo -n -u "$(id -un)" -g "$(stat -c %G /dev/kvm)" -- env ANDROID_HOME="$ANDROID_HOME" \
+              "$ANDROID_HOME/emulator/emulator" -avd krapiva -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -accel on > work/android-emulator.log 2>&1 &
+          fi
           adb wait-for-device
           for attempt in $(seq 1 90); do
             if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; then
@@ -137,7 +151,7 @@ jobs:
         if: always()
         run: |
           mkdir -p work/screenshots
-          adb pull /sdcard/Android/data/ru.krapiva.app.debug/files/p3-liquid-states.png work/screenshots/ || true
+          adb pull /sdcard/Android/data/ru.krapiva.app.debug/files/ work/screenshots/ || true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:

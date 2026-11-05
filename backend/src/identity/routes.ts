@@ -25,10 +25,10 @@ export async function accountRoutes(app:FastifyInstance,pool:pg.Pool,mail:Accoun
   });
  }
  app.post<{Body:{token:string}}>('/v1/auth/verify',{schema:{body:s.object({token}),response:{...s.errors,204:{type:'null'}}}},async(req,reply)=>{
-  await accounts.budget(req.ip,'verify','token');await accounts.consume(req.body.token,'verify_email');return reply.code(204).send();
+  await accounts.budget(req.ip,req.body.token,'verify');await accounts.consume(req.body.token,'verify_email');return reply.code(204).send();
  });
  app.post<{Body:{token:string;password:string}}>('/v1/auth/reset-password',{schema:{body:s.object({token,password}),response:{...s.errors,204:{type:'null'}}}},async(req,reply)=>{
-  await accounts.budget(req.ip,'reset','token');await accounts.consume(req.body.token,'reset_password',req.body.password);return reply.code(204).send();
+  await accounts.budget(req.ip,req.body.token,'reset');await accounts.consume(req.body.token,'reset_password',req.body.password);return reply.code(204).send();
  });
  app.post<{Body:{refreshToken:string}}>('/v1/auth/refresh',{schema:{body:s.object({refreshToken:token}),response:{...s.errors,200:pair}}},async req=>{
   await accounts.budget(req.ip,req.body.refreshToken,'refresh');return accounts.refresh(req.body.refreshToken);

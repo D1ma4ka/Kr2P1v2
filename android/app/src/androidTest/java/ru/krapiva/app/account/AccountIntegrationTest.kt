@@ -14,29 +14,56 @@ import ru.krapiva.app.BuildConfig
 import ru.krapiva.app.designsystem.KraPivaTheme
 import java.net.URL
 import java.util.UUID
+import android.graphics.Bitmap
+import java.io.ByteArrayOutputStream
+import java.io.File
+import android.os.ParcelFileDescriptor
 
 /** Real local HTTP+PostgreSQL+SMTP. Never targets staging/production or external mail. */
 @RunWith(AndroidJUnit4::class)
 class AccountIntegrationTest {
     @get:Rule val compose = createComposeRule()
+    private fun screenshot(name: String) {
+        compose.waitForIdle()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        File(instrumentation.targetContext.getExternalFilesDir(null), name).outputStream().use {
+            instrumentation.uiAutomation.takeScreenshot().compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+    }
+    private fun shell(command: String) {
+        ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)).use { it.readBytes() }
+    }
+    private fun networkReady(): Boolean = runCatching {
+        val connection = URL("http://10.0.2.2:53000/health/ready").openConnection() as java.net.HttpURLConnection
+        try { connection.connectTimeout = 1000; connection.readTimeout = 1000; connection.responseCode == 200 }
+        finally { connection.disconnect() }
+    }.getOrDefault(false)
     @Test fun androidAccountFlowAndCacheIsolation() {
         check(BuildConfig.API_ENVIRONMENT == "development" && BuildConfig.API_BASE_URL.startsWith("http://10.0.2.2:"))
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val store = AccountStore(context)
         store.clear()
-        val api = AccountApi(store)
         val email = "android${UUID.randomUUID().toString().replace("-", "")}@example.invalid"
         val password = "Synthetic Android password!"
-        runBlocking {
-            api.json("v1/auth/register", "POST", JSONObject().put("email", email).put("password", password).put("displayName", "Synthetic Android").put("adultConfirmed", true), false)
-            val messages = JSONObject(URL("http://10.0.2.2:58025/api/v1/search?query=to:$email").readText()).getJSONArray("messages")
-            val message = JSONObject(URL("http://10.0.2.2:58025/api/v1/message/${messages.getJSONObject(0).getString("ID")}").readText())
-            val code = Regex("Код: ([A-Za-z0-9_-]{43})").find(message.getString("Text"))!!.groupValues[1]
-            api.json("v1/auth/verify", "POST", JSONObject().put("token", code), false)
-        }
         compose.setContent { KraPivaTheme { AccountApp() } }
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Создать аккаунт").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("Войти").performScrollTo().performClick()
+        screenshot("p3-welcome.png")
+        compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
+        compose.onNodeWithText("E-mail").performTextInput(email)
+        compose.onNodeWithText("Отображаемое имя").performTextInput("Synthetic Android")
+        compose.onNodeWithText("Пароль · 12–128 символов").performTextInput(password)
+        compose.onNodeWithText("Повторите пароль").performTextInput(password)
+        compose.onNode(isToggleable()).performScrollTo().performClick()
+        compose.onNodeWithText("Зарегистрироваться").performScrollTo().performClick()
+        compose.waitUntil(20_000) { compose.onAllNodesWithText("Подтверждение почты").fetchSemanticsNodes().isNotEmpty() }
+        val code = runBlocking {
+            val messages = JSONObject(URL("http://10.0.2.2:58025/api/v1/search?query=to:$email").readText()).getJSONArray("messages")
+            val message = JSONObject(URL("http://10.0.2.2:58025/api/v1/message/${messages.getJSONObject(0).getString("ID")}").readText())
+            Regex("Код: ([A-Za-z0-9_-]{43})").find(message.getString("Text"))!!.groupValues[1]
+        }
+        compose.onNodeWithText("Одноразовый код из письма").performTextInput(code)
+        compose.onNodeWithText("Подтвердить").performScrollTo().performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("E-mail").performTextInput(email)
         compose.onNodeWithText("Пароль · 12–128 символов").performTextInput(password)
         compose.onNodeWithText("Войти").performScrollTo().performClick()
@@ -46,22 +73,68 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Сохранить").performScrollTo().performClick()
         compose.waitUntil(20_000) { compose.onAllNodesWithText("Профиль сохранён на сервере").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Тестовый город").assertExists()
+        screenshot("p3-profile.png")
+        compose.onNodeWithText("Редактировать профиль").performScrollTo().performClick()
+        compose.onNodeWithText("Город").performScrollTo().performTextReplacement("Несохранённый город")
+        compose.onNodeWithText("Отменить изменения").performScrollTo().performClick()
+        compose.onNodeWithText("Тестовый город").assertExists()
         // Reconstruct the actual Android repository/store, then fetch persistent server data.
+        lateinit var userId: String
         runBlocking {
             val reopened = AccountApi(AccountStore(context))
             assertTrue(reopened.restore())
             val profile = reopened.json("v1/me")
             assertEquals("Тестовый город", profile.getString("city"))
             assertEquals("Тестовый город", reopened.cached()!!.getString("city"))
-            val id = profile.getString("userId")
+            userId = profile.getString("userId")
             assertNull(store.cached(UUID.randomUUID().toString()))
             val session = store.session()!!
             val file = java.io.File(context.noBackupFilesDir, "session.enc").readBytes().toString(Charsets.ISO_8859_1)
             assertFalse(file.contains(session.getString("accessToken")))
-            reopened.json("v1/session", "DELETE")
-            reopened.clear()
-            assertNull(store.cached(id)); assertNull(store.session())
+            val bitmap = Bitmap.createBitmap(32, 24, Bitmap.Config.ARGB_8888).apply { eraseColor(android.graphics.Color.rgb(245, 166, 35)) }
+            val image = ByteArrayOutputStream().apply { bitmap.compress(Bitmap.CompressFormat.PNG, 100, this) }.toByteArray()
+            val avatar = JSONObject(String(reopened.bytes("v1/media", "POST", image, "image/png"))).getString("id")
+            val cover = JSONObject(String(reopened.bytes("v1/media", "POST", image, "image/png"))).getString("id")
+            val edit = JSONObject(profile.toString()).apply { remove("userId"); remove("updatedAt"); put("avatarAssetId", avatar); put("coverAssetId", cover) }
+            val saved = reopened.json("v1/me/profile", "PATCH", edit)
+            assertEquals(avatar, saved.getString("avatarAssetId")); assertEquals(cover, saved.getString("coverAssetId"))
+            assertNotNull(reopened.photo(avatar)); assertNotNull(store.photo(userId, avatar))
         }
+        compose.onNodeWithText("Обновить").performScrollTo().performClick()
+        compose.waitUntil(20_000) { compose.onAllNodesWithContentDescription("Аватар профиля").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription("Обложка профиля").assertExists()
+        compose.onNodeWithContentDescription("Аватар профиля").performScrollTo().performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Фото профиля").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Закрыть").performClick()
+        screenshot("p3-profile-photos.png")
+        try {
+            shell("svc wifi disable"); shell("svc data disable")
+            compose.waitUntil(20_000) { !networkReady() }
+            compose.onNodeWithText("Обновить").performScrollTo().performClick()
+            compose.waitUntil(40_000) { compose.onAllNodesWithText("Нет связи. Показана сохранённая копия профиля.").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Тестовый город").assertExists()
+        } finally { shell("svc data enable"); shell("svc wifi enable") }
+        compose.waitUntil(30_000) { networkReady() }
+        compose.onNodeWithText("Обновить").performScrollTo().performClick()
+        compose.waitUntil(30_000) { compose.onAllNodesWithText("Сохранённая копия · изменения требуют сети").fetchSemanticsNodes().isEmpty() }
+        compose.onNodeWithText("Настройки аккаунта").performScrollTo().performClick()
+        compose.onNodeWithText("Выйти из аккаунта").performScrollTo().performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Вы вышли из аккаунта").fetchSemanticsNodes().isNotEmpty() }
+        assertNull(store.cached(userId)); assertNull(store.session())
+        compose.onNodeWithText("Забыли пароль?").performScrollTo().performClick()
+        compose.onNodeWithText("E-mail").performTextInput(email)
+        compose.onNodeWithText("Получить код").performScrollTo().performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Новый пароль").fetchSemanticsNodes().isNotEmpty() }
+        val resetCode = runBlocking {
+            val messages = JSONObject(URL("http://10.0.2.2:58025/api/v1/search?query=to:$email").readText()).getJSONArray("messages")
+            val message = JSONObject(URL("http://10.0.2.2:58025/api/v1/message/${messages.getJSONObject(0).getString("ID")}").readText())
+            Regex("Код: ([A-Za-z0-9_-]{43})").find(message.getString("Text"))!!.groupValues[1]
+        }
+        compose.onNodeWithText("Одноразовый код из письма").performTextInput(resetCode)
+        compose.onNodeWithText("Пароль · 12–128 символов").performTextInput("New synthetic Android password!")
+        compose.onNodeWithText("Повторите пароль").performTextInput("New synthetic Android password!")
+        compose.onNodeWithText("Сменить пароль").performScrollTo().performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() }
         store.close()
     }
 }

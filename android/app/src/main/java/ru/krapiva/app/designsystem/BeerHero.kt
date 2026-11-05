@@ -33,7 +33,7 @@ import kotlin.math.sin
 import kotlin.math.tan
 
 @Composable
-fun BeerHero(modifier: Modifier = Modifier, previewAngle: Float? = null, forceReducedMotion: Boolean = false) {
+fun BeerHero(modifier: Modifier = Modifier, previewAngle: Float? = null, forceReducedMotion: Boolean = false, forceNoSensor: Boolean = false) {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
     val manager = remember(context) { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
@@ -54,9 +54,9 @@ fun BeerHero(modifier: Modifier = Modifier, previewAngle: Float? = null, forceRe
         onDispose { owner.lifecycle.removeObserver(observer); context.contentResolver.unregisterContentObserver(settings) }
     }
     val static = reduced || forceReducedMotion
-    DisposableEffect(manager, active, static, previewAngle) {
+    DisposableEffect(manager, active, static, previewAngle, forceNoSensor) {
         val model = LiquidMotion()
-        val sensor = manager.getDefaultSensor(Sensor.TYPE_GRAVITY) ?: manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        val sensor = if (forceNoSensor) null else manager.getDefaultSensor(Sensor.TYPE_GRAVITY) ?: manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         var last = 0L
         var filteredX = 0f; var filteredY = 9.81f
         val listener = object : SensorEventListener {

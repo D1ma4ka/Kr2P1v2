@@ -9,6 +9,10 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.graphics.asAndroidBitmap
+import org.junit.Assert.*
 
 class BeerHeroTest {
     @get:Rule val compose = createComposeRule()
@@ -25,5 +29,16 @@ class BeerHeroTest {
         InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot().let { bitmap ->
             file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
+    }
+    @Test fun noSensorLoopMovesAndReducedMotionStaysStill() {
+        compose.setContent { KraPivaTheme { Column {
+            BeerHero(Modifier.testTag("fallback"), forceNoSensor = true)
+            BeerHero(Modifier.testTag("static"), forceReducedMotion = true)
+        } } }
+        val moving = compose.onNodeWithTag("fallback").captureToImage().asAndroidBitmap()
+        val still = compose.onNodeWithTag("static").captureToImage().asAndroidBitmap()
+        android.os.SystemClock.sleep(700)
+        assertFalse(moving.sameAs(compose.onNodeWithTag("fallback").captureToImage().asAndroidBitmap()))
+        assertTrue(still.sameAs(compose.onNodeWithTag("static").captureToImage().asAndroidBitmap()))
     }
 }
