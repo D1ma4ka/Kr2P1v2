@@ -54,3 +54,19 @@ partitioning, replicas и PostGIS. Индексы защищают текущи�
 bbox индекс/план и репрезентативная нагрузка — P7/P8 до утверждения масштаба.
 Кеш/worker/replicas добавляются по метрикам. Ограничения HTTP/SQL — стартовые
 инженерные defaults, не продуктовые обещания latency/throughput.
+
+## Уточнения review P2 (5 ноября 2026)
+
+Readiness сверяет точные hashes двух миграций, разрешимость основных таблиц
+и доступность media filesystem. Liveness независим. Ошибка зависимости даёт
+503 без раскрытия connection strings. Параметры PostgreSQL URL ограничены
+sslmode/sslrootcert без повторов; remote production требует verify-full.
+FileStorage синхронизирует directory entries после write/delete (Linux runtime).
+Негативные тесты проверяют SQL drift, недоступный каталог, частичную запись
+изображения и безопасно повторяемое удаление после ошибки диска.
+
+Android получил только env BuildConfig и scoped debug network policy (P2),
+без UI/account workflow. Staging/release URL обязательны при соответствующей
+сборке, без вымышленного production endpoint. Разрешённый staging/E2E — P3/P8.
+Runtime drill использует новый namespace synthetic accounts на запуск, не
+перезаписывает вчерашние session tokens; production seeding по-прежнему нет.

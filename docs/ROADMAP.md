@@ -2,7 +2,7 @@
 
 Полный план: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
-P0 DONE → P1 DONE → **P2 NOT STARTED, требуется команда владельца** →
+P0 DONE → P1 DONE → **P2 IN PROGRESS, приёмка foundation** →
 P3 (с отдельно согласованным P1.1 UI refinement) → P4 → P5 → P6 → P7 → P8 → P9.
 Затем обязательный iOS-трек: **P10 → P11 → P12 → P13**.
 Между всеми этапами обязательная остановка и разрешение.

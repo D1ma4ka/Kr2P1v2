@@ -16,6 +16,11 @@ Runtime drill теперь каждый раз создаёт новую synthet
 не зависит от истёкших вчерашних токенов и не перезаписывает прежние fixtures.
 Следующий checkpoint: backend CI с настоящими DB/SMTP и restore drill.
 
+Backend full suite после review: 11/11 PASS. Android env configuration added,
+assembleDebug/lintDebug PASS; dev/staging/release constants проверены на
+reserved DNS, не E2E staging. Следующее действие: подтвердить GitHub CI на
+чистом runner и завершить матрицу/отчёт P2. Новая сборка UI/P3 не начата.
+
 ---
 
 # STOP — P2 WIP, остановка по лимиту и команде владельца
