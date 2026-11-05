@@ -56,7 +56,8 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (state.screen in setOf(AccountScreen.WELCOME, AccountScreen.REGISTER, AccountScreen.RESTORING)) BeerHero(Modifier.size(88.dp))
+                    if (state.screen in setOf(AccountScreen.WELCOME, AccountScreen.REGISTER, AccountScreen.RESTORING)) BeerHero(Modifier.size(88.dp),
+                        forceReducedMotion = state.screen == AccountScreen.RESTORING && !state.busy)
                     else Image(painterResource(R.drawable.ic_brand_mark), null, Modifier.size(48.dp))
                     Column { Text("KraPiva", style = MaterialTheme.typography.headlineMedium, color = KraPivaColors.Cream)
                         Text("CRAFT BEER COMMUNITY · 18+", style = MaterialTheme.typography.labelSmall, color = KraPivaColors.Amber) }
@@ -66,7 +67,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
                 if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 key(state.screen) {
                     when (state.screen) {
-                        AccountScreen.RESTORING -> { Title("Восстанавливаем сессию")
+                        AccountScreen.RESTORING -> { Title(if (state.error != null && !state.busy) "Не удалось восстановить сессию" else "Восстанавливаем сессию")
                             if (!state.busy) { Action("Повторить", true, model::restore)
                                 Link("Очистить локальную сессию", true, model::clearLocally) } }
                         AccountScreen.WELCOME -> Welcome(state, model)

@@ -27,7 +27,7 @@ jobs:
         run: |
           if [ "$EVENT_NAME" = workflow_dispatch ]; then
             echo 'backend=true' >> "$GITHUB_OUTPUT"
-          elif git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- backend/ infra/ compose.yaml .env.example scripts/init_dev.py .github/workflows/backend.yml; then
+          elif git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- backend/ infra/ compose.yaml .env.example scripts/init_dev.py .github/workflows/backend.yml ':(exclude,glob)backend/**/*.md'; then
             echo 'backend=false' >> "$GITHUB_OUTPUT"
           else
             echo 'backend=true' >> "$GITHUB_OUTPUT"

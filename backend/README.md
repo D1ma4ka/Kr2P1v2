@@ -38,3 +38,34 @@ Social/map/badges routes ещё не реализованы, возвращае�
 Runtime drill `node --env-file=../.env test/runtime-check.mjs` временно останавливает
 local API для согласованного SQL+media snapshot; не запускать на production.
 Повторять проверки только при изменениях или конкретной диагностике.
+
+## P3: настоящие аккаунты и профиль
+
+Общий Android/iOS контракт: `docs/api/openapi.yaml` (генерируется зарегистрированными
+маршрутами; contract test запрещает drift). Все auth operations под `/v1/auth`:
+`register`, `resend`, `verify`, `login`, `forgot-password`, `reset-password`, `refresh`.
+Код из реального письма вводится в клиент; expiry/consumption/rotation сохраняются
+в PostgreSQL. Password 12–128 символов, scrypt-v1; access 1h, refresh 30d;
+reset/replay отзывают сессии. Ошибки/лимиты не раскрывают наличие аккаунта.
+
+`GET /v1/me`, `PATCH /v1/me/profile`, `GET /v1/users/{id}` — полный профиль,
+version conflicts, HTTPS links, gender/link visibility и независимые avatar/cover.
+Публичные/friends media проверяются на каждом прямом запросе. Приватный профиль
+другому аккаунту отвечает 404. Никаких Android identifiers в API.
+`DELETE /v1/session` отзывает текущую сессию; `POST /v1/me/deletion-request`
+сохраняет запрос и 30-day deadline, немедленно закрывает доступ/публичность.
+Это запрос, а не сообщение об уже выполненном стирании: production erasure/
+legal retention/backups требуют операционного процесса до эксплуатации (ADR-0004).
+
+Dev/test: SMTP_HOST только localhost/127.0.0.1/mailpit, recipient только
+`@example.invalid`; письма остаются в Mailpit. Production отдельно конфигурирует
+`SMTP_DELIVERY_ENABLED=true`, `SMTP_HOST`, `SMTP_PORT=465|587`, `SMTP_FROM`,
+`SMTP_USER`, `SMTP_PASSWORD`; TLS обязателен. Не включать delivery без разрешения
+владельца; текущая задача не отправляет внешние письма и не развёртывает production.
+
+Проверки P3: `npm run build`, затем
+`node --env-file=../.env --test --test-concurrency=1 dist/test/*.test.js`.
+13 настоящих HTTP/SQL/SMTP tests; отдельный negative test подтверждает rollback
+при недоступном SMTP, истечение кода и независимость rate budgets разных кодов.
+Последовательный запуск suite избегает resource contention локального Mailpit;
+реальные concurrent/idempotency/migration cases остаются внутри тестов.
