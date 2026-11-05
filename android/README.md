@@ -1,68 +1,64 @@
-# Android — P1
+# Android — P3
 
-Новый Kotlin/Compose/Material 3 проект; Android 8.0+ (minSdk 26), SDK 35.
-Сейчас реализованы splash, стартовый экран бренда и диалог «О KraPiva».
-Нет запросов в API, авторизации, каталога или имитации социальной сети.
-Сетевые и camera permissions добавляются вместе с соответствующей функцией.
+Kotlin/Compose/Material 3, Android 8.0+ (minSdk 26), SDK35. P1/P2 сохранены.
+Реальные регистрация/подтверждение/вход/сброс, profile editor, avatar/cover,
+privacy, session rotation/logout/deletion request и read-only offline cache.
+Все операции идут в общий backend, фиктивных ответов в приложении нет.
+Catalog/checkin/social/venues — P4–P7; их нижние назначения пока disabled.
 
-## Чистая сборка
+## Сборка
 
-Нужны JDK 21 (полный JDK, не только JRE), Android SDK platform 35 и build-tools
-35.0.0. Версии AGP/Kotlin/Compose закреплены в Gradle, wrapper 8.11.1 проверяет
-SHA-256 дистрибутива. Локальный SDK задаётся через ANDROID_HOME; абсолютные пути
-не входят в проект. Установка SDK выполняется стандартными Android tools.
+Полный JDK21, SDK platform35/build-tools35.0.0, Gradle wrapper8.11.1.
+`ANDROID_HOME`, `GRADLE_USER_HOME`, `ANDROID_USER_HOME` могут указывать в
+локальный ignored `work/`; пути не в исходниках. Proxy и доверенный CA задаются
+JVM standard properties, TLS verification не отключается.
 
 ```sh
-# Из android/, после установки JDK/SDK:
-./gradlew --no-daemon assembleDebug lintDebug
+./gradlew --no-daemon assembleDebug assembleDebugAndroidTest lintDebug testDebugUnitTest
 ```
 
-APK: `app/build/outputs/apk/debug/app-debug.apk`; package
-`ru.krapiva.app.debug`, version `0.1.0-p1`. Debug signing — автоматически
-созданный локальный ключ Android tooling, не production подпись. APK/ключи
-не коммитятся. Release key, публикация и магазин не настраивались.
+Package `ru.krapiva.app.debug`, version `0.1.0-p3`. APK и debug signing keys
+только локально/ignored, публикации и production signing нет. Lint ошибки
+блокируют сборку, baseline/suppressions не добавлялись. Актуальные результаты:
+[отчёт P3](../docs/stages/P3.md), [план QA](../docs/QA_TEST_PLAN.md).
 
-Gradle использует максимум 2 workers, JVM heap 1536 MiB; автоматических
-бесконечных повторов нет. В окружении с HTTP proxy передайте его Gradle/JVM
-стандартными system properties и используйте доверенный CA; не выключайте TLS.
-GitHub Actions использует предоставленный runner Android SDK и JDK 21.
+## Настоящий локальный API
 
-## Проверки и границы
+Из корня: `python3 scripts/init_dev.py` (один раз), `docker compose up -d --wait db mailpit`.
+Из backend/: `npm ci --ignore-scripts --no-fund --no-audit`, `npm run build`,
+`node --env-file=../.env dist/src/db/migrate.js`, затем
+`PORT=53000 node --env-file=../.env dist/src/main.js`.
+Не показывайте .env/token/password в логах. Полный portable container запуск —
+[DEPLOYMENT_RU](../docs/DEPLOYMENT_RU.md).
 
-`lintDebug` останавливает сборку на ошибках (`abortOnError=true`), без baseline
-или отключения отдельных проверок. Предупреждения сохраняются в полном CI
-отчёте, но не повышаются до ошибок (`warningsAsErrors=false`): в P1 закреплена
-связка SDK35/AGP8.9.2, а рекомендации обновить версии требуют отдельной проверки
-совместимости. Перед выпуском targetSdk и зависимости необходимо актуализировать.
-Начальная сборка обнаружила 7 замечаний ресурсов; они исправлены (см. P1).
-Runtime на эмуляторе/телефоне и TalkBack ещё не проверены: в текущей среде нет
-аппаратного ускорения `/dev/kvm`; тяжёлый software emulator в P1 не запускался.
-Сборка и lint не считаются доказательством runtime-прохода пользовательских сценариев.
+Debug по умолчанию `http://10.0.2.2:53000/`; host loopback переопределяется
+`KRAPIVA_DEV_API_BASE_URL`. E-mail в dev — `name@example.invalid`, реальное письмо
+попадает в Mailpit `http://127.0.0.1:58025`. Код вставляется в Android-форму,
+не обходится локальным флагом. Staging/release требуют явных HTTPS DNS URLs
+(`KRAPIVA_STAGING_API_BASE_URL`, `KRAPIVA_PROD_API_BASE_URL`), HTTP отклоняется.
+Production SMTP не включён, внешним адресатам dev/test ничего не отправляют.
 
-## Структура
+## Runtime проверки
 
-`MainActivity` — bootstrap/splash. `designsystem/` — цвета, типографика, формы,
-отступы. `welcome/` — текущая UI-поверхность. Текст из string resources,
-фирменный знак декоративный (не дублирует TalkBack), контент прокручивается,
-ширина ограничена на широких экранах, кнопки ≥48dp, шрифт в sp.
-Следующие UI/state/domain/repositories/local/remote пакеты создаются при
-появлении реального поведения; пустые классы и mock repositories не добавляются.
+С работающими API/DB/Mailpit и API35 эмулятором:
 
-## P2: адрес API и сетевые окружения
+```sh
+./gradlew connectedDebugAndroidTest
+```
 
-`BuildConfig.API_BASE_URL`, `API_ENVIRONMENT`, `ALLOW_LOCAL_HTTP` задаются при
-сборке. Экраны P1 не менялись; реальный API client/accounts подключаются в P3.
+`AccountIntegrationTest` создаёт уникальную synthetic учётку через настоящий
+HTTP и читает код из Mailpit, входит через Compose UI, сохраняет город,
+повторно открывает Keystore/SQLite repository, проверяет шифрование/isolation/
+выход. `BeerHeroTest` проверяет left/right/static states и пишет synthetic
+screenshot в app external files. Никаких реальных аккаунтов/паролей в тестах.
+В среде без writable adb home допустим direct `adb-shell` transport с ключом
+в `work/`: push APK, `pm install -r -t`, `am instrument -w -r ...AndroidJUnitRunner`.
+Точный результат не выводится из одного факта успешной компиляции тестового APK.
 
-- debug/dev: `KRAPIVA_DEV_API_BASE_URL`, по умолчанию `http://10.0.2.2:53000/`
-  для эмулятора. HTTP разрешён только для 10.0.2.2, localhost, 127.0.0.1.
-- staging: `KRAPIVA_STAGING_API_BASE_URL`, обязателен HTTPS/DNS; package .staging.
-- release/prod: `KRAPIVA_PROD_API_BASE_URL`, обязателен HTTPS/DNS; без встроенного
-  production адреса. URL без credentials/query/fragment; без секретов в APK.
+## Архитектура
 
-Staging/release build tasks отказывают, если соответствующий адрес не задан.
-Для разрешённого будущего домена достаточно переменной окружения, код API и UI
-не меняется. Проверка генерации constants на зарезервированных example.invalid
-доменах не является рабочим staging или A20 E2E. Релизная подпись не настроена.
-Debug-only network security XML не попадает в staging/release; общий manifest
-запрещает cleartext. Для физического Android: `adb reverse tcp:53000 tcp:53000`
-и dev URL `http://127.0.0.1:53000/` (проверка на устройстве ещё NOT RUN).
+`MainActivity` — system splash/bootstrap; `account/AccountScreen.kt` — Compose;
+`AccountViewModel` — состояния; `AccountApi` — HTTP; `AccountStore` — Keystore и
+SQLite. Design tokens и liquid physics — `designsystem/`, ADR-MOTION описывает
+lifecycle/rotation/fallback. Все исходные field/API contracts платформенно
+нейтральны; iOS обязательна P10–P13, в текущем P3 не пишется.

@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -16,6 +17,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -30,6 +38,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import org.json.JSONArray
 import org.json.JSONObject
 import ru.krapiva.app.BuildConfig
+import ru.krapiva.app.R
 import ru.krapiva.app.designsystem.BeerHero
 import ru.krapiva.app.designsystem.KraPivaColors
 
@@ -48,6 +57,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (state.screen in setOf(AccountScreen.WELCOME, AccountScreen.REGISTER, AccountScreen.RESTORING)) BeerHero(Modifier.size(88.dp))
+                    else Image(painterResource(R.drawable.ic_brand_mark), null, Modifier.size(48.dp))
                     Column { Text("KraPiva", style = MaterialTheme.typography.headlineMedium, color = KraPivaColors.Cream)
                         Text("CRAFT BEER COMMUNITY · 18+", style = MaterialTheme.typography.labelSmall, color = KraPivaColors.Amber) }
                 }
@@ -72,8 +82,11 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
                 // Destinations become enabled with their real features in P4–P7.
                 for (label in listOf("Главная", "Каталог", "Чекин", "Бары", "Профиль")) NavigationBarItem(
                     selected = label == "Профиль", enabled = label == "Профиль" && !state.busy,
-                    onClick = { model.navigate(AccountScreen.PROFILE) }, icon = { Text(if (label == "Чекин") "+" else when(label) { "Главная" -> "⌂"; "Каталог" -> "≡"; "Бары" -> "◇"; else -> "○" },
-                        color = if (label == "Чекин") KraPivaColors.Amber else MaterialTheme.colorScheme.onSurface) },
+                    onClick = { model.navigate(AccountScreen.PROFILE) }, icon = {
+                        if (label == "Чекин") Surface(color = KraPivaColors.Amber, shape = RoundedCornerShape(12.dp)) {
+                            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { NavigationMark(label, KraPivaColors.Ink) }
+                        } else NavigationMark(label, if (label == "Профиль") KraPivaColors.Cream else KraPivaColors.Muted)
+                    },
                     label = { Text(label, maxLines = 1, style = MaterialTheme.typography.labelSmall) })
             }
         }
@@ -81,6 +94,24 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     state.fullPhoto?.let { photo -> AlertDialog(onDismissRequest = model::closePhoto,
         title = { Text("Фото профиля") }, text = { Image(photo.asImageBitmap(), "Просмотр фото", Modifier.fillMaxWidth()) },
         confirmButton = { TextButton(model::closePhoto) { Text("Закрыть") } }) }
+}
+@Composable private fun NavigationMark(label: String, color: Color) {
+    Canvas(Modifier.size(24.dp)) {
+        val w = size.width; val h = size.height; val stroke = Stroke(w * .075f)
+        when (label) {
+            "Главная" -> drawPath(Path().apply { moveTo(w*.12f,h*.45f); lineTo(w*.5f,h*.12f); lineTo(w*.88f,h*.45f); moveTo(w*.24f,h*.38f); lineTo(w*.24f,h*.88f); lineTo(w*.76f,h*.88f); lineTo(w*.76f,h*.38f) }, color, style = stroke)
+            "Каталог" -> {
+                drawRect(color, Offset(w*.2f,h*.14f), Size(w*.6f,h*.72f), style = stroke)
+                for (y in listOf(.32f,.5f,.68f)) drawLine(color, Offset(w*.33f,h*y), Offset(w*.67f,h*y), w*.06f)
+            }
+            "Чекин" -> { drawLine(color, Offset(w*.2f,h*.5f), Offset(w*.8f,h*.5f),w*.08f); drawLine(color, Offset(w*.5f,h*.2f), Offset(w*.5f,h*.8f),w*.08f) }
+            "Бары" -> {
+                drawPath(Path().apply { moveTo(w*.5f,h*.92f); cubicTo(w*.12f,h*.52f,w*.08f,h*.12f,w*.5f,h*.12f); cubicTo(w*.92f,h*.12f,w*.88f,h*.52f,w*.5f,h*.92f) },color,style=stroke)
+                drawCircle(color,w*.1f,Offset(w*.5f,h*.37f),style=stroke)
+            }
+            else -> { drawCircle(color,w*.17f,Offset(w*.5f,h*.28f),style=stroke); drawArc(color,180f,180f,false,Offset(w*.16f,h*.56f),Size(w*.68f,h*.62f),style=stroke) }
+        }
+    }
 }
 @Composable private fun Title(value: String) { Text(value, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() }) }
 @Composable private fun Action(label: String, enabled: Boolean, onClick: () -> Unit) {

@@ -16,10 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -41,6 +42,8 @@ fun BeerHero(modifier: Modifier = Modifier, previewAngle: Float? = null, forceRe
     var available by remember { mutableStateOf(false) }
     var target by remember { mutableFloatStateOf(0f) }
     val angle = remember { mutableFloatStateOf(0f) }
+    val hop = remember { PathParser().parsePathString("M54,45C37,47 35,61 42,75Q47,84 54,88Q61,84 66,75C73,61 71,47 54,45Z").toPath() }
+    val scales = remember { PathParser().parsePathString("M54,45V40 M54,48Q48,59 40,60 M54,48Q60,59 68,60 M40,59Q43,70 54,72Q65,70 68,59 M44,70Q47,80 54,85Q61,80 64,70 M54,62Q49,67 47,74 M54,62Q59,67 61,74").toPath() }
     DisposableEffect(owner, context) {
         val observer = LifecycleEventObserver { _, _ -> active = owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
         val settings = object : ContentObserver(Handler(Looper.getMainLooper())) {
@@ -86,7 +89,7 @@ fun BeerHero(modifier: Modifier = Modifier, previewAngle: Float? = null, forceRe
         val w = size.width; val h = size.height
         val glass = Path().apply {
             moveTo(w * .23f, h * .2f); lineTo(w * .77f, h * .2f)
-            lineTo(w * .69f, h * .87f); quadraticBezierTo(w * .5f, h * .93f, w * .31f, h * .87f); close()
+            lineTo(w * .69f, h * .87f); quadraticTo(w * .5f, h * .93f, w * .31f, h * .87f); close()
         }
         val delta = tan(Math.toRadians(angle.floatValue.toDouble())).toFloat() * w
         val liquid = Path().apply {
@@ -99,14 +102,11 @@ fun BeerHero(modifier: Modifier = Modifier, previewAngle: Float? = null, forceRe
             drawPath(foam, KraPivaColors.Cream, style = Stroke(h * .075f))
         }
         drawPath(glass, KraPivaColors.Cream, style = Stroke(w * .025f))
-        // Original hop cone, independent overlapping scales within the beer glass.
-        for (row in 0..3) {
-            val radius = w * (.085f - row * .009f)
-            for (side in -1..1 step 2) {
-                drawOval(KraPivaColors.Hop, Offset(w * .5f + side * radius * .48f - radius, h * (.53f + row * .065f)), Size(radius * 2, h * .10f))
-            }
+        // Original hop cone with overlapping scales, shared with static brand artwork.
+        withTransform({ scale(w / 108f, h / 108f, pivot = Offset.Zero) }) {
+            drawPath(hop, KraPivaColors.Hop)
+            drawPath(scales, KraPivaColors.Ink, style = Stroke(2f))
         }
-        drawLine(KraPivaColors.HopLight, Offset(w * .5f, h * .52f), Offset(w * .5f, h * .81f), w * .018f)
         for (side in listOf(0, 1)) for (vertical in listOf(0, 1)) {
             val x = if (side == 0) w * .06f else w * .94f
             val y = if (vertical == 0) h * .08f else h * .96f

@@ -66,10 +66,17 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         loadPhotos(profile)
     }
     private suspend fun loadPhotos(profile: JSONObject) {
-        suspend fun image(field: String): Bitmap? = if (profile.isNull(field)) null else runCatching {
-            val bytes = api.photo(profile.getString(field), mutable.value.offline) ?: return@runCatching null
+        suspend fun image(field: String): Bitmap? {
+            if (profile.isNull(field)) return null
+            return try {
+            val bytes = api.photo(profile.getString(field), mutable.value.offline) ?: return null
             withContext(Dispatchers.IO) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
-        }.getOrNull()
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException || error is ApiFailure && error.status == 401) throw error
+                mutable.value = mutable.value.copy(error = "Не удалось загрузить фото. Нажмите «Обновить», чтобы повторить.")
+                null
+            }
+        }
         val avatar = image("avatarAssetId"); val cover = image("coverAssetId")
         mutable.value = mutable.value.copy(avatar = avatar, cover = cover)
     }

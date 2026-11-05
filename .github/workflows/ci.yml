@@ -63,7 +63,7 @@ jobs:
     needs: changed-components
     if: needs.changed-components.outputs.android == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -92,3 +92,63 @@ jobs:
             cat "$lint_report"
           fi
           exit "$build_status"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Start real local API, database and test mailbox for Android
+        run: |
+          python scripts/init_dev.py
+          docker compose up -d --wait db mailpit
+          cd backend
+          npm ci --ignore-scripts --no-fund --no-audit
+          npm run build
+          node --env-file=../.env dist/src/db/migrate.js
+          mkdir -p ../work
+          PORT=53000 node --env-file=../.env dist/src/main.js > ../work/android-api.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:53000/health/ready; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Boot isolated Android 35 emulator
+        run: |
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo 'BLOCKED: runner does not provide usable KVM; no device PASS claimed'
+            exit 1
+          fi
+          sdkmanager 'emulator' 'system-images;android-35;default;x86_64'
+          echo no | avdmanager create avd --force --name krapiva --package 'system-images;android-35;default;x86_64' --device pixel_2
+          "$ANDROID_HOME/emulator/emulator" -avd krapiva -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -accel on > work/android-emulator.log 2>&1 &
+          adb wait-for-device
+          for attempt in $(seq 1 90); do
+            if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; then
+              adb shell input keyevent 82
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - name: Real Android HTTP SQL SMTP and motion UI acceptance
+        working-directory: android
+        run: ./gradlew --no-daemon connectedDebugAndroidTest
+      - name: Retain synthetic UI evidence (no APK or credentials)
+        if: always()
+        run: |
+          mkdir -p work/screenshots
+          adb pull /sdcard/Android/data/ru.krapiva.app.debug/files/p3-liquid-states.png work/screenshots/ || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: p3-android-test-evidence
+          path: |
+            android/app/build/reports/androidTests/
+            android/app/build/outputs/androidTest-results/
+            work/screenshots/
+          retention-days: 7
+      - name: Stop isolated test services
+        if: always()
+        run: |
+          adb emu kill || true
+          docker compose stop db mailpit

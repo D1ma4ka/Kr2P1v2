@@ -1,16 +1,18 @@
-# Ресурсы — фактический P1 и план v1.3
+# Ресурсы KraPiva Dark — P3
 
-| Ресурс | Фактический файл | Статус относительно v1.3 |
+| Ресурс | Файл | Результат |
 |---|---|---|
-| Референс владельца | docs/design/reference/krapiva-dark-concept.png, 1536×1024 | Только документация, не production asset |
-| Знак P1 | assets/brand/mark.svg, PNG512×512 | Сохранён; требуется оригинальный вариант с хмелем и рамкой |
-| Логотип P1 | assets/brand/logo.svg, PNG940×240 | Сохранён; требуется новое исполнение композиции KraPiva |
-| Аватар P1 | assets/brand/avatar.svg, PNG256×256 | Сохранён; оценить соответствие новому бренду в P1.1 |
-| Android vectors/icons/splash | android/app/src/main/res/drawable, mipmap*, values | Сохранены; будущая адаптация безопасных полей/monochrome/плотностей |
-| Токены P1 | assets/brand/tokens.json, designsystem/Theme.kt | Исторические, ещё не обновлены |
-| Новые icons/wordmark/font licenses | Пока нет | PLANNED P1.1/согласованный P3 |
-| Screenshots/visual baseline новой темы | Пока нет | NOT RUN, P3–P8 и P10–P13 |
+| Референс владельца | reference/krapiva-dark-concept.png | Только документация, исходный hash сохранён |
+| Оригинальный знак | assets/brand/mark.svg + PNG512 | Бокал/пена/хмель/сканер, собственная геометрия |
+| Горизонтальный логотип | assets/brand/logo.svg + PNG940×240 | Знак слева, KraPiva справа, системный sans |
+| Placeholder аватара | assets/brand/avatar.svg + PNG256 | Craft beer, без чужих фото |
+| Android/splash/adaptive/monochrome | android/app/src/main/res/drawable, mipmap* | Vector safe region и пять PNG-плотностей |
+| Semantic tokens | assets/brand/tokens.json, Theme.kt | Утверждённая палитра + focus/error/warning/success/disabled |
+| Liquid hero | designsystem/BeerHero.kt, LiquidMotion.kt | Canvas clip, отдельная жидкость/пена, local-only sensors |
+| Скриншоты | Результаты перечисляются в VISUAL_BASELINE.md | Только реальные состояния эмулятора; не макеты |
 
-Никаких экспортов или графических изменений в этой задаче не выполнялось.
-Из PNG не извлекать чужие обложки/аватарки/production логотип; источники и
-лицензии шрифтов/изображений фиксировать при реализации.
+Шрифтовые файлы не добавлены: Android system sans, SVG system fallback.
+Никаких старых каталогов, фотографий или данных из референса. Home/catalog/
+checkin/badges screenshots появятся с реальными функциями P4–P7, не имитируются.
+`check_foundation.py`: dimensions/XML/SVG/wrapper/hygiene/contrast PASS.
+Основной текст/фон 16.46:1; muted/card 6.68:1, amber/ink 9.61:1.
