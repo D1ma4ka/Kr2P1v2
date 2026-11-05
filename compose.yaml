@@ -1,0 +1,79 @@
+name: krapiva-dev
+services:
+  db:
+    image: postgres:17.7-bookworm@sha256:86e0b703649d7a792bd9243ee28afc9d8f7c6b2b5638077c9d6882d4d472bbfd
+    environment:
+      POSTGRES_DB: krapiva
+      POSTGRES_USER: krapiva_owner
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD:?Generate local .env first}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Generate local .env first}
+    ports: ["127.0.0.1:55432:5432"]
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./infra/postgres/01-runtime-role.sql:/docker-entrypoint-initdb.d/01-runtime-role.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U krapiva_owner -d krapiva"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    shm_size: 128mb
+  mailpit:
+    image: axllent/mailpit:v1.27.8@sha256:6abc8e633df15eaf785cfcf38bae48e66f64beecdc03121e249d0f9ec15f0707
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: 500
+    ports: ["127.0.0.1:51025:1025", "127.0.0.1:58025:8025"]
+    volumes: ["mail-data:/data"]
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  api:
+    image: krapiva-backend:p2
+    build:
+      context: ./backend
+      secrets: [proxy_ca]
+    init: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATABASE_URL: postgresql://krapiva_app:${DB_APP_PASSWORD:?Generate .env}@db:5432/krapiva
+      DB_POOL_MAX: 10
+      MEDIA_ROOT: /data/media
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+    ports: ["127.0.0.1:53000:3000"]
+    volumes: ["media-data:/data/media"]
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    depends_on:
+      db: {condition: service_healthy}
+      mailpit: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health/ready',{signal:AbortSignal.timeout(2000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  migrate:
+    image: krapiva-backend:p2
+    profiles: [tools]
+    command: [node, dist/src/db/migrate.js]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      MIGRATION_DATABASE_URL: postgresql://krapiva_owner:${DB_OWNER_PASSWORD:?Generate .env}@db:5432/krapiva
+    depends_on:
+      db: {condition: service_healthy}
+
+volumes:
+  media-data:
+  mail-data:
+  db-data:
+secrets:
+  proxy_ca:
+    file: ${CODEX_PROXY_CERT:-./backend/build-support/empty-ca.crt}

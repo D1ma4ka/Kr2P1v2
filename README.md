@@ -8,26 +8,17 @@ A modern social platform for craft beer enthusiasts and bars
 совершеннолетних пользователей: каталог пивных позиций, дневник и социальная сеть
 с настоящим сервером и постоянной БД.
 
-**P0/P1 завершены; P2 ожидает отдельной команды.** Есть собираемый Kotlin/Compose
-клиент со стартовым экраном и настоящий HTTP-сервер с проверкой живости.
-Аккаунтов, БД, каталога и социальной сети пока нет; они реализуются в P2–P7.
-P1 завершён: Android/backend и проверки исходников/ресурсов прошли CI.
-Оставшиеся предупреждения и точка продолжения — [прогресс](docs/PROGRESS.md).
+**P0/P1/P2 завершены; остановка перед P3.** Есть Android стартовый
+экран и серверный фундамент: PostgreSQL, migrations, owner API, сессии,
+private media, local SMTP и OpenAPI. Полные account workflows и социальные
+сценарии ещё предстоят; это не готовый публичный сервис.
 
-Быстрые проверки (Node 24, JDK 21, Android SDK 35):
-
-```sh
-cd backend
-npm ci --ignore-scripts --no-fund --no-audit
-npm run check
-cd ../android
-./gradlew --no-daemon assembleDebug lintDebug
-```
-
-Запуск сервера: `npm start` из `backend/`; адрес по умолчанию
-`http://127.0.0.1:3000/health/live`. Только живость процесса, не readiness БД.
-Подробности: [backend](backend/README.md), [Android](android/README.md),
-[отчёт P1](docs/stages/P1.md), [дизайн](docs/design/DESIGN_SYSTEM.md).
+Текущая точка продолжения и результаты — [прогресс](docs/PROGRESS.md).
+Команды запуска и восстановления — [локальный backend](docs/DEPLOYMENT_RU.md),
+[backend README](backend/README.md). HTTP API контейнера: localhost:53000;
+Mailpit UI: localhost:58025. Нужны локальные DB/SMTP, переменные окружения и
+миграции; прежнего standalone `npm start` без БД недостаточно.
+Android сборка/инструкции: [Android](android/README.md), [отчёт P1](docs/stages/P1.md).
 
 - [Актуальное ТЗ v1.3](docs/TECHNICAL_SPECIFICATION.md)
 - [Решения и границы текущей работы](docs/PROJECT_DECISIONS.md)
@@ -51,13 +42,11 @@ git diff --check
 
 Изменения ведутся в рабочей ветке. Правила репозитория: [AGENTS.md](AGENTS.md).
 После каждого этапа — проверка, commit/push, отчёт и остановка до сообщения
-владельца «Продолжай». Следующий этап P2 не начат; перед ним требуется сообщение владельца «Продолжай».
+владельца «Продолжай». Следующий этап P3 требует отдельного разрешения владельца.
 
 ## Актуальные требования v1.3
 
 [Изменения и сравнение](docs/UPDATE_v1.3.md), [roadmap](docs/ROADMAP.md),
 [паритет платформ](docs/PLATFORM_PARITY.md). iOS PLANNED P10–P13, обязательна;
 готовность Android не равна готовности всего продукта. Новый дизайн и motion
-ещё не внедрены, P1 не пересоздаётся. Последнее обновление — только документация.
-Проверка `scripts/verify_p0.py` пока привязана к v1.0 (82 ID) и требует
-адаптации в следующей разрешённой разработке; см. docs/handoff/README.md.
+ещё не внедрены, P1 не пересоздаётся. Source checker адаптирован к v1.3 (180 ID) с сохранением обоих архивов.

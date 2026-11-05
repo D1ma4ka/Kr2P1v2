@@ -1,114 +1,76 @@
-# Актуальная точка продолжения — ТЗ v1.3
+# KraPiva 2.0 — P2 DONE, STOP
 
-**P0 DONE, P1 DONE, P2 NOT STARTED. iOS PLANNED P10–P13 (MUST).**
-Последняя задача: только прочитать/принять полный архив v1.3 и референс,
-сверить с текущим кодом, обновить документы и сохранить в GitHub.
-Код/CI/scripts/assets P1 и AGENTS не менялись; новых сборок нет.
-Текущая ветка codex/krapiva-2-p1, база документационного обновления fbe95ba.
-SHA последнего коммита документации: `git log -1` и итоговый отчёт пользователю.
+Дата: 5 ноября 2026. ТЗ v1.3. **P0/P1/P2 DONE; P3 NOT STARTED.**
+Ветка `codex/krapiva-2-p2`. Последний проверенный код/config — `2d11942`;
+Android проверен на `f81e10a` (после него Android не менялся).
+Финальный коммит отчёта содержит только docs, его SHA — `git log -1`/отчёт
+владельцу. Работу продолжать только после новой команды. Следующий этап P3,
+включая согласованный v1.3 UI refinement; не запускать его автоматически.
 
-## Следующая работа — только после команды владельца на P2
+## Лимиты
 
-1. Прочитать AGENTS, этот файл, TECHNICAL_SPECIFICATION v1.3,
-   UPDATE_v1.3, IMPLEMENTATION_PLAN, PLATFORM_PARITY; проверить remote/status.
-2. Адаптировать scripts/verify_p0.py к версиям manifest/новому количеству ID:
-   сейчас прежняя проверка несовместима с новой документацией. В этой задаче
-   скрипт/CI намеренно не менялись; не считать старый PASS доказательством v1.3.
-3. Только в разрешённом P2: SQL migrations/постоянная БД, API/OpenAPI для обеих
-   платформ, media отдельно, локальный test SMTP, portable config/deploy.
-4. Не начинать P1.1 или iOS код в P2. Новые tokens/logo/nav/home — будущий
-   согласованный UI-блок P3 (P1.1); motion P3; charts/tags P5; карта/shops P7.
-5. Завершив согласованный этап, проверки/commit/push/отчёт и остановка.
+Последняя инструкция владельца: **недельный остаток <25% или пятичасовой <50%**
+→ прекращение новых задач/сборок/тестов, безопасные commit/push/отчёт/остановка.
+API текущих квот нет. Ручные сообщения этой сессии: «100 63», «66 58», «30 53».
+Последние два числа без подписей сохранены буквально; автоматического контроля
+нет. При последнем сообщении проверки уже завершились; дальше только сохранение.
+Не переходить на платные кредиты, не создавать агентов и не начинать P3.
 
-Полная матрица: 180 требований (135 FR/45 NFR), 174 MUST/5 SHOULD/1 LATER,
-29 экранов, 43 E2E (все NOT RUN). NFR-001 DONE относится к сохранённой P1 сборке;
-новые дизайн/motion/map/iOS MUST ещё не реализованы. Пользовательских API/БД
-пока нет. Ни Android-релиз, ни весь проект не объявляются готовыми.
+## Реализованная foundation
 
-## iOS видимый статус
+- PostgreSQL17, SQL entities §6/15, FK/check/unique/indexes, private media metadata;
+  ordered/checksummed migrations с транзакциями/lock; runtime role без DDL.
+- `/v1` OpenAPI, owner profile/checkin/media API, persistent hash-only bearer
+  sessions и revoke/TTL, cursor limits, DB rate budget, idempotency/version conflicts.
+- Photo normalization/EXIF removal/thumbnail, size/pixel limits, owner access,
+  attachments/max4, deletion/tombstone/retry; files вне SQL.
+- Mailpit: реальный локальный SMTP и persistent mail volume. Dev-only explicit
+  synthetic accounts/mail tools; нет production seed или login imitation.
+- Non-root Docker/Compose, переносимый env, проверенный restart/isolated restore,
+  readiness по schema hashes/table access/media, generic errors и безопасные логи.
+- Android только API_BASE_URL/окружения/debug-local network policy. UI P1 не
+  переделывался. Реальный клиентский sign-up/login/API wiring — P3.
 
-P10/P11/P12/P13: **PLANNED**, проверенных iOS артефактов нет. Mac/Xcode,
-iPhone/Apple Developer/ASC/signing/карты — условия будущей проверки, а не
-исследованные сейчас блокеры. Следующее действие — владелец разрешает этап;
-после P9 предложить P10. План/владельцы действий и артефакты — ROADMAP.md.
-Не переписывать Android под KMP сейчас. Android готов + iOS не принята =
-весь двухплатформенный продукт INCOMPLETE. Новый запрос на P2 пока не получен.
+## Доказательства
 
-Пороги остатка ≤25% пятичасового или ≤50% недельного лимита сохраняются;
-проценты недоступны инструментам. При обнаруженном пороге — сохранить
-WIP/точку продолжения и остановиться до команды. Ниже сохранена история P1.
+- Local TypeScript build + **11/11 tests PASS**, включая новые negative DB/TLS/
+  storage cases, настоящий SQL/HTTP/SMTP, IDOR/concurrency/idempotency/contract.
+- GitHub backend **SUCCESS** (2d11942):
+  https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42047987386
+  11 tests, audit0 vulnerabilities, Docker build, migrations, startup,
+  restart API/DB/Mailpit, isolated pg_restore+media copy и session/ACL/photo hashes.
+- GitHub Android+source **SUCCESS** (f81e10a):
+  https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42047237008
+  assembleDebug/lintDebug: 0 errors, 4 version warnings; исходники/ресурсы PASS.
+- После CI-only fix source **SUCCESS**, Android корректно не повторён:
+  https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42047987563
+- Local Android assembleDebug/lintDebug PASS, staging/release constants generation
+  PASS, missing production URL и HTTP production configuration отвергаются.
+- Source checker PASS: v1.0/v1.3 hashes, 180 requirements,29 screens,43 scenarios.
+- Draft PR (без merge): https://github.com/D1ma4ka/Kr2P1v2/pull/5, base P1 branch.
 
----
+## Оставшееся / ограничения
 
-# KraPiva 2.0 — точка продолжения
+Открытых ошибок выполненных проверок нет. Локальный Foundation не равен продукту
+или production. 500k+ registered/1M/3M — цели, capacity/load не измерялись.
+P3: signup/verification/reset/rotation, полная field ACL/avatar/cover/links, клиент,
+secure cache; P4–P7: полноценные catalog/social/map/badges/stats workflows.
+A19 local backend PASS; A20 staging BLOCKED (нет разрешённого сервера/клиентского
+E2E), остальные полные product scenarios NOT RUN. iOS P10–P13 PLANNED/MUST.
+До релиза: обновление targetSdk/AndroidX и deprecated Node20 actions, совместимость,
+device/TalkBack, production hardening/monitoring/retention/S3 и нагрузка P8/P9.
+Исходные AGENTS/spec/assets сохранены. Ни production/merge/покупок/публикации нет.
 
-Дата: 2026-11-04. Ветка: `codex/krapiva-2-p1`.
-Последний проверенный CI коммит кода/конфигурации: `69ed3e9cb856c67059e8b5e5f670e0d133f054ec`.
-Финальный коммит отчёта содержит только документацию; его SHA — `git log -1`.
+## Продолжение без потери времени
 
-## Текущее состояние
+Прочитать AGENTS, этот файл, stages/P2.md, IMPLEMENTATION_PLAN и актуальное ТЗ.
+Проверить branch/HEAD/remote. **Не повторять P0–P2**; ждать разрешения на P3.
+Backend README/DEPLOYMENT_RU описывают запуск и restore. Для нового задания
+при необходимости пересобрать local image: он может быть старше проверенного
+в GitHub кода. Не выдавать старый image за результат текущего source commit.
 
-**P0 DONE, P1 DONE. P2 не начат. Работа остановлена до команды владельца.**
-В следующей сессии прочитать AGENTS и этот файл, проверить Git status/remote.
-Только после нового разрешения начинать P2; повторять P0/P1 не требуется.
-
-## Лимиты и порядок остановки
-
-При остатке **≤25% пятичасового** или **≤50% недельного** лимита прекратить
-разработку, сохранить все относящиеся изменения, обновить PROGRESS, commit/push
-рабочей ветки и остановиться. Продолжение только по команде владельца.
-API/инструмента чтения этих процентов в текущей сессии нет: автоматический
-контроль процентов не подтверждён. Не выдавать оценку по времени за остаток квоты.
-После каждого этапа также commit/push, отчёт и остановка до команды владельца.
-
-## Что готово
-
-- P0: восемь исходных документов с SHA-256, инвентаризация, решения,
-  исходная матрица 82 требований (сейчас актуализирована до 180), тест-план. Коммит `cf4d28a`.
-- P1: новая Android Kotlin/Compose/Material 3 основа (splash, стартовый экран,
-  диалог «О KraPiva»); оригинальные SVG/PNG, adaptive/monochrome icons и токены.
-- HTTP server Node/TypeScript/Fastify: liveness, проверка конфигурации,
-  реальные ошибки/лимиты тела, безопасные логи, SIGTERM; четыре теста.
-- ADR стека/навигации, воспроизводимые команды, CI и документация.
-- Основной код P1 `1bb2d35`, прежняя WIP-точка `f36bfe5`.
-  Исправление SDK bootstrap `8ce428e`, lint/report policy `69ed3e9cb856c67059e8b5e5f670e0d133f054ec`.
-
-## Проверки и исправления последней сессии
-
-CI: https://github.com/D1ma4ka/Kr2P1v2/actions/runs/41888047279
-для `69ed3e9cb856c67059e8b5e5f670e0d133f054ec` — **все три job SUCCESS**:
-source-and-assets, backend, android. Android assembleDebug/lintDebug:
-BUILD SUCCESSFUL, 2m55s, **0 errors, 4 warnings**. Backend включает четыре
-HTTP/config/process теста и npm audit. Проверены исходные документы,
-контраст/ресурсы/wrapper и diff.
-
-Причина прежнего CI failure: `sdkmanager: command not found` (exit127).
-Исправлено явной установкой Android tools через setup-android v3.2.2,
-закреплённые SHA и CLI 12266719. Следующий run выявил четыре version advisories,
-которые прежняя политика warningsAsErrors превращала в ошибки. Теперь lint
-errors остаются fatal, предупреждения видимы в полном CI-логе, проверки не
-отключены и baseline не добавлен. Изменение описано в ADR-0002.
-Локальные сборки и тесты прошлой сессии повторно не запускались.
-Финальный коммит только документации помечен `[skip ci]`: код уже проверен.
-
-## Оставшиеся ограничения и задачи
-
-- До релиза проверить совместимость и обновить targetSdk35 и AndroidX:
-  Compose BOM2025.04.01, activity-compose1.10.1, core-splashscreen1.0.1.
-  Это четыре предупреждения CI, не результат security audit.
-- Эмулятор/телефон, TalkBack и функциональные screenshots NOT RUN;
-  аппаратное ускорение `/dev/kvm` в рабочей среде отсутствует.
-- БД, auth, каталог и социальная сеть пока не реализованы; A1–A12 NOT RUN.
-  Никаких фиктивных production API/данных нет.
-- NFR-001 DONE; полный NFR-008 требует migration/contract проверок P2/P8.
-  Остальной статус — REQUIREMENTS_MATRIX и RELEASE_READINESS.
-
-## Следующий этап — P2 (после отдельного разрешения)
-
-SQL/постоянная БД, миграции, OpenAPI и настоящие интеграционные CRUD проверки.
-План: IMPLEMENTATION_PLAN, продуктовый baseline: TECHNICAL_SPECIFICATION.
-Не переходить автоматически к P2 из-за завершения P1.
-
-Черновой PR: https://github.com/D1ma4ka/Kr2P1v2/pull/4
-Main/AGENTS сохранены. Merge, production, покупки и публикация не выполнялись.
-Debug APK и ключи не коммитятся; локальная APK/hash описаны в stages/P1.md.
+Local .env и закрытые synthetic token files/backups только в ignored work/;
+не печатать их и не коммитить. Runtime drill создаёт новую synthetic batch на
+каждый явный запуск, не зависит от вчерашней сессии. Volumes сохранены, dev
+контейнеры остановлены. Не применять down -v для обычной остановки.
+Подробная история предыдущих остановок: stages/P2_HISTORY.md.

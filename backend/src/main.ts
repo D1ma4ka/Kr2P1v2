@@ -1,8 +1,18 @@
+import {databaseConfig} from "./db/config.js";
+import {MediaService} from "./media/service.js";
+import {FileStorage} from "./media/storage.js";
+import { createPool } from "./db/pool.js";
 import { buildApp } from "./app.js";
 import { readConfig } from "./config.js";
 async function main() {
   const config = readConfig();
-  const app = buildApp(config);
+  const database=databaseConfig();
+  const pool = createPool(database.url,database.max);
+  const storage=new FileStorage(process.env.MEDIA_ROOT ?? "../work/media");
+  await storage.initialize();
+  const app = buildApp(config,pool,new MediaService(pool,storage));
+  pool.on("error",()=>app.log.error("database connection lost"));
+  app.addHook("onClose",async()=>{await pool.end();});
   let stopping = false;
   const stop = async () => {
     if (stopping) return;
@@ -19,6 +29,6 @@ async function main() {
 }
 main().catch(() => {
   // Do not print environment values in failure diagnostics.
-  console.error("Backend startup failed; check HOST, PORT, NODE_ENV and LOG_LEVEL");
+  console.error("Backend startup failed; check HOST, PORT, NODE_ENV, LOG_LEVEL and DATABASE_URL");
   process.exitCode = 1;
 });

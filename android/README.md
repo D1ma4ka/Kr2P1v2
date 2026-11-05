@@ -47,3 +47,22 @@ Runtime на эмуляторе/телефоне и TalkBack ещё не про�
 ширина ограничена на широких экранах, кнопки ≥48dp, шрифт в sp.
 Следующие UI/state/domain/repositories/local/remote пакеты создаются при
 появлении реального поведения; пустые классы и mock repositories не добавляются.
+
+## P2: адрес API и сетевые окружения
+
+`BuildConfig.API_BASE_URL`, `API_ENVIRONMENT`, `ALLOW_LOCAL_HTTP` задаются при
+сборке. Экраны P1 не менялись; реальный API client/accounts подключаются в P3.
+
+- debug/dev: `KRAPIVA_DEV_API_BASE_URL`, по умолчанию `http://10.0.2.2:53000/`
+  для эмулятора. HTTP разрешён только для 10.0.2.2, localhost, 127.0.0.1.
+- staging: `KRAPIVA_STAGING_API_BASE_URL`, обязателен HTTPS/DNS; package .staging.
+- release/prod: `KRAPIVA_PROD_API_BASE_URL`, обязателен HTTPS/DNS; без встроенного
+  production адреса. URL без credentials/query/fragment; без секретов в APK.
+
+Staging/release build tasks отказывают, если соответствующий адрес не задан.
+Для разрешённого будущего домена достаточно переменной окружения, код API и UI
+не меняется. Проверка генерации constants на зарезервированных example.invalid
+доменах не является рабочим staging или A20 E2E. Релизная подпись не настроена.
+Debug-only network security XML не попадает в staging/release; общий manifest
+запрещает cleartext. Для физического Android: `adb reverse tcp:53000 tcp:53000`
+и dev URL `http://127.0.0.1:53000/` (проверка на устройстве ещё NOT RUN).

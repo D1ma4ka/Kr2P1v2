@@ -1,0 +1,51 @@
+name: Backend foundation
+on:
+  pull_request:
+    paths: ['backend/**', 'infra/**', 'compose.yaml', 'scripts/init_dev.py', '.env.example', '.github/workflows/backend.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: backend-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Source provenance and traceability
+        run: python ../scripts/verify_p0.py
+      - name: Create isolated local credentials
+        run: python ../scripts/init_dev.py
+      - name: Start real database and SMTP
+        working-directory: .
+        run: docker compose up -d --wait db mailpit
+      - run: npm ci --ignore-scripts --no-fund --no-audit
+      - run: npm run build
+      - name: Unit, HTTP, SQL, media, SMTP and OpenAPI
+        run: node --env-file=../.env --test dist/test/*.test.js
+      - run: npm audit --audit-level=high
+      - name: Build non-root API and migrate
+        working-directory: .
+        run: |
+          docker compose build api
+          docker compose run --rm migrate
+          docker compose up -d --wait api
+      - name: Restart and isolated backup restore drill
+        run: node --env-file=../.env test/runtime-check.mjs
+      - name: Stop local services without deleting data
+        if: always()
+        working-directory: .
+        run: docker compose stop api db mailpit
