@@ -76,4 +76,4 @@ volumes:
   db-data:
 secrets:
   proxy_ca:
-    file: ${CODEX_PROXY_CERT:-/dev/null}
+    file: ${CODEX_PROXY_CERT:-./backend/build-support/empty-ca.crt}

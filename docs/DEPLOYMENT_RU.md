@@ -21,7 +21,7 @@ init_dev создаёт случайные локальные пароли в ig
 в публичный лог: разрешённые env substitutions содержат пароли.
 В управляемой Codex-среде выбрать локальный Docker socket по runtime skill;
 `CODEX_PROXY_CERT` передаётся build secret, не копируется в image. Без proxy
-используется пустой /dev/null; TLS verification не отключается.
+используется пустой backend/build-support/empty-ca.crt; TLS verification не отключается.
 
 - API loopback: `http://127.0.0.1:53000/health/live`, `/health/ready`.
 - PostgreSQL loopback55432; runtime role krapiva_app без DDL.

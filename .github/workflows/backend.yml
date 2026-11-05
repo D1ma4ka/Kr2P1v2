@@ -1,8 +1,5 @@
 name: Backend foundation
 on:
-  push:
-    branches: ['codex/krapiva-2-p2']
-    paths: ['backend/**', 'infra/**', 'compose.yaml', 'scripts/init_dev.py', '.env.example', '.github/workflows/backend.yml']
   pull_request:
     paths: ['backend/**', 'infra/**', 'compose.yaml', 'scripts/init_dev.py', '.env.example', '.github/workflows/backend.yml']
   workflow_dispatch:

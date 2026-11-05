@@ -21,6 +21,12 @@ assembleDebug/lintDebug PASS; dev/staging/release constants проверены �
 reserved DNS, не E2E staging. Следующее действие: подтвердить GitHub CI на
 чистом runner и завершить матрицу/отчёт P2. Новая сборка UI/P3 не начата.
 
+GitHub PR #5: https://github.com/D1ma4ka/Kr2P1v2/pull/5 (draft, base P1 branch).
+Run42047236823: все 11 tests/audit PASS, image build остановился на BuildKit
+fs.read=/dev/null. Исправление: empty CA file внутри backend build context,
+без выдачи дополнительных прав/отключения TLS. Backend CI теперь PR/manual,
+без двойного push+PR; Android CI сравнивает изменения synchronize event.
+
 ---
 
 # STOP — P2 WIP, остановка по лимиту и команде владельца
