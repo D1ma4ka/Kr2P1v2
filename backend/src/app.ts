@@ -7,7 +7,9 @@ import { ApiError } from "./http/errors.js";
 import { errors, object } from "./http/schemas.js";
 import Fastify, { LogController } from "fastify";
 import type { Config } from "./config.js";
-export function buildApp(config: Config, pool?: pg.Pool, media?: MediaService) {
+import {accountRoutes} from './identity/routes.js';
+import {accountMailer, type AccountMailer} from './mail/accounts.js';
+export function buildApp(config: Config, pool?: pg.Pool, media?: MediaService, mail?:AccountMailer) {
   const app = Fastify({
     logger: { level: config.logLevel,
       redact: ["req.headers.authorization", "req.headers.cookie", "res.headers.set-cookie"] },
@@ -55,6 +57,9 @@ export function buildApp(config: Config, pool?: pg.Pool, media?: MediaService) {
     type: "object", additionalProperties: false, required: ["status"],
     properties: { status: { type: "string", const: "ok" } } } } } }, async () => ({ status: "ok" }));
   if (pool) {
+    const sender=mail??accountMailer({...process.env,NODE_ENV:config.environment});
+    if(!mail) app.addHook('onClose',async()=>sender.close());
+    app.register(async auth=>accountRoutes(auth,pool,sender));
     app.register(async api => {
       api.get("/health/ready",{schema:{response:{...errors,200:object({status:{type:'string',enum:['ready']}})}}},async()=>{
         try {

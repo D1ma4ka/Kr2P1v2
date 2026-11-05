@@ -9,6 +9,1857 @@ components:
       scheme: bearer
   schemas: {}
 paths:
+  /v1/auth/register:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 254
+                  pattern: ^[^\s]+$
+                password:
+                  type: string
+                  minLength: 12
+                  maxLength: 128
+                displayName:
+                  type: string
+                  minLength: 1
+                  maxLength: 80
+                  pattern: \S
+                adultConfirmed:
+                  type: boolean
+              required:
+                - email
+                - password
+                - displayName
+                - adultConfirmed
+      responses:
+        "202":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/auth/login:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 254
+                  pattern: ^[^\s]+$
+                password:
+                  type: string
+                  minLength: 12
+                  maxLength: 128
+              required:
+                - email
+                - password
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  userId:
+                    type: string
+                    format: uuid
+                  accessToken:
+                    type: string
+                    pattern: ^[A-Za-z0-9_-]{43}$
+                  refreshToken:
+                    type: string
+                    pattern: ^[A-Za-z0-9_-]{43}$
+                  expiresAt:
+                    type: string
+                    format: date-time
+                required:
+                  - userId
+                  - accessToken
+                  - refreshToken
+                  - expiresAt
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/auth/resend:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 254
+                  pattern: ^[^\s]+$
+              required:
+                - email
+      responses:
+        "202":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/auth/forgot-password:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 254
+                  pattern: ^[^\s]+$
+              required:
+                - email
+      responses:
+        "202":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/auth/verify:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                token:
+                  type: string
+                  pattern: ^[A-Za-z0-9_-]{43}$
+              required:
+                - token
+      responses:
+        "204":
+          description: Default Response
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/auth/reset-password:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                token:
+                  type: string
+                  pattern: ^[A-Za-z0-9_-]{43}$
+                password:
+                  type: string
+                  minLength: 12
+                  maxLength: 128
+              required:
+                - token
+                - password
+      responses:
+        "204":
+          description: Default Response
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/auth/refresh:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                refreshToken:
+                  type: string
+                  pattern: ^[A-Za-z0-9_-]{43}$
+              required:
+                - refreshToken
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  userId:
+                    type: string
+                    format: uuid
+                  accessToken:
+                    type: string
+                    pattern: ^[A-Za-z0-9_-]{43}$
+                  refreshToken:
+                    type: string
+                    pattern: ^[A-Za-z0-9_-]{43}$
+                  expiresAt:
+                    type: string
+                    format: date-time
+                required:
+                  - userId
+                  - accessToken
+                  - refreshToken
+                  - expiresAt
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
   /health/ready:
     get:
       responses:
@@ -273,8 +2124,6 @@ paths:
                   userId:
                     type: string
                     format: uuid
-                  displayName:
-                    type: string
                   firstName:
                     type: string
                     maxLength: 80
@@ -311,6 +2160,40 @@ paths:
                       - private
                       - friends
                       - public
+                  displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+                    pattern: \S
+                  avatarAssetId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  coverAssetId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  links:
+                    type: array
+                    maxItems: 10
+                    uniqueItems: true
+                    items:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        url:
+                          type: string
+                          maxLength: 2048
+                          pattern: ^https://
+                        visibility:
+                          type: string
+                          enum:
+                            - private
+                            - friends
+                            - public
+                      required:
+                        - url
+                        - visibility
                   version:
                     type: integer
                     minimum: 1
@@ -320,7 +2203,6 @@ paths:
                     format: date-time
                 required:
                   - userId
-                  - displayName
                   - firstName
                   - lastName
                   - city
@@ -329,6 +2211,356 @@ paths:
                   - gender
                   - genderVisibility
                   - profileVisibility
+                  - displayName
+                  - avatarAssetId
+                  - coverAssetId
+                  - links
+                  - version
+                  - updatedAt
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/users/{id}:
+    get:
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          in: path
+          name: id
+          required: true
+      security: *a1
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  userId:
+                    type: string
+                    format: uuid
+                  firstName:
+                    type: string
+                    maxLength: 80
+                    nullable: true
+                  lastName:
+                    type: string
+                    maxLength: 80
+                    nullable: true
+                  city:
+                    type: string
+                    maxLength: 120
+                    nullable: true
+                  country:
+                    type: string
+                    maxLength: 100
+                    nullable: true
+                  bio:
+                    type: string
+                    maxLength: 2000
+                    nullable: true
+                  gender:
+                    type: string
+                    maxLength: 80
+                    nullable: true
+                  genderVisibility:
+                    type: string
+                    enum:
+                      - private
+                      - friends
+                      - public
+                  profileVisibility:
+                    type: string
+                    enum:
+                      - private
+                      - friends
+                      - public
+                  displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+                    pattern: \S
+                  avatarAssetId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  coverAssetId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  links:
+                    type: array
+                    maxItems: 10
+                    uniqueItems: true
+                    items:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        url:
+                          type: string
+                          maxLength: 2048
+                          pattern: ^https://
+                        visibility:
+                          type: string
+                          enum:
+                            - private
+                            - friends
+                            - public
+                      required:
+                        - url
+                        - visibility
+                  version:
+                    type: integer
+                    minimum: 1
+                    maximum: 2147483646
+                  updatedAt:
+                    type: string
+                    format: date-time
+                required:
+                  - userId
+                  - firstName
+                  - lastName
+                  - city
+                  - country
+                  - bio
+                  - gender
+                  - genderVisibility
+                  - profileVisibility
+                  - displayName
+                  - avatarAssetId
+                  - coverAssetId
+                  - links
                   - version
                   - updatedAt
         "400":
@@ -608,6 +2840,40 @@ paths:
                     - private
                     - friends
                     - public
+                displayName:
+                  type: string
+                  minLength: 1
+                  maxLength: 80
+                  pattern: \S
+                avatarAssetId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                coverAssetId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                links:
+                  type: array
+                  maxItems: 10
+                  uniqueItems: true
+                  items:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      url:
+                        type: string
+                        maxLength: 2048
+                        pattern: ^https://
+                      visibility:
+                        type: string
+                        enum:
+                          - private
+                          - friends
+                          - public
+                    required:
+                      - url
+                      - visibility
                 version:
                   type: integer
                   minimum: 1
@@ -635,8 +2901,6 @@ paths:
                   userId:
                     type: string
                     format: uuid
-                  displayName:
-                    type: string
                   firstName:
                     type: string
                     maxLength: 80
@@ -673,6 +2937,40 @@ paths:
                       - private
                       - friends
                       - public
+                  displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+                    pattern: \S
+                  avatarAssetId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  coverAssetId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  links:
+                    type: array
+                    maxItems: 10
+                    uniqueItems: true
+                    items:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        url:
+                          type: string
+                          maxLength: 2048
+                          pattern: ^https://
+                        visibility:
+                          type: string
+                          enum:
+                            - private
+                            - friends
+                            - public
+                      required:
+                        - url
+                        - visibility
                   version:
                     type: integer
                     minimum: 1
@@ -682,7 +2980,6 @@ paths:
                     format: date-time
                 required:
                   - userId
-                  - displayName
                   - firstName
                   - lastName
                   - city
@@ -691,8 +2988,263 @@ paths:
                   - gender
                   - genderVisibility
                   - profileVisibility
+                  - displayName
+                  - avatarAssetId
+                  - coverAssetId
+                  - links
                   - version
                   - updatedAt
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/me/deletion-request:
+    post:
+      security: *a1
+      responses:
+        "202":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  eraseAfter:
+                    type: string
+                    format: date-time
+                  message:
+                    type: string
+                required:
+                  - eraseAfter
+                  - message
         "400":
           description: Default Response
           content:

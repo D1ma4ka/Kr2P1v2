@@ -4,31 +4,33 @@ import type { FastifyInstance } from "fastify";
 import type pg from "pg";
 import { authenticate, tokenHash } from "../identity/sessions.js";
 import { createCheckin, deleteCheckin, getCheckin, listCheckins, updateCheckin, type CheckinInput } from "../checkins/repository.js";
-import { conflict, notFound } from "./errors.js";
 import { decodeCursor, encodeCursor } from "./pagination.js";
 import * as s from "./schemas.js";
 declare module "fastify" { interface FastifyRequest { userId: string; } }
-const profileColumns = `p.user_id AS "userId",u.display_name AS "displayName",p.first_name AS "firstName",p.last_name AS "lastName",
- p.country,p.city,p.bio,p.gender,p.gender_visibility AS "genderVisibility",p.profile_visibility AS "profileVisibility",p.version,p.updated_at AS "updatedAt"`;
-interface ProfileUpdate { firstName: string|null; lastName: string|null; country: string|null; city: string|null;
- bio: string|null; gender: string|null; genderVisibility: string; profileVisibility: string; version: number; }
+import {profile,updateProfile,type ProfileUpdate} from '../profiles/repository.js';
 export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media?: MediaService) {
   app.decorateRequest("userId", "");
   app.addHook("onRequest",async request => { request.userId = await authenticate(pool,request.headers.authorization); });
   if(media) app.register(async mediaApi=>mediaRoutes(mediaApi,media));
   const secure = { security: [{ bearerAuth: [] }], response: s.errors };
   app.get("/v1/me", { schema: { ...secure, response: { ...s.errors,200:s.profileSchema } } },async request => {
-    const result = await pool.query(`SELECT ${profileColumns} FROM user_profiles p JOIN users u ON u.id=p.user_id WHERE p.user_id=$1`,[request.userId]);
-    if (!result.rows[0]) throw notFound(); return result.rows[0];
+    return profile(pool,request.userId);
   });
+  app.get<{Params:{id:string}}>("/v1/users/:id",{schema:{...secure,params:s.idParams,response:{...s.errors,200:s.profileSchema}}},
+    request=>profile(pool,request.params.id,request.userId));
   app.patch<{ Body: ProfileUpdate }>("/v1/me/profile", { schema: { ...secure,
-    body:s.object({...s.profileFields,version:s.version}), response:{...s.errors,200:s.profileSchema} } },async request => {
-    const b = request.body;
-    const result = await pool.query(`UPDATE user_profiles SET first_name=$3,last_name=$4,country=$5,city=$6,bio=$7,gender=$8,
-      gender_visibility=$9,profile_visibility=$10,version=version+1,updated_at=now() WHERE user_id=$1 AND version=$2 RETURNING user_id`,
-      [request.userId,b.version,b.firstName,b.lastName,b.country,b.city,b.bio,b.gender,b.genderVisibility,b.profileVisibility]);
-    if (!result.rowCount) throw conflict();
-    return (await pool.query(`SELECT ${profileColumns} FROM user_profiles p JOIN users u ON u.id=p.user_id WHERE p.user_id=$1`,[request.userId])).rows[0];
+    body:s.object({...s.profileFields,...s.extraProfileFields,version:s.version},[...Object.keys(s.profileFields),'version']),
+    response:{...s.errors,200:s.profileSchema} } },request=>updateProfile(pool,request.userId,request.body));
+  app.post('/v1/me/deletion-request',{schema:{...secure,response:{...s.errors,202:s.object({eraseAfter:s.timestamp,message:{type:'string'}})}}},async(request,reply)=>{
+    const {transaction}=await import('../db/pool.js');
+    const row=await transaction(pool,async client=>{
+      await client.query('SELECT id FROM users WHERE id=$1 FOR UPDATE',[request.userId]);
+      const result=await client.query('INSERT INTO account_deletion_requests(user_id) VALUES($1) ON CONFLICT(user_id) DO UPDATE SET user_id=EXCLUDED.user_id RETURNING erase_after',[request.userId]);
+      await client.query("UPDATE users SET status='suspended',updated_at=now() WHERE id=$1",[request.userId]);
+      await client.query('UPDATE sessions SET revoked_at=coalesce(revoked_at,now()) WHERE user_id=$1',[request.userId]);
+      return result.rows[0];
+    });
+    return reply.code(202).send({eraseAfter:row.erase_after,message:'Запрос принят. Доступ и публичность отключены. Удаление личных материалов — в течение 30 дней; обязательные по закону записи сохраняются только при законном основании.'});
   });
   app.delete("/v1/session", { schema:{...secure,response:{...s.errors,204:{type:'null'}}} },async(request,reply)=>{
     await pool.query("UPDATE sessions SET revoked_at=now() WHERE token_hash=$1",[tokenHash(request.headers.authorization!.slice(7))]);

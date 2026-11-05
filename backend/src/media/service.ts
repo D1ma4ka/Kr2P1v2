@@ -43,7 +43,11 @@ export class MediaService {
   } finally {this.inFlight--;}
  }
  async get(owner:string,id:string,thumbnail=false) {
-  const result=await this.pool.query(`SELECT storage_key,thumbnail_key FROM media_assets WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL AND moderation_status<>'hidden'`,[id,owner]);
+  const result=await this.pool.query(`SELECT a.storage_key,a.thumbnail_key FROM media_assets a JOIN users u ON u.id=a.owner_id
+    WHERE a.id=$1 AND u.status='active' AND a.deleted_at IS NULL AND a.moderation_status<>'hidden' AND
+    (a.owner_id=$2 OR EXISTS(SELECT 1 FROM user_profiles p WHERE p.user_id=a.owner_id AND (p.avatar_asset_id=a.id OR p.cover_asset_id=a.id)
+     AND (p.profile_visibility='public' OR p.profile_visibility='friends' AND EXISTS(SELECT 1 FROM friendships f
+      WHERE f.user_low=least(a.owner_id,$2::uuid) AND f.user_high=greatest(a.owner_id,$2::uuid)))))`,[id,owner]);
   if(!result.rows[0]) throw notFound();
   return this.storage.get(thumbnail?result.rows[0].thumbnail_key:result.rows[0].storage_key);
  }
