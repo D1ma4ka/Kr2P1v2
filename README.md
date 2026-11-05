@@ -8,7 +8,7 @@ A modern social platform for craft beer enthusiasts and bars
 совершеннолетних пользователей: каталог пивных позиций, дневник и социальная сеть
 с настоящим сервером и постоянной БД.
 
-**P0/P1 завершены; P2 выполняется в рабочей ветке.** Есть Android стартовый
+**P0/P1/P2 завершены; остановка перед P3.** Есть Android стартовый
 экран и серверный фундамент: PostgreSQL, migrations, owner API, сессии,
 private media, local SMTP и OpenAPI. Полные account workflows и социальные
 сценарии ещё предстоят; это не готовый публичный сервис.

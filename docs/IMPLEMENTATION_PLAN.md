@@ -1,7 +1,7 @@
 # План KraPiva 2.0 — ТЗ v1.3
 
 Нормативный источник: TECHNICAL_SPECIFICATION.md, §12/15/16/17.
-P0 и P1 завершены; их код и результаты не пересоздаются. Сейчас выполняется приёмка P2. **P1.1/P3 и iOS не начаты.**
+P0 и P1 завершены; их код и результаты не пересоздаются. P2 принят: локальный backend и CI проверены. **P1.1/P3 и iOS не начаты.**
 После каждого согласованного этапа: проверка → diff/status → commit/push →
 отчёт → остановка до новой команды владельца. Правила лимитов — PROGRESS.md.
 
@@ -9,7 +9,7 @@ P0 и P1 завершены; их код и результаты не перес
 |---|---|---|---|
 | P0 | Инвентаризация и исходный baseline v1.0 | cf4d28a, исходные документы архивированы | DONE |
 | P1 | Android/backend foundation, оригинальные прежние ресурсы и CI | 69ed3e9 CI PASS, fbe95ba отчёт | DONE, не повторять |
-| P2 | Расширенная SQL-схема профиля/позиций/чек-инов/соцсети/мест/кодов, migrations, media отдельно от SQL, test SMTP, переносимый локальный запуск, платформенно-нейтральный OpenAPI; конфигурация API окружений | API+DB+media+SMTP локально, persistence после restart, реальные test accounts/CRUD/ACL и contracts, DEPLOYMENT_RU; обновить совместимость source checker с v1.3 | IN PROGRESS — foundation реализована; приёмка P2.5 |
+| P2 | Расширенная SQL-схема профиля/позиций/чек-инов/соцсети/мест/кодов, migrations, media отдельно от SQL, test SMTP, переносимый локальный запуск, платформенно-нейтральный OpenAPI; конфигурация API окружений | API+DB+media+SMTP локально, persistence после restart, реальные test accounts/CRUD/ACL и contracts, DEPLOYMENT_RU; обновить совместимость source checker с v1.3 | DONE — stages/P2.md; staging/production не развёрнуты |
 | P1.1 (уточнение UI) | Новые semantic tokens, original SVG/icon, sans-serif, пять пунктов и home components, ASSET_INVENTORY/visual baseline | Компоненты и screenshot/контраст; не переписывать P1/backend | PLANNED в ближайшем отдельно согласованном UI-блоке P3 после P2; не блокирует P2 |
 | P3 | Аккаунты/полный профиль/фото/ACL, account-scoped cache; S-01/S-29 real loading и welcome с sensor liquid, fallback, reduced motion; согласованный P1.1 UI | A1/A12/A15/A25–A30, IDOR и настоящий test SMTP; без forced delay | PLANNED |
 | P4 | Новый каталог, brewery card, поиск, предложения/moderation, scanner; отдельная семантика GTIN/QR | A2/A9/A21, пустой старт и реальная камера | PLANNED |
