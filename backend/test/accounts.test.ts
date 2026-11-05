@@ -115,5 +115,11 @@ test('account failure paths: SMTP rollback, expired tokens and independent token
   await db.pool.query("INSERT INTO account_tokens(user_id,purpose,token_hash,created_at,expires_at) VALUES($1,'verify_email',$2,now()-interval '2 hours',now()-interval '1 hour')",[user,tokenHash(expired)]);
   assert.equal((await call('/v1/auth/verify',{token:expired})).status,401);
   assert.equal((await db.pool.query('SELECT email_verified_at FROM users WHERE id=$1',[user])).rows[0].email_verified_at,null);
+  const oldSession=(await db.pool.query("INSERT INTO sessions(user_id,token_hash,created_at,expires_at,revoked_at) VALUES($1,$2,now()-interval '2 days',now()-interval '1 day',now()-interval '2 hours') RETURNING id",[user,tokenHash(randomUUID())])).rows[0].id;
+  const freshSession=(await db.pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '1 hour') RETURNING id",[user,tokenHash(randomUUID())])).rows[0].id;
+  const oldRefresh=randomBytes(32).toString('base64url');
+  await db.pool.query("INSERT INTO refresh_tokens(token_hash,user_id,session_id,created_at,expires_at,consumed_at) VALUES($1,$2,$3,now()-interval '3 hours',now()-interval '1 hour',now()-interval '2 hours')",[tokenHash(oldRefresh),user,oldSession]);
+  assert.equal((await call('/v1/auth/refresh',{refreshToken:oldRefresh})).status,401);
+  assert.equal((await db.pool.query('SELECT revoked_at FROM sessions WHERE id=$1',[freshSession])).rows[0].revoked_at,null);
  } finally {await app.close();mail.close();await db.close();}
 });

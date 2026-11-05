@@ -80,11 +80,12 @@ export class Accounts {
    const user=(await client.query("SELECT u.id FROM users u JOIN refresh_tokens r ON r.user_id=u.id WHERE r.token_hash=$1 AND u.status='active' FOR UPDATE OF u",[tokenHash(token)])).rows[0];
    if(!user) return null;
    const row=(await client.query('SELECT r.*,s.revoked_at FROM refresh_tokens r JOIN sessions s ON s.id=r.session_id WHERE r.token_hash=$1',[tokenHash(token)])).rows[0];
+   if(new Date(row.expires_at).getTime()<=Date.now()) return null;
    if(row.consumed_at) {
     await client.query('UPDATE sessions SET revoked_at=coalesce(revoked_at,now()) WHERE user_id=$1',[user.id]);
     return null; // commit replay revocation before reporting 401
    }
-   if(row.revoked_at||new Date(row.expires_at).getTime()<=Date.now()) return null;
+   if(row.revoked_at) return null;
    await client.query('UPDATE refresh_tokens SET consumed_at=now() WHERE token_hash=$1',[tokenHash(token)]);
    await client.query('UPDATE sessions SET revoked_at=now() WHERE id=$1',[row.session_id]);
    return this.pair(client,user.id);

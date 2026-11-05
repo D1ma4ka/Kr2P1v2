@@ -141,7 +141,11 @@ jobs:
           else
             # Use the existing device group for this non-root process only.
             # No chmod, udev rules, user modification or security configuration.
-            sudo -n -u "$(id -un)" -g "$(stat -c %G /dev/kvm)" -- env ANDROID_HOME="$ANDROID_HOME" \
+            # Hosted sudo permits its default root target, not an arbitrary Runas group.
+            # setpriv immediately drops UID/capabilities before executing any emulator code.
+            emulator_test_groups="$(id -G | tr ' ' ','),$(stat -c %g /dev/kvm)"
+            sudo -n -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --groups="$emulator_test_groups" --no-new-privs \
+              env ANDROID_HOME="$ANDROID_HOME" \
               "$ANDROID_HOME/emulator/emulator" -avd krapiva -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -accel on > work/android-emulator.log 2>&1 &
           fi
           emulator_test_pid=$!

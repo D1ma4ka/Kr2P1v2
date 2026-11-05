@@ -24,6 +24,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -173,6 +174,8 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
 private fun JSONObject.text(key: String): String = if (isNull(key)) "" else optString(key)
 @Composable private fun Profile(state: AccountState, model: AccountViewModel) {
     val p = state.profile ?: return
+    val uriHandler = LocalUriHandler.current
+    var linkError by remember { mutableStateOf<String?>(null) }
     state.cover?.let { Image(it.asImageBitmap(), "Обложка профиля", Modifier.fillMaxWidth().height(144.dp).clickable { model.viewPhoto("coverAssetId") }, contentScale = ContentScale.Crop) }
     state.avatar?.let { Image(it.asImageBitmap(), "Аватар профиля", Modifier.size(96.dp).clickable { model.viewPhoto("avatarAssetId") }, contentScale = ContentScale.Crop) }
     if (state.avatar == null) BeerHero(Modifier.size(72.dp), forceReducedMotion = true)
@@ -182,7 +185,13 @@ private fun JSONObject.text(key: String): String = if (isNull(key)) "" else optS
     if (p.text("bio").isNotBlank()) Text(p.text("bio"))
     if (p.text("gender").isNotBlank()) Text("Пол: ${p.text("gender")}")
     val links = p.optJSONArray("links") ?: JSONArray()
-    for (i in 0 until links.length()) Text(links.getJSONObject(i).getString("url"), color = KraPivaColors.Amber)
+    for (i in 0 until links.length()) {
+        val url = links.getJSONObject(i).getString("url")
+        Link(url, !state.busy) {
+            runCatching { uriHandler.openUri(url) }.onFailure { linkError = "Не удалось открыть ссылку. Проверьте наличие браузера." }
+        }
+    }
+    linkError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     Text("Публичность: ${visibilityLabel(p.text("profileVisibility"))}", color = KraPivaColors.Muted)
     if (state.offline) Text("Сохранённая копия · изменения требуют сети", color = KraPivaColors.Amber)
     Action("Обновить", !state.busy, model::refresh)
