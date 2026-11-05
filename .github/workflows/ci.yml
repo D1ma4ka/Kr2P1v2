@@ -86,7 +86,7 @@ jobs:
         working-directory: android
         run: |
           build_status=0
-          ./gradlew --no-daemon assembleDebug lintDebug || build_status=$?
+          ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest lintDebug testDebugUnitTest || build_status=$?
           lint_report=app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
           if [ -f "$lint_report" ]; then
             cat "$lint_report"

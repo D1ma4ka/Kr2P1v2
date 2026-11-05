@@ -8,7 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import ru.krapiva.app.designsystem.KraPivaTheme
-import ru.krapiva.app.welcome.WelcomeScreen
+import ru.krapiva.app.account.AccountApp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -18,6 +18,6 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
-        setContent { KraPivaTheme { WelcomeScreen() } }
+        setContent { KraPivaTheme { AccountApp() } }
     }
 }

@@ -35,7 +35,7 @@ jobs:
       - run: npm ci --ignore-scripts --no-fund --no-audit
       - run: npm run build
       - name: Unit, HTTP, SQL, media, SMTP and OpenAPI
-        run: node --env-file=../.env --test dist/test/*.test.js
+        run: node --env-file=../.env --test --test-concurrency=1 dist/test/*.test.js
       - run: npm audit --audit-level=high
       - name: Build non-root API and migrate
         working-directory: .

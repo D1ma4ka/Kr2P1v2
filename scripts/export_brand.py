@@ -13,6 +13,6 @@ for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxh
     for filename, radius in [("ic_launcher",24),("ic_launcher_round",54)]:
         # Standalone PNG fallback; adaptive icons use the platform mask.
         inner = mark[mark.index(">")+1:mark.rindex("</svg>")]
-        svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><rect width="108" height="108" rx="{radius}" fill="#171512"/><g transform="translate(15.12 15.12) scale(.72)">{inner}</g></svg>'
+        svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><rect width="108" height="108" rx="{radius}" fill="#0B0D0F"/><g transform="translate(15.12 15.12) scale(.72)">{inner}</g></svg>'
         cairosvg.svg2png(bytestring=svg.encode(),write_to=str(folder/f"{filename}.png"),output_width=size,output_height=size)
 print("Exported brand PNGs and five launcher densities")

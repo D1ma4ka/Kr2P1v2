@@ -14,11 +14,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 object KraPivaColors {
-    val Ink = Color(0xFF171512)
-    val Surface = Color(0xFF24201B)
-    val Amber = Color(0xFFE9AF61)
-    val Cream = Color(0xFFF6EFE3)
-    val Muted = Color(0xFFC3B6A4)
+    val Ink = Color(0xFF0B0D0F)
+    val Surface = Color(0xFF1D2125)
+    val Amber = Color(0xFFF5A623)
+    val Cream = Color(0xFFF5EBD8)
+    val Muted = Color(0xFFAAA69F)
+    val Hop = Color(0xFF78B936)
+    val HopLight = Color(0xFF9ACD45)
+    val Border = Color(0xFF303438)
     val Error = Color(0xFFFFB4AB)
 }
 object KraPivaSpacing {
@@ -36,7 +39,7 @@ private val Colors = darkColorScheme(
     error = KraPivaColors.Error, onError = KraPivaColors.Ink,
 )
 private val Type = Typography(
-    displaySmall = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+    displaySmall = TextStyle(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold,
         fontSize = 38.sp, lineHeight = 44.sp),
     headlineMedium = TextStyle(fontWeight = FontWeight.Bold, fontSize = 30.sp, lineHeight = 36.sp),
     bodyLarge = TextStyle(fontSize = 17.sp, lineHeight = 26.sp),

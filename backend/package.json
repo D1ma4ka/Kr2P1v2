@@ -10,7 +10,7 @@
     "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true });\"",
     "build": "npm run clean && tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test dist/test/*.test.js",
+    "test": "node --test --test-concurrency=1 dist/test/*.test.js",
     "check": "npm run build && npm test",
     "start": "node dist/src/main.js",
     "migrate": "node dist/src/db/migrate.js",
