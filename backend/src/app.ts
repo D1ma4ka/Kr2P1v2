@@ -1,3 +1,4 @@
+import {databaseReady} from "./db/readiness.js";
 import type { MediaService } from "./media/service.js";
 import swagger from "@fastify/swagger";
 import type pg from "pg";
@@ -57,10 +58,10 @@ export function buildApp(config: Config, pool?: pg.Pool, media?: MediaService) {
     app.register(async api => {
       api.get("/health/ready",{schema:{response:{...errors,200:object({status:{type:'string',enum:['ready']}})}}},async()=>{
         try {
-          const result=await pool.query("SELECT name FROM schema_migrations WHERE name='002_request_budgets.sql'");
-          if(result.rowCount!==1) throw Error();
+          await databaseReady(pool);
+          if(media) await media.ready();
         }
-        catch { throw new ApiError(503,"UNAVAILABLE","База данных недоступна"); }
+        catch { throw new ApiError(503,"UNAVAILABLE","Зависимости сервера недоступны"); }
         return {status:"ready"};
       });
       api.register(async secured => foundationRoutes(secured,pool,media));

@@ -9,6 +9,13 @@ P2.1–P2.4 не повторяются. Текущая работа: незав
 Инструмента непрерывного измерения нет; нужны ручные обновления. P3 не разрешён.
 Ниже — исторический отчёт остановки; его прежние пороги заменены указанными выше.
 
+Review update: readiness проверяет hash ledger, доступ к таблицам и media FS;
+URL DB options ограничены (TLS override/duplicates отвергаются), media directory
+fsync после записи/удаления. Два новых targeted negative tests PASS, build PASS.
+Runtime drill теперь каждый раз создаёт новую synthetic batch и закрытый файл,
+не зависит от истёкших вчерашних токенов и не перезаписывает прежние fixtures.
+Следующий checkpoint: backend CI с настоящими DB/SMTP и restore drill.
+
 ---
 
 # STOP — P2 WIP, остановка по лимиту и команде владельца

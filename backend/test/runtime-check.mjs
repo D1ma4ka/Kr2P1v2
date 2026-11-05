@@ -14,7 +14,8 @@ import {MediaService} from '../dist/src/media/service.js';
 import {localMailer} from '../dist/src/mail/smtp.js';
 import {testDatabase} from '../dist/test/database.js';
 if(process.env.NODE_ENV!=='development'||new URL(process.env.DATABASE_URL).hostname!=='127.0.0.1') throw Error('Local development only');
-const root=resolve('..'),work=join(root,'work'),accountsFile=join(work,'dev-accounts.json');
+const root=resolve('..'),work=join(root,'work');
+const accountsFile=join(work,`runtime-accounts-${randomUUID()}.json`);
 await mkdir(work,{recursive:true,mode:0o700});
 const env={...process.env};
 for(const key of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH']) delete env[key];
@@ -22,8 +23,8 @@ function dc(args,input) {return execFileSync('docker',['--host=unix:///var/run/d
 const pool=createPool(process.env.DATABASE_URL);
 let f;
 try {
- try {f=JSON.parse(await readFile(accountsFile,'utf8'));}
- catch(error) {if(error.code!=='ENOENT') throw error;f=await fixtures(pool);await writeFile(accountsFile,JSON.stringify(f),{flag:'wx',mode:0o600});}
+ f=await fixtures(pool,randomUUID().replaceAll('-',''));
+ await writeFile(accountsFile,JSON.stringify(f),{flag:'wx',mode:0o600});
  // Runtime role cannot perform DDL, even though CRUD is allowed.
  await assert.rejects(pool.query('CREATE TABLE must_not_create(id int)'),{code:'42501'});
 } finally {await pool.end();}

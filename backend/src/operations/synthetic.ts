@@ -2,11 +2,12 @@ import type pg from "pg";
 import { transaction } from "../db/pool.js";
 import { issueSession } from "../identity/sessions.js";
 // Synthetic only; never automatically called by migrations or server startup.
-export async function fixtures(pool: pg.Pool) {
+export async function fixtures(pool: pg.Pool, batch = '') {
+  if(!/^[a-z0-9]{0,32}$/.test(batch)) throw new Error('Invalid synthetic batch');
   return transaction(pool,async client=>{
     const accounts=[];
     for(const name of ['Alpha','Beta']) {
-      const user=(await client.query("INSERT INTO users(email,display_name,adult_confirmed_at) VALUES($1,$2,now()) RETURNING id",[`${name.toLowerCase()}@example.invalid`,`Synthetic ${name}`])).rows[0];
+      const user=(await client.query("INSERT INTO users(email,display_name,adult_confirmed_at) VALUES($1,$2,now()) RETURNING id",[`${name.toLowerCase()}${batch}@example.invalid`,`Synthetic ${name}`])).rows[0];
       await client.query("INSERT INTO user_profiles(user_id) VALUES($1)",[user.id]);
       accounts.push({id:user.id as string,token:await issueSession(client,user.id)});
     }

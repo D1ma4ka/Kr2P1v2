@@ -9,6 +9,7 @@ const columns='id,width,height,size_bytes AS "sizeBytes",content_type AS "conten
 export class MediaService {
  private inFlight=0;
  constructor(private pool:pg.Pool,private storage:Storage) {}
+ async ready() {await this.storage.check();}
  async upload(owner:string,input:Buffer,contentType:string):Promise<Media> {
   if(this.inFlight>=2) throw new ApiError(429,'UPLOAD_BUSY','Повторите загрузку позже');
   this.inFlight++;
