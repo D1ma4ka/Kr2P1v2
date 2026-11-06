@@ -78,7 +78,7 @@ export async function decide(pool:pg.Pool,user:string,id:string,input:Decision) 
   const row=(await db.query('SELECT * FROM position_proposals WHERE id=$1 FOR UPDATE',[id])).rows[0];
   if(!row) throw notFound();
   if(row.status!=='pending'||row.version!==input.version) throw conflict();
-  const data=await validate(db,row.submitter_id,row.proposed_data as ProposalInput);
+  const data=input.action==='accept'?await validate(db,row.submitter_id,row.proposed_data as ProposalInput):row.proposed_data as ProposalInput;
   let positionId:string|null=null;
   if(input.action==='link') {
    if(!input.positionId) throw new ApiError(422,'POSITION_REQUIRED','Укажите подтверждённую позицию');

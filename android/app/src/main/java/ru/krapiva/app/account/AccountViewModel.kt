@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
 import java.io.IOException
 
-enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS }
+enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG }
 data class AccountState(
     val screen: AccountScreen = AccountScreen.RESTORING, val busy: Boolean = false,
     val error: String? = null, val notice: String? = null, val profile: JSONObject? = null,
@@ -22,7 +22,7 @@ data class AccountState(
 )
 class AccountViewModel(application: Application) : AndroidViewModel(application) {
     private val store = AccountStore(application)
-    private val api = AccountApi(store)
+    val api = AccountApi(store)
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
     init { restore() }
@@ -143,6 +143,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         if (bytes.size > 8 * 1024 * 1024) throw ApiFailure(413, "Фото должно быть меньше 8 МБ")
         JSONObject(String(api.bytes("v1/media", "POST", bytes, type), Charsets.UTF_8)).getString("id")
     }
+    fun sessionExpired() = task { api.clear(); mutable.value = AccountState(screen = AccountScreen.LOGIN, error = "Сессия завершена. Войдите снова.") }
     fun logout() = task {
         api.json("v1/session", "DELETE")
         api.clear(); mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = "Вы вышли из аккаунта")

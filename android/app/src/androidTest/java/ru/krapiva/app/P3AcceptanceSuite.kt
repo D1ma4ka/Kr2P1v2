@@ -8,5 +8,5 @@ import ru.krapiva.app.designsystem.BeerHeroTest
 
 /** Account flow runs last, leaving its real session for the host cold-start check. */
 @RunWith(Suite::class)
-@Suite.SuiteClasses(AccountLayoutTest::class, BeerHeroTest::class, AccountIntegrationTest::class)
+@Suite.SuiteClasses(AccountLayoutTest::class, BeerHeroTest::class, ru.krapiva.app.catalog.CatalogIntegrationTest::class, AccountIntegrationTest::class)
 class P3AcceptanceSuite

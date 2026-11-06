@@ -49,8 +49,18 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     val scroll = rememberScrollState()
     LaunchedEffect(state.screen) { scroll.scrollTo(0) }
     val authenticated = state.profile != null
+    val catalogOwner = remember(state.profile?.optString("userId")) { object : androidx.lifecycle.ViewModelStoreOwner {
+        override val viewModelStore = androidx.lifecycle.ViewModelStore()
+    } }
+    DisposableEffect(catalogOwner) { onDispose { catalogOwner.viewModelStore.clear() } }
     BackHandler(enabled = state.screen !in setOf(AccountScreen.WELCOME, AccountScreen.PROFILE, AccountScreen.RESTORING)) {
         model.navigate(if (authenticated) AccountScreen.PROFILE else AccountScreen.WELCOME)
+    }
+    if (state.screen == AccountScreen.CATALOG && authenticated) {
+        CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides catalogOwner) {
+            ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload, { model.navigate(AccountScreen.PROFILE) }, model::sessionExpired)
+        }
+        return
     }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.safeDrawingPadding().imePadding()) {
@@ -77,14 +87,15 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
                         AccountScreen.PROFILE -> Profile(state, model)
                         AccountScreen.EDIT -> ProfileEditor(state, model)
                         AccountScreen.SETTINGS -> Settings(state, model)
+                        AccountScreen.CATALOG -> Unit
                     }
                 }
             }
             if (authenticated) NavigationBar {
                 // Destinations become enabled with their real features in P4–P7.
                 for (label in listOf("Главная", "Каталог", "Чекин", "Бары", "Профиль")) NavigationBarItem(
-                    selected = label == "Профиль", enabled = label == "Профиль" && !state.busy,
-                    onClick = { model.navigate(AccountScreen.PROFILE) }, icon = {
+                    selected = label == "Профиль", enabled = label in setOf("Профиль", "Каталог") && !state.busy,
+                    onClick = { model.navigate(if (label == "Каталог") AccountScreen.CATALOG else AccountScreen.PROFILE) }, icon = {
                         if (label == "Чекин") Surface(color = KraPivaColors.Amber, shape = RoundedCornerShape(12.dp)) {
                             Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { NavigationMark(label, KraPivaColors.Ink) }
                         } else NavigationMark(label, if (label == "Профиль") KraPivaColors.Cream else KraPivaColors.Muted)
@@ -97,7 +108,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         title = { Text("Фото профиля") }, text = { Image(photo.asImageBitmap(), "Просмотр фото", Modifier.fillMaxWidth()) },
         confirmButton = { TextButton(model::closePhoto) { Text("Закрыть") } }) }
 }
-@Composable private fun NavigationMark(label: String, color: Color) {
+@Composable internal fun NavigationMark(label: String, color: Color) {
     Canvas(Modifier.size(24.dp)) {
         val w = size.width; val h = size.height; val stroke = Stroke(w * .075f)
         when (label) {

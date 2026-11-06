@@ -1,5 +1,7 @@
 package ru.krapiva.app.account
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -9,7 +11,8 @@ import java.net.URL
 
 class ApiFailure(val status: Int, override val message: String) : Exception(message)
 class AccountApi(private val store: AccountStore) {
-    private var session: JSONObject? = null
+    private val refreshMutex = Mutex()
+    @Volatile private var session: JSONObject? = null
     suspend fun restore(): Boolean = withContext(Dispatchers.IO) { session = store.session(); session != null }
     suspend fun accept(value: JSONObject) = withContext(Dispatchers.IO) {
         store.clear(); store.saveSession(value); session = value
@@ -41,19 +44,35 @@ class AccountApi(private val store: AccountStore) {
     }
     suspend fun bytes(path: String, method: String = "GET", body: ByteArray? = null, contentType: String = "application/json", secure: Boolean = true): ByteArray = withContext(Dispatchers.IO) {
         if (secure && session == null) throw ApiFailure(401, "Требуется вход")
-        try { raw(path, method, body, contentType, if (secure) session?.getString("accessToken") else null) }
+        val access = if (secure) session?.getString("accessToken") else null
+        try { raw(path, method, body, contentType, access) }
         catch (error: ApiFailure) {
             if (error.status != 401 || !secure) throw error
-            val refresh = session?.getString("refreshToken") ?: throw error
-            val response = raw("v1/auth/refresh", "POST", JSONObject().put("refreshToken", refresh).toString().toByteArray(), "application/json", null)
-            val next = JSONObject(String(response, Charsets.UTF_8))
-            store.saveSession(next); session = next
-            raw(path, method, body, contentType, next.getString("accessToken"))
+            val token = refreshMutex.withLock {
+                val current = session ?: throw error
+                if (current.getString("accessToken") != access) current.getString("accessToken") else {
+                    val response = raw("v1/auth/refresh", "POST", JSONObject().put("refreshToken", current.getString("refreshToken")).toString().toByteArray(), "application/json", null)
+                    val next = JSONObject(String(response, Charsets.UTF_8))
+                    store.saveSession(next); session = next
+                    next.getString("accessToken")
+                }
+            }
+            raw(path, method, body, contentType, token)
         }
     }
     suspend fun json(path: String, method: String = "GET", body: JSONObject? = null, secure: Boolean = true): JSONObject {
         val data = bytes(path, method, body?.toString()?.toByteArray(Charsets.UTF_8), secure = secure)
         return if (data.isEmpty()) JSONObject() else JSONObject(String(data, Charsets.UTF_8))
+    }
+    suspend fun catalogGet(path: String): Pair<JSONObject, Boolean> = withContext(Dispatchers.IO) {
+        val user = session?.getString("userId") ?: throw ApiFailure(401, "Требуется вход")
+        try { val data = json(path); store.cacheCatalog(user, path, data); data to false }
+        catch (error: Exception) {
+            if (error is ApiFailure && error.status in setOf(403, 404)) store.evictCatalog(user,path)
+            if (error !is java.io.IOException && !(error is ApiFailure && error.status >= 500)) throw error
+            val cached = store.cachedCatalog(user,path) ?: throw error
+            cached to true
+        }
     }
     suspend fun cached(): JSONObject? = withContext(Dispatchers.IO) { session?.let { store.cached(it.getString("userId")) } }
     suspend fun cache(profile: JSONObject) = withContext(Dispatchers.IO) { store.cache(profile.getString("userId"), profile) }

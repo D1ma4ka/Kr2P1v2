@@ -116,7 +116,7 @@ test('P4 real HTTP/PostgreSQL: empty catalog, proposals, ACL, search, GTIN, dupl
   // Sanitized photo remains private until a rights-confirmed proposal is accepted.
   const image=await media.upload(a.id,await sharp({create:{width:16,height:16,channels:3,background:'#f5a623'}}).png().toBuffer(),'image/png');
   await assert.rejects(media.get(b.id,image.id));
-  await proposal({...data,gtin:null,imageAssetId:image.id,imageSource:'Synthetic own image',rightsConfirmed:false}).then(()=>assert.fail('rights must be required'),()=>{});
+  await call('/v1/position-proposals','POST',{...data,requestId:randomUUID(),gtin:null,imageAssetId:image.id,imageSource:'Synthetic own image',rightsConfirmed:false},a,422);
   const imageProposal=await proposal({...data,breweryId:card.breweryId,name:'Synthetic photo',gtin:null,imageAssetId:image.id,imageSource:'Synthetic own image',rightsConfirmed:true});
   await decision(imageProposal.id,{breweryId:card.breweryId});assert.ok((await media.get(b.id,image.id)).length>0);
   await assert.rejects(media.remove(a.id,image.id));
@@ -124,4 +124,22 @@ test('P4 real HTTP/PostgreSQL: empty catalog, proposals, ACL, search, GTIN, dupl
   await db.pool.query("UPDATE breweries SET verification_status='rejected' WHERE id=$1",[card.breweryId]);
   assert.equal((await call('/v1/positions')).items.length,0);await call('/v1/positions/'+id,'GET',undefined,a,404);
  } finally {await app.close();await db.close();await rm(root,{recursive:true,force:true});}
+});
+
+test('P3 → P4 additive migration retains stable catalog IDs and rebuilds searchable projection',async()=>{
+ const {cp,readFile,writeFile}=await import('node:fs/promises');
+ const {fixtures}=await import('./fixtures.js');
+ const db=await testDatabase(),directory=await mkdtemp(join(tmpdir(),'krapiva-upgrade-'));
+ try {
+  for(const name of ['001_foundation.sql','002_request_budgets.sql','003_accounts.sql']) await cp('migrations/'+name,join(directory,name));
+  await migrate(db.pool,directory);const old=await fixtures(db.pool);
+  const before=(await db.pool.query('SELECT * FROM beer_positions WHERE id=$1',[old.position])).rows[0];
+  await writeFile(join(directory,'004_catalog.sql'),await readFile('migrations/004_catalog.sql'));
+  await migrate(db.pool,directory);
+  await cp('migrations/005_catalog_batch_projection.sql',join(directory,'005_catalog_batch_projection.sql'));
+  await migrate(db.pool,directory);await migrate(db.pool,directory);
+  const after=(await db.pool.query('SELECT * FROM beer_positions WHERE id=$1',[old.position])).rows[0];
+  for(const key of Object.keys(before)) assert.deepEqual(after[key],before[key]);
+  assert.equal((await db.pool.query('SELECT position_id FROM catalog_search')).rows[0].position_id,old.position);
+ } finally {await db.close();await rm(directory,{recursive:true,force:true});}
 });

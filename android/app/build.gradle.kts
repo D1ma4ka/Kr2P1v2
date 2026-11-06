@@ -43,7 +43,7 @@ android {
     }
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"; versionNameSuffix = "-p3"
+            applicationIdSuffix = ".debug"; versionNameSuffix = "-p4"
             buildConfigField("String", "API_BASE_URL", quoted(devApi))
             buildConfigField("String", "API_ENVIRONMENT", quoted("development"))
             buildConfigField("boolean", "ALLOW_LOCAL_HTTP", "true")
@@ -84,6 +84,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
+    implementation("com.google.zxing:core:3.5.3")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation(platform("androidx.compose:compose-bom:2025.04.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
