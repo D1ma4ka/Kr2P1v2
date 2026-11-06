@@ -111,6 +111,14 @@ Liquid fixture ещё был на белом root: test Surface приведён
 Следующее: диагностировать screen/busy/error logout, завершить reset UI;
 отдельный actual sensor→render checker теперь выполняется и при E2E failure.
 
+`0f6074c`, run `42228334798`: **4/5 device PASS**, rendered accelerometer→foam
+**PASS**: left=10px/right=-4px, hero231px. Чистые реальные кадры просмотрены.
+Logout error: SETTINGS/busy=false/«Некорректный запрос». Подтверждён Android
+HttpURLConnection default form Content-Type для DELETE; клиент теперь отправляет
+валидный `{}` JSON. Добавлена проверка cover removal → server404 с сохранением
+аватара, затрагивающая второй реальный DELETE path. Следующее: принять этот
+transport fix, полный logout/reset E2E и итоговый отчёт; P4 не начинать.
+
 ## Лимиты и сохранность
 
 Пятичасовой остаток **≤25%** или недельный **≤50%** → остановка и WIP/push.

@@ -16,16 +16,19 @@ class AccountApi(private val store: AccountStore) {
     }
     suspend fun clear() = withContext(Dispatchers.IO) { session = null; store.clear() }
     private fun raw(path: String, method: String, body: ByteArray?, contentType: String, token: String?): ByteArray {
+        // Android's HttpURLConnection adds form Content-Type to bodyless DELETE.
+        // Send valid empty JSON so Fastify's JSON-only API can parse the request.
+        val payload = body ?: if (method == "DELETE") "{}".toByteArray(Charsets.UTF_8) else null
         val connection = URL(BuildConfig.API_BASE_URL + path.removePrefix("/")).openConnection() as HttpURLConnection
         try {
             connection.requestMethod = method; connection.connectTimeout = 10_000; connection.readTimeout = 15_000
             connection.instanceFollowRedirects = false
             connection.setRequestProperty("Accept", "application/json, image/jpeg")
             if (token != null) connection.setRequestProperty("Authorization", "Bearer $token")
-            if (body != null) {
+            if (payload != null) {
                 connection.doOutput = true; connection.setRequestProperty("Content-Type", contentType)
-                connection.setFixedLengthStreamingMode(body.size)
-                connection.outputStream.use { it.write(body) }
+                connection.setFixedLengthStreamingMode(payload.size)
+                connection.outputStream.use { it.write(payload) }
             }
             val status = connection.responseCode
             val bytes = (if (status in 200..299) connection.inputStream else connection.errorStream)?.use { it.readBytes() } ?: byteArrayOf()

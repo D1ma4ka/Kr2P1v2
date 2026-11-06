@@ -6,6 +6,10 @@ Android-specific полей; iOS P10 выберет HTTP/Keychain/SQLite adapter
 HttpURLConnection вместо добавления сетевого framework: достаточно для
 небольшого P3 API, redirects отключены, 10s connect/15s read timeout,
 работа на Dispatchers.IO. UI/state/ViewModel отделены от API/store.
+Для DELETE без прикладного тела клиент отправляет `{}` с JSON Content-Type:
+Android transport иначе добавляет `application/x-www-form-urlencoded`, который
+JSON-only сервер корректно отклоняет. Это касается session revoke и media delete;
+стандартный DELETE без тела на сервере также поддерживается, iOS не ограничен.
 TLS обязателен кроме разрешённого debug loopback/emulator. Production адрес
 не выдумывается. Ошибки не превращаются в успешные локальные записи.
 

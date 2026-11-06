@@ -121,6 +121,7 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Тестовый город").assertExists()
         // Reconstruct the actual Android repository/store, then fetch persistent server data.
         lateinit var userId: String
+        lateinit var coverId: String
         runBlocking {
             val reopened = AccountApi(AccountStore(context))
             assertTrue(reopened.restore())
@@ -149,6 +150,7 @@ class AccountIntegrationTest {
         runBlocking {
             val reopened = AccountApi(AccountStore(context)); assertTrue(reopened.restore())
             val saved = reopened.json("v1/me")
+            coverId = saved.getString("coverAssetId")
             assertNotEquals(saved.getString("avatarAssetId"), saved.getString("coverAssetId"))
             val thumbnail = reopened.photo(saved.getString("avatarAssetId"))!!
             assertEquals(32, android.graphics.BitmapFactory.decodeByteArray(thumbnail, 0, thumbnail.size).width)
@@ -158,6 +160,20 @@ class AccountIntegrationTest {
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Фото профиля").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Закрыть").performClick()
         screenshot("p3-profile-photos.png")
+        // A second real DELETE path: removing only the cover keeps the avatar
+        // and makes the old media unavailable on the server after Save.
+        compose.onNodeWithText("Редактировать профиль").performScrollTo().performClick()
+        compose.onNodeWithText("Удалить обложку").performScrollTo().performClick()
+        compose.onNodeWithText("Сохранить").performScrollTo().performClick()
+        compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.PROFILE && !model.state.value.busy }
+        compose.onNodeWithContentDescription("Аватар профиля").assertExists()
+        compose.onNodeWithContentDescription("Обложка профиля").assertDoesNotExist()
+        runBlocking {
+            val reopened = AccountApi(AccountStore(context)); assertTrue(reopened.restore())
+            assertTrue(reopened.json("v1/me").isNull("coverAssetId"))
+            val missing = runCatching { reopened.bytes("v1/media/$coverId") }.exceptionOrNull()
+            assertTrue("Removed cover is deleted by the real API", missing is ApiFailure && missing.status == 404)
+        }
         try {
             shell("svc wifi disable"); shell("svc data disable")
             compose.waitUntil(20_000) { !networkReady() }
