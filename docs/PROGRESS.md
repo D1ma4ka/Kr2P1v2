@@ -1,3 +1,14 @@
+# KraPiva 2.0 — P4 IN PROGRESS
+
+6 ноября 2026, Europe/Istanbul. P4 разрешён владельцем. Работа в существующей
+ветке `codex/krapiva-2-p3`, база `9f617e7`. Детали: [P4](stages/P4.md).
+Подэтапы: schema/search → moderation/merge → Android/scanner → checks/report.
+Backend реализован: существующие 13 и новые 2 теста PASS, PostgreSQL/HTTP реальные.
+Android и нагрузочная проверка ещё IN PROGRESS. P5 не начат.
+Квоты недоступны: ≤25% пятичасового или ≤50% недельного → commit/push/STOP.
+
+---
+
 # KraPiva 2.0 — P3 реализован, автоматическая приёмка PASS
 
 6 ноября 2026, Europe/Istanbul. P0/P1/P2 завершены; реализация P3 завершена.

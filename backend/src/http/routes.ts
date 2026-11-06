@@ -1,10 +1,10 @@
+import {catalogRoutes} from '../catalog/routes.js';
 import { mediaRoutes } from "../media/routes.js";
 import type { MediaService } from "../media/service.js";
 import type { FastifyInstance } from "fastify";
 import type pg from "pg";
 import { authenticate, tokenHash } from "../identity/sessions.js";
 import { createCheckin, deleteCheckin, getCheckin, listCheckins, updateCheckin, type CheckinInput } from "../checkins/repository.js";
-import { decodeCursor, encodeCursor } from "./pagination.js";
 import * as s from "./schemas.js";
 declare module "fastify" { interface FastifyRequest { userId: string; } }
 import {profile,updateProfile,type ProfileUpdate} from '../profiles/repository.js';
@@ -36,17 +36,7 @@ export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media
     await pool.query("UPDATE sessions SET revoked_at=now() WHERE token_hash=$1",[tokenHash(request.headers.authorization!.slice(7))]);
     return reply.code(204).send();
   });
-  app.get<{ Querystring:{limit?:string;cursor?:string} }>("/v1/positions", { schema:{...secure,querystring:s.pageQuery,
-    response:{...s.errors,200:s.page(s.object({id:s.uuid,releaseId:s.uuid,name:{type:'string'},createdAt:s.timestamp}))} } },async request=>{
-    const limit=Number(request.query.limit??20),after=decodeCursor(request.query.cursor);
-    const result=await pool.query<{id:string;releaseId:string;name:string;createdAt:string}>(`SELECT p.id,p.release_id AS "releaseId",r.name,
-      to_char(p.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "createdAt"
-      FROM beer_positions p JOIN beer_releases r ON r.id=p.release_id WHERE p.status='verified'
-      AND ($1::timestamptz IS NULL OR (p.created_at,p.id)<($1::timestamptz,$2::uuid))
-      ORDER BY p.created_at DESC,p.id DESC LIMIT $3`,[after?.[0]??null,after?.[1]??null,limit+1]);
-    const items=result.rows.slice(0,limit);
-    return {items,nextCursor:result.rows.length>limit?encodeCursor(items.at(-1)!):null};
-  });
+  await catalogRoutes(app,pool);
   app.get<{ Querystring:{limit?:string;cursor?:string} }>("/v1/checkins", {schema:{...secure,querystring:s.pageQuery,response:{...s.errors,200:s.page(s.checkinSchema)}}},
     request=>listCheckins(pool,request.userId,Number(request.query.limit??20),request.query.cursor));
   app.get<{ Params:{id:string} }>("/v1/checkins/:id",{schema:{...secure,params:s.idParams,response:{...s.errors,200:s.checkinSchema}}},

@@ -45,7 +45,7 @@ export class MediaService {
  async get(owner:string,id:string,thumbnail=false) {
   const result=await this.pool.query(`SELECT a.storage_key,a.thumbnail_key FROM media_assets a JOIN users u ON u.id=a.owner_id
     WHERE a.id=$1 AND u.status='active' AND a.deleted_at IS NULL AND a.moderation_status<>'hidden' AND
-    (a.owner_id=$2 OR EXISTS(SELECT 1 FROM user_profiles p WHERE p.user_id=a.owner_id AND (p.avatar_asset_id=a.id OR p.cover_asset_id=a.id)
+    (a.owner_id=$2 OR (a.moderation_status='approved' AND (EXISTS(SELECT 1 FROM beer_positions bp JOIN beer_releases rel ON rel.id=bp.release_id JOIN breweries br ON br.id=rel.brewery_id WHERE bp.image_asset_id=a.id AND bp.status='verified' AND br.verification_status='verified') OR EXISTS(SELECT 1 FROM breweries br WHERE br.image_asset_id=a.id AND br.verification_status='verified'))) OR EXISTS(SELECT 1 FROM user_profiles p WHERE p.user_id=a.owner_id AND (p.avatar_asset_id=a.id OR p.cover_asset_id=a.id)
      AND (p.profile_visibility='public' OR p.profile_visibility='friends' AND EXISTS(SELECT 1 FROM friendships f
       WHERE f.user_low=least(a.owner_id,$2::uuid) AND f.user_high=greatest(a.owner_id,$2::uuid)))))`,[id,owner]);
   if(!result.rows[0]) throw notFound();
@@ -56,7 +56,7 @@ export class MediaService {
    const result=await client.query('SELECT storage_key,thumbnail_key FROM media_assets WHERE id=$1 AND owner_id=$2 FOR UPDATE',[id,owner]);
    if(!result.rows[0]) throw notFound();
    const attached=await client.query(`SELECT 1 FROM checkin_media m JOIN checkins c ON c.id=m.checkin_id WHERE m.media_id=$1 AND c.deleted_at IS NULL
-    UNION ALL SELECT 1 FROM user_profiles WHERE avatar_asset_id=$1 OR cover_asset_id=$1 LIMIT 1`,[id]);
+    UNION ALL SELECT 1 FROM user_profiles WHERE avatar_asset_id=$1 OR cover_asset_id=$1 UNION ALL SELECT 1 FROM beer_positions WHERE image_asset_id=$1 AND status='verified' UNION ALL SELECT 1 FROM breweries WHERE image_asset_id=$1 AND verification_status='verified' UNION ALL SELECT 1 FROM position_proposals WHERE proposed_data->>'imageAssetId'=$1::text AND status='pending' LIMIT 1`,[id]);
    if(attached.rowCount) throw conflict();
    await client.query('UPDATE media_assets SET deleted_at=coalesce(deleted_at,now()) WHERE id=$1',[id]);
    return result.rows[0];
