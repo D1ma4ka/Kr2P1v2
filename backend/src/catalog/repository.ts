@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import type pg from 'pg';
 import {ApiError,notFound} from '../http/errors.js';
+import {validCursorTimestamp} from '../http/pagination.js';
 import {normalizeGtin} from './gtin.js';
 export type Db=pg.Pool|pg.PoolClient;
 export interface CatalogQuery {limit?:string;cursor?:string;q?:string;breweryId?:string;styleId?:string;packaging?:string;abvMin?:string;abvMax?:string;sort?:'newest'|'name'|'abv';}
@@ -14,7 +15,7 @@ function cursorFor(query:CatalogQuery,scope:string):[string,string]|null {
  try {
   const [sig,key,id]=JSON.parse(Buffer.from(query.cursor,'base64url').toString('utf8')) as unknown[];
   if(sig!==signature(query,scope)||typeof key!=='string'||key.length>600||typeof id!=='string'||!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id)) throw Error();
-  if((query.sort??'newest')==='newest' && (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3,6}Z$/.test(key)||!Number.isFinite(Date.parse(key)))) throw Error();
+  if((query.sort??'newest')==='newest' && !validCursorTimestamp(key)) throw Error();
   if(query.sort==='abv' && (!/^-?\d+(?:\.\d+)?$/.test(key)||Number(key)<-1||Number(key)>100)) throw Error();
   return [key,id];
  } catch {throw new ApiError(400,'INVALID_CURSOR','Курсор не соответствует запросу. Обновите список.');}

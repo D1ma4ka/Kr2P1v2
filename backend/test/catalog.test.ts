@@ -81,6 +81,10 @@ test('P4 real HTTP/PostgreSQL: empty catalog, proposals, ACL, search, GTIN, dupl
    const q=`/v1/positions?limit=1&sort=${sort}`,page=await call(q);assert.ok(page.nextCursor);
    const next=await call(q+'&cursor='+page.nextCursor);assert.notEqual(next.items[0].id,page.items[0].id);assert.equal(next.nextCursor,null);
    assert.deepEqual(new Set([page.items[0].id,next.items[0].id]),all);
+   if(sort==='newest') {
+    const invalid=JSON.parse(Buffer.from(page.nextCursor,'base64url').toString()); invalid[1]='2026-02-31T00:00:00.000Z';
+    await call(q+'&cursor='+Buffer.from(JSON.stringify(invalid)).toString('base64url'),'GET',undefined,a,400);
+   }
    await call(q+'&q=changed&cursor='+page.nextCursor,'GET',undefined,a,400);
   }
   // No stale projection after edits to referenced names/style or verified visibility.
@@ -163,4 +167,14 @@ test('P3 → P4 additive migration retains stable catalog IDs and rebuilds searc
   for(const key of Object.keys(before)) assert.deepEqual(after[key],before[key]);
   assert.equal((await db.pool.query('SELECT position_id FROM catalog_search')).rows[0].position_id,old.position);
  } finally {await db.close();await rm(directory,{recursive:true,force:true});}
+});
+
+
+test('cursor calendar validation rejects normalized invalid dates before SQL',async()=>{
+ const {decodeCursor,validCursorTimestamp}=await import('../src/http/pagination.js');
+ assert.equal(validCursorTimestamp('2024-02-29T12:30:01.123456Z'),true);
+ for(const timestamp of ['2026-02-31T00:00:00.000Z','2026-02-29T00:00:00.000Z','0000-01-01T00:00:00.000Z','2026-01-01T24:00:00.000Z']) {
+  assert.equal(validCursorTimestamp(timestamp),false);
+  assert.throws(()=>decodeCursor(Buffer.from(JSON.stringify([timestamp,'11111111-1111-1111-1111-111111111111'])).toString('base64url')));
+ }
 });

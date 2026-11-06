@@ -34,6 +34,7 @@ internal fun ProposalForm(state: CatalogState, model: CatalogViewModel) {
             Triple("packaging","Упаковка",80),Triple("volumeMl","Объём, мл",6),Triple("edition","Выпуск",200),Triple("variant","Вариант",200),
             Triple("description","Описание",5000),Triple("source","Источник сведений *",2000),Triple("gtin","EAN / UPC / GTIN",14))) {
             CatalogInput(label,data.text(field) ?: "", !state.busy) { change(field,it.take(max)) }
+            if (field == "gtin") Text("Вручную: EAN-8/13, UPC-A или GTIN-14. UPC-E распознаёт сканер.")
         }
         TextButton({ picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },enabled = !state.busy) { Text(if (photo == null && data.text("imageAssetId") == null) "Добавить своё фото" else "Заменить фото") }
         if (photo != null || data.text("imageAssetId") != null) {
@@ -48,18 +49,18 @@ internal fun ProposalForm(state: CatalogState, model: CatalogViewModel) {
             localError = when {
                 listOf("name","breweryName","source").any { value.text(it) == null } -> "Заполните название, пивоварню и источник"
                 value.text("gtin") != null && Gtin.normalize(value.getString("gtin")) == null -> "Проверьте штрихкод и контрольную цифру"
-                listOf("abv","ibu","volumeMl").any { value.text(it) != null && value.getString(it).replace(',','.').toDoubleOrNull() == null } -> "Проверьте числовые поля"
+                listOf("abv","ibu","volumeMl").any { value.text(it) != null && parseFiniteNumber(value.getString(it)) == null } -> "Проверьте числовые поля"
                 (photo != null || value.text("imageAssetId") != null) && (!value.optBoolean("rightsConfirmed") || value.text("imageSource") == null) -> "Укажите источник фото и подтвердите права"
                 else -> null
             }
             if (localError == null) {
                 for (field in listOf("abv","ibu","volumeMl")) {
-                    val raw = value.text(field)?.replace(',','.')
+                    val raw = value.text(field)?.trim()?.replace(',','.')
                     if (raw == null) value.put(field,JSONObject.NULL)
                     else if (field == "volumeMl") {
                         val volume = raw.toIntOrNull()
                         if (volume == null) localError = "Объём должен быть целым числом миллилитров" else value.put(field,volume)
-                    } else value.put(field,raw.toDouble())
+                    } else value.put(field,parseFiniteNumber(raw)!!)
                 }
                 for (field in listOf("gtin", "breweryId", "imageAssetId")) if (value.text(field) == null && value.has(field)) value.put(field,JSONObject.NULL)
                 if (existing == null) value.put("requestId",requestId)

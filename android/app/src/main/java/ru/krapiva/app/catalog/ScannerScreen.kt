@@ -62,6 +62,7 @@ internal fun ScannerScreen(state: CatalogState, model: CatalogViewModel) {
             "non_beer" -> { Text("Код подтверждён как непивной"); state.lookupSource?.let { Text("Источник: $it") } }
             "unsupported_qr" -> Text("Это QR-код. Сценарий QR пока не поддерживается; ссылки не открываются.")
         }
+        Text("Вручную: EAN-8/13, UPC-A или GTIN-14. Короткий UPC-E распознаёт камера.")
         CatalogInput("Введите EAN / UPC / GTIN",input,!state.busy) { input = it.take(14) }
         CatalogAction("Проверить код",!state.busy) { model.lookup(input) }
         TextButton({ cameraError = null; cameraReady = false; model.open(CatalogPage.SCANNER); scanVersion++ },enabled = !state.busy) { Text("Сканировать снова") }

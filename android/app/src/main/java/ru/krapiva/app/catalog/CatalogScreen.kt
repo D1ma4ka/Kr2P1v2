@@ -57,8 +57,9 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
                     CatalogPage.SCANNER -> ScannerScreen(state, model)
                 }
             }
-            NavigationBar {
+            NavigationBar(containerColor = KraPivaColors.Surface) {
                 for (label in listOf("Главная", "Каталог", "Чекин", "Бары", "Профиль")) NavigationBarItem(
+                    colors = NavigationBarItemDefaults.colors(indicatorColor = KraPivaColors.Amber.copy(alpha = .12f), selectedTextColor = KraPivaColors.Amber, unselectedTextColor = KraPivaColors.Muted),
                     selected = label == "Каталог", enabled = label in setOf("Каталог", "Профиль") && !state.busy,
                     onClick = { if (label == "Профиль") onProfile() },
                     icon = {
@@ -106,7 +107,7 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
         items(state.items, key = { it.getString("id") }) { item ->
             when (state.page) {
                 CatalogPage.POSITIONS -> BeerPositionCard(item, model.repository, state.offline, !state.busy) { model.detail(item.getString("id")) }
-                CatalogPage.PROPOSALS -> Card(Modifier.fillMaxWidth()) {
+                CatalogPage.PROPOSALS -> Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = KraPivaColors.Surface)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(item.getJSONObject("proposedData").getString("name"), style = MaterialTheme.typography.titleLarge)
                         Text(when (item.getString("status")) { "pending" -> "Ожидает проверки"; "accepted" -> "Принято"; else -> "Отклонено" })
@@ -115,7 +116,7 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
                         item.text("positionId")?.let { id -> TextButton({ model.detail(id) }, enabled = !state.busy) { Text("Открыть позицию") } }
                     }
                 }
-                else -> Card(Modifier.fillMaxWidth().clickable(enabled = !state.busy) { if (state.page == CatalogPage.STYLES) model.selectStyle(item) else model.detail(item.getString("id"), true) }) {
+                else -> Card(Modifier.fillMaxWidth().clickable(enabled = !state.busy) { if (state.page == CatalogPage.STYLES) model.selectStyle(item) else model.detail(item.getString("id"), true) }, colors = CardDefaults.cardColors(containerColor = KraPivaColors.Surface)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(item.getString("name"), style = MaterialTheme.typography.titleLarge)
                         listOfNotNull(item.text("country"), item.text("city")).takeIf { it.isNotEmpty() }?.let { Text(it.joinToString(" · "), color = KraPivaColors.Muted) }
@@ -134,7 +135,7 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
         TextButton({ model.open(CatalogPage.PROPOSALS) }, enabled = !state.busy) { Text("Мои предложения") }
         Text("Сортировка")
         for ((value, label) in listOf("newest" to "Сначала новые", "name" to "По названию", "abv" to "По крепости"))
-            FilterChip(selected = state.filters.sort == value, enabled = !state.busy, onClick = { model.filters(state.filters.copy(sort = value)) }, label = { Text(label) })
+            FilterChip(colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KraPivaColors.Amber.copy(alpha = .16f), selectedLabelColor = KraPivaColors.Amber), selected = state.filters.sort == value, enabled = !state.busy, onClick = { model.filters(state.filters.copy(sort = value)) }, label = { Text(label) })
         CatalogInput("Упаковка (если известна)", state.filters.packaging, !state.busy) { model.filters(state.filters.copy(packaging = it.take(80))) }
         CatalogInput("Крепость от, %", state.filters.abvMin, !state.busy) { model.filters(state.filters.copy(abvMin = it.replace(',', '.').take(6))) }
         CatalogInput("Крепость до, %", state.filters.abvMax, !state.busy) { model.filters(state.filters.copy(abvMax = it.replace(',', '.').take(6))) }
@@ -165,7 +166,7 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
     }
 }
 @Composable internal fun BeerPositionCard(data: JSONObject, repository: CatalogRepository, offline: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    Card(Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick)) {
+    Card(Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick), colors = CardDefaults.cardColors(containerColor = KraPivaColors.Surface)) {
         Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             CatalogImage(data, repository, offline)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {

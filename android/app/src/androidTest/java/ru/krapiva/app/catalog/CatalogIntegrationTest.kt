@@ -27,13 +27,27 @@ class CatalogIntegrationTest {
     private fun waitForText(value: String, timeout: Long = 15_000) {
         compose.waitUntil(timeout) { runCatching { compose.onAllNodesWithText(value).fetchSemanticsNodes().isNotEmpty() }.getOrDefault(false) }
     }
+    private var activeModel: CatalogViewModel? = null
     @Test fun catalogSearchBreweryScannerProposalAndEncryptedCache() {
+        try { catalogFlow() } catch (error: Throwable) {
+            val device = UiDevice.getInstance(instrumentation)
+            println("P4_STATE=" + activeModel?.state?.value?.let { "page=${it.page},busy=${it.busy},error=${it.error},lookup=${it.lookupState}" })
+            println("P4_NATIVE_PACKAGE=" + device.currentPackageName)
+            println("P4_CAMERA_PERMISSION=" + instrumentation.targetContext.checkSelfPermission(android.Manifest.permission.CAMERA))
+            runCatching { val out = java.io.ByteArrayOutputStream(); device.dumpWindowHierarchy(out); println("P4_NATIVE_UI=" + out.toString("UTF-8").take(18000)) }
+            runCatching { println("P4_CAMERA_SERVICE=" + shell("dumpsys media.camera").take(12000)) }
+            runCatching { println("P4_CAMERA_LOG=" + shell("logcat -d -t 250 -s CameraX Camera2CameraImpl CameraStateRegistry AndroidRuntime").takeLast(12000)) }
+            runCatching { TestEvidence.screenshot("p4-failure.png") }
+            throw error
+        }
+    }
+    private fun catalogFlow() {
         check(BuildConfig.API_BASE_URL.startsWith("http://10.0.2.2:"))
         val fixture = JSONObject(shell("cat /data/local/tmp/p4-android.json"))
         val store = AccountStore(instrumentation.targetContext); store.clear()
         val api = AccountApi(store)
         runBlocking { api.accept(api.json("v1/auth/login","POST",JSONObject().put("email",fixture.getString("email")).put("password",fixture.getString("password")),false)) }
-        val model = CatalogViewModel(CatalogRepository(api), { error("Not used") }, { error("Session expired") })
+        val model = CatalogViewModel(CatalogRepository(api), { error("Not used") }, { error("Session expired") }).also { activeModel = it }
         compose.setContent {
             // The same production UI, repository, state and scanner implementations.
             KraPivaTheme { CatalogApp(api,store.session()!!.getString("userId"), { error("Not used") }, {}, {},model) }
@@ -64,16 +78,17 @@ class CatalogIntegrationTest {
         // Deny and then grant through the actual Android permission UI.
         compose.onNodeWithText("Сканировать штрихкод").performScrollTo().performClick()
         val device = UiDevice.getInstance(instrumentation)
-        val allow = device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res("com.android.permissioncontroller:id/permission_allow_foreground_only_button")),10_000)
+        val allow = device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_allow_foreground_only_button"))),10_000)
+        assertNotNull("The native camera permission dialog must be visible",allow)
         if (allow != null) {
-            val deny = device.findObject(androidx.test.uiautomator.By.res("com.android.permissioncontroller:id/permission_deny_button"))
+            val deny = device.findObject(androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_deny_button")))
             assertNotNull(deny); deny.click()
             assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg(instrumentation.targetContext.packageName)),15_000))
             waitForText("Разрешить камеру")
             compose.onNodeWithText("Введите EAN / UPC / GTIN").assertExists()
             TestEvidence.screenshot("p4-scanner-denied.png")
             compose.onNodeWithText("Разрешить камеру").performScrollTo().performClick()
-            val grant = device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res("com.android.permissioncontroller:id/permission_allow_foreground_only_button")),10_000)
+            val grant = device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_allow_foreground_only_button"))),10_000)
             assertNotNull(grant); grant.click()
             assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg(instrumentation.targetContext.packageName)),15_000))
         }
@@ -103,6 +118,10 @@ class CatalogIntegrationTest {
         compose.onNodeWithText("Название *").performScrollTo().performTextInput("Synthetic Android proposal")
         compose.onNodeWithText("Пивоварня *").performScrollTo().performTextInput("Synthetic new brewery")
         compose.onNodeWithText("Источник сведений *").performScrollTo().performTextInput("Synthetic own-label test")
+        compose.onNodeWithText("Крепость, %").performScrollTo().performTextInput("NaN")
+        compose.onNodeWithText("Отправить на проверку").performScrollTo().performClick()
+        compose.onNodeWithText("Проверьте числовые поля").assertExists()
+        compose.onNodeWithText("Крепость, %").performScrollTo().performTextReplacement("6,5")
         compose.onNodeWithText("Отправить на проверку").performScrollTo().performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Ожидает проверки").fetchSemanticsNodes().isNotEmpty() }
         TestEvidence.screenshot("p4-proposals.png")
