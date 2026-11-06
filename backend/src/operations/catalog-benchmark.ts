@@ -1,7 +1,7 @@
 // Explicit disposable synthetic benchmark. Never connects to or populates the app DB.
 import {performance} from 'node:perf_hooks';
 import {cpus,totalmem} from 'node:os';
-import {mkdir,writeFile} from 'node:fs/promises';
+import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {testDatabase} from '../../test/database.js';
 import {migrate} from '../db/migrate.js';
 import {positions} from '../catalog/repository.js';
@@ -43,7 +43,7 @@ try {
   }
   const summary=Object.fromEntries(Object.entries(timings).map(([kind,values])=>{values.sort((a,b)=>a-b);return [kind,{samples:values.length,p50Ms:values[14],p95Ms:values[28],maxMs:values.at(-1)}];}));
   const result={recordedAt:new Date().toISOString(),scope:'disposable synthetic SQL/repository smoke, sequential, warm cache; no production capacity claim',positions:count,barcodes:codes,
-   environment:{node:process.version,postgres:(await client.query('SHOW server_version')).rows[0].server_version,cpu:cpus()[0]?.model,visibleCpuCount:cpus().length,visibleMemoryBytes:totalmem(),containerCpuQuota:'see /sys/fs/cgroup/cpu.max; this run: 4 CPU',containerMemoryLimit:'16 GiB'},generationMs,summary,plans};
+   environment:{node:process.version,postgres:(await client.query('SHOW server_version')).rows[0].server_version,cpu:cpus()[0]?.model,visibleCpuCount:cpus().length,visibleMemoryBytes:totalmem(),containerCpuQuota:(await readFile('/sys/fs/cgroup/cpu.max','utf8').catch(()=>'unavailable')).trim(),containerMemoryLimit:(await readFile('/sys/fs/cgroup/memory.max','utf8').catch(()=>'unavailable')).trim()},generationMs,summary,plans};
   await mkdir('../docs/performance',{recursive:true});await writeFile('../docs/performance/P4-catalog-benchmark.json',JSON.stringify(result,null,2)+'\n');
   console.log(JSON.stringify({positions:count,barcodes:codes,generationMs,summary}));
  } finally {client.release();}
