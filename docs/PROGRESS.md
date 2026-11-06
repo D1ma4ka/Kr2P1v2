@@ -97,6 +97,11 @@ Account failure line135: Back был отправлен до появления 
 при снятии product screenshot делает тест FAIL. Следующий шаг: принять эти
 конкретные исправления на API35, проверить полное E2E и actual rendered tilt.
 
+`a1c8be7`, run `42226148146`: build/lint/unit PASS; новая boot readiness
+остановилась на transient `null root node` до UI tests. Readiness теперь
+повторяет получение accessibility root в том же bounded deadline и снимает
+boot-failure кадр при исчерпании ожидания. Это не PASS тестов приложения.
+
 ## Лимиты и сохранность
 
 Пятичасовой остаток **≤25%** или недельный **≤50%** → остановка и WIP/push.

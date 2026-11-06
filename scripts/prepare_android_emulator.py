@@ -1,5 +1,6 @@
 """Wait for AOSP launcher readiness; never dismiss an app-under-test ANR."""
 import re
+from pathlib import Path
 import subprocess
 import time
 import xml.etree.ElementTree as ET
@@ -9,12 +10,20 @@ def adb(*args):
     return subprocess.check_output(["adb", *args], timeout=20)
 
 
+adb("shell", "wm", "dismiss-keyguard")
 adb("shell", "am", "start", "-W", "-a", "android.intent.action.MAIN", "-c", "android.intent.category.HOME")
 deadline = time.monotonic() + 75
 stable = 0
 while time.monotonic() < deadline:
-    adb("shell", "uiautomator", "dump", "/sdcard/p3-boot.xml")
-    root = ET.fromstring(adb("shell", "cat", "/sdcard/p3-boot.xml"))
+    try:
+        adb("shell", "rm", "-f", "/sdcard/p3-boot.xml")
+        adb("shell", "uiautomator", "dump", "/sdcard/p3-boot.xml")
+        root = ET.fromstring(adb("shell", "cat", "/sdcard/p3-boot.xml"))
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ET.ParseError):
+        # boot_completed can precede the first accessibility root/window.
+        stable = 0
+        time.sleep(2)
+        continue
     nodes = list(root.iter("node"))
     close = next((node for node in nodes if node.get("resource-id") == "android:id/aerr_close"), None)
     if close is not None:
@@ -35,4 +44,7 @@ while time.monotonic() < deadline:
         stable = 0
     time.sleep(2)
 else:
+    evidence = Path(__file__).resolve().parents[1] / "work/screenshots"
+    evidence.mkdir(parents=True, exist_ok=True)
+    (evidence / "p3-boot-failure.png").write_bytes(adb("exec-out", "screencap", "-p"))
     raise AssertionError("AOSP launcher did not become ready; no UI acceptance claimed")
