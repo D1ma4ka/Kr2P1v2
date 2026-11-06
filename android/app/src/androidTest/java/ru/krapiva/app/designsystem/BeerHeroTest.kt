@@ -63,12 +63,12 @@ class BeerHeroTest {
             // Connection objects/history can outlive unregistration. Count active
             // sensor handles in this app's connection, not occurrences of its name.
             val dump = it.readBytes().toString(Charsets.UTF_8)
-            connectionMetadata = dump.lineSequence().filter { line -> line.contains("Connection Number:") || line.contains("WakeLockRefCount") || line.contains("first flush pending") || line.contains("Permission Denial") }.take(30).joinToString("\n")
+            connectionMetadata = dump.lineSequence().filter { line -> line.contains("Connection Number:") || line.contains("WakeLockRefCount") || line.contains("status:") || line.contains("Permission Denial") }.take(30).joinToString("\n")
             val connections = dump
                 .substringBefore("Previous Registrations:").split("Connection Number:").drop(1)
             val uid = instrumentation.targetContext.applicationInfo.uid
             connections.filter { connection -> connection.contains(instrumentation.targetContext.packageName) || Regex("\\buid\\s+$uid\\b").containsMatchIn(connection) }
-                .sumOf { connection -> Regex("0x[0-9a-fA-F]+\\s*\\|\\s*first flush pending").findAll(connection).count() }
+                .sumOf { connection -> Regex("0x[0-9a-fA-F]+\\s*\\|\\s*status:\\s*(?:active|First flush pending)\\b").findAll(connection).count() }
         }
         fun expectSubscriptions(expected: Int, phase: String) {
             var actual = -1
@@ -76,7 +76,7 @@ class BeerHeroTest {
             catch (error: Throwable) {
                 // Subscription metadata only: never sensor vector values/events.
                 println("P3 sensor connection metadata:\n$connectionMetadata")
-                throw AssertionError("Sensor subscriptions during $phase: expected=$expected, actual=$actual", error)
+                throw AssertionError("Sensor subscriptions during $phase: expected=$expected, actual=$actual\n$connectionMetadata", error)
             }
         }
         compose.setContent { KraPivaTheme {

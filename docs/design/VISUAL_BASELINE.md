@@ -5,9 +5,10 @@
 Снимки принимаются только с реально запущенного APK, не из макета.
 
 Instrumented tests сохраняют synthetic `p3-welcome.png`, `p3-profile.png`,
-`p3-profile-photos.png`, `p3-liquid-states.png` в app external files. CI собирает
+`p3-profile-photos.png`, `p3-liquid-states.png` через MediaStore в Downloads/KraPivaP3, переживающий AGP uninstall. CI собирает
 их в `p3-android-test-evidence` (7 days), без APK/ключей/.env/реальных аккаунтов.
-Результат runtime ещё ожидается; до него скриншоты не считаются принятыми.
+Контактный лист p3-review.jpg и manifest.json сохраняют происхождение реальных PNG.
+Визуальная приёмка ожидает просмотра кадров; скомпилированный тест не является baseline.
 
 Local AOSP15 TCG без KVM не дал надёжного baseline: System UI ANR; такой кадр
 не является принятой картинкой продукта. Финальные ссылки/results — stages/P3.md.

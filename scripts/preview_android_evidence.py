@@ -21,7 +21,7 @@ for report in (project / "android/app/build/outputs/androidTest-results").rglob(
             if lines:
                 print(lines[0])
             for line in lines:
-                if "at ru.krapiva." in line:
+                if "at ru.krapiva." in line or "WakeLockRefCount" in line or "status:" in line or "Connection Number:" in line:
                     print(line)
 paths = sorted(root.rglob("p3-*.png"))
 if not paths:

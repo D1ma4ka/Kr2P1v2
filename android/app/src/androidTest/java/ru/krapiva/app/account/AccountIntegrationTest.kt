@@ -67,7 +67,10 @@ class AccountIntegrationTest {
         val thumbnail = device.wait(Until.findObject(By.res(Pattern.compile(".*:id/icon_thumbnail"))), 15_000)
         assertNotNull("The actual Android photo picker must show the synthetic image", thumbnail)
         thumbnail.click()
-        try { compose.waitUntil(15_000) { compose.onAllNodesWithText(selected).fetchSemanticsNodes().isNotEmpty() } }
+        try {
+            assertTrue("Photo picker must return to the app", device.wait(Until.hasObject(By.pkg(InstrumentationRegistry.getInstrumentation().targetContext.packageName)), 15_000))
+            compose.waitUntil(15_000) { compose.onAllNodesWithText(selected).fetchSemanticsNodes().isNotEmpty() }
+        }
         catch (error: Throwable) {
             val currentPackage = device.currentPackageName.orEmpty()
             if (currentPackage.contains("providers.media")) TestEvidence.screenshot("p3-picker-result-timeout.png")
@@ -131,7 +134,10 @@ class AccountIntegrationTest {
         insertSyntheticPhoto()
         compose.onNodeWithText("Редактировать профиль").performScrollTo().performClick()
         compose.onNodeWithText("Выбрать аватар").performScrollTo().performClick()
-        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).pressBack()
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        assertTrue("Wait for the native picker before cancelling it", device.wait(Until.hasObject(By.res(Pattern.compile(".*:id/icon_thumbnail"))), 15_000))
+        device.pressBack()
+        assertTrue("Cancelled picker must return to the app", device.wait(Until.hasObject(By.pkg(context.packageName)), 15_000))
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Фото не выбрано. Профиль не изменён.").fetchSemanticsNodes().isNotEmpty() }
         pickLatestPhoto("Выбрать аватар", "Другой аватар · фото выбрано")
         pickLatestPhoto("Выбрать обложку", "Другая обложка · фото выбрано")

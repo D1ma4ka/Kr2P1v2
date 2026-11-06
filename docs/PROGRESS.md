@@ -5,7 +5,7 @@
 P0/P1/P2 DONE. **P3 не принят: runtime-проверки Android не завершены. P4 не начат.**
 
 Ветка: `codex/krapiva-2-p3`, база P2 `bf995357098df505965dd4425afca6f5eeff4810`.
-Последний code/config checkpoint перед отчётом — `af07a7c` (push подтверждён).
+Последний сохранённый checkpoint — `55c042e` (push подтверждён).
 WIP остановки — `24bd7449ae8f42d21627cd8b2986421289fe33ea`; новые checkpoint — `git log`.
 Draft PR: https://github.com/D1ma4ka/Kr2P1v2/pull/6, base P2. Merge, force push,
 production, публикация APK и расходы не выполнялись.
@@ -86,6 +86,16 @@ device 3/5 PASS. Native picker и sensor lifecycle пока завершаютс
 и контактный лист настоящих synthetic screenshots для визуальной приёмки.
 Test APK с диагностикой компилируется (21s); следующий шаг — прочитать device
 результат, устранить подтверждённые причины двух failures и проверить rendered tilt.
+
+Run `42224732957` на `55c042e`: source/assets, build/lint/unit и boot PASS;
+device 3/5 PASS. Просмотрены настоящие кадры: поверх UI — системный Quickstep
+ANR, поэтому **визуальная приёмка FAIL**, несмотря на отдельные тесты PASS.
+Account failure line135: Back был отправлен до появления native picker.
+Подготовлены: ожидание native окна до cancel/select и возврата в app до Compose;
+точный Android15 parser `status: active` для sensor handles; ожидание чистого
+лаунчера (закрывается только явно названный Quickstep boot ANR). Любой ANR
+при снятии product screenshot делает тест FAIL. Следующий шаг: принять эти
+конкретные исправления на API35, проверить полное E2E и actual rendered tilt.
 
 ## Лимиты и сохранность
 

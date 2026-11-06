@@ -6,12 +6,17 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
 import java.io.File
 
 /** Synthetic screenshots survive AGP uninstall; no storage permission in the app. */
 object TestEvidence {
     fun screenshot(name: String) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
+        check(!UiDevice.getInstance(instrumentation).hasObject(By.res("android", "aerr_close"))) {
+            "An Android crash/ANR dialog obscures the screenshot; visual acceptance fails"
+        }
         val context = instrumentation.targetContext
         val bitmap = checkNotNull(instrumentation.uiAutomation.takeScreenshot())
         if (Build.VERSION.SDK_INT >= 29) {

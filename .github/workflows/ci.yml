@@ -160,6 +160,7 @@ jobs:
             fi
             if [ "$(timeout 5 adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; then
               adb shell input keyevent 82
+              python scripts/prepare_android_emulator.py
               exit 0
             fi
             sleep 2
