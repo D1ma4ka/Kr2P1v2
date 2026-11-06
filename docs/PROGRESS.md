@@ -80,6 +80,13 @@ Backend не менялся: его 13 tests и CI заново не запус�
 После Android PASS посмотреть реальные screenshots, обновить QA/matrix/P3 report,
 сохранить результат и STOP до отдельной команды на P4.
 
+Продолжение: `24da698` сохранён и отправлен; run `42222956219` — build/boot PASS,
+device 3/5 PASS. Native picker и sensor lifecycle пока завершаются timeout.
+Добавлены точные phase/stack diagnostics, screenshot native picker при timeout
+и контактный лист настоящих synthetic screenshots для визуальной приёмки.
+Test APK с диагностикой компилируется (21s); следующий шаг — прочитать device
+результат, устранить подтверждённые причины двух failures и проверить rendered tilt.
+
 ## Лимиты и сохранность
 
 Пятичасовой остаток **≤25%** или недельный **≤50%** → остановка и WIP/push.

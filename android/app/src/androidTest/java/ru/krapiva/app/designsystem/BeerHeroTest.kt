@@ -58,18 +58,26 @@ class BeerHeroTest {
             registry = LifecycleRegistry(owner).apply { currentState = Lifecycle.State.RESUMED }
         }
         val visible = mutableStateOf(true)
+        var connectionMetadata = ""
         fun subscriptions(): Int = ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("dumpsys sensorservice")).use {
             // Connection objects/history can outlive unregistration. Count active
             // sensor handles in this app's connection, not occurrences of its name.
-            val connections = it.readBytes().toString(Charsets.UTF_8)
+            val dump = it.readBytes().toString(Charsets.UTF_8)
+            connectionMetadata = dump.lineSequence().filter { line -> line.contains("Connection Number:") || line.contains("WakeLockRefCount") || line.contains("first flush pending") || line.contains("Permission Denial") }.take(30).joinToString("\n")
+            val connections = dump
                 .substringBefore("Previous Registrations:").split("Connection Number:").drop(1)
-            connections.filter { connection -> connection.contains(instrumentation.targetContext.packageName) }
+            val uid = instrumentation.targetContext.applicationInfo.uid
+            connections.filter { connection -> connection.contains(instrumentation.targetContext.packageName) || Regex("\\buid\\s+$uid\\b").containsMatchIn(connection) }
                 .sumOf { connection -> Regex("0x[0-9a-fA-F]+\\s*\\|\\s*first flush pending").findAll(connection).count() }
         }
         fun expectSubscriptions(expected: Int, phase: String) {
             var actual = -1
             try { compose.waitUntil(10_000) { actual = subscriptions(); actual == expected } }
-            catch (error: Exception) { throw AssertionError("Sensor subscriptions during $phase: expected=$expected, actual=$actual", error) }
+            catch (error: Throwable) {
+                // Subscription metadata only: never sensor vector values/events.
+                println("P3 sensor connection metadata:\n$connectionMetadata")
+                throw AssertionError("Sensor subscriptions during $phase: expected=$expected, actual=$actual", error)
+            }
         }
         compose.setContent { KraPivaTheme {
             CompositionLocalProvider(LocalLifecycleOwner provides owner) { if (visible.value) BeerHero() }

@@ -67,7 +67,12 @@ class AccountIntegrationTest {
         val thumbnail = device.wait(Until.findObject(By.res(Pattern.compile(".*:id/icon_thumbnail"))), 15_000)
         assertNotNull("The actual Android photo picker must show the synthetic image", thumbnail)
         thumbnail.click()
-        compose.waitUntil(15_000) { compose.onAllNodesWithText(selected).fetchSemanticsNodes().isNotEmpty() }
+        try { compose.waitUntil(15_000) { compose.onAllNodesWithText(selected).fetchSemanticsNodes().isNotEmpty() } }
+        catch (error: Throwable) {
+            val currentPackage = device.currentPackageName.orEmpty()
+            if (currentPackage.contains("providers.media")) TestEvidence.screenshot("p3-picker-result-timeout.png")
+            throw AssertionError("Native picker result for '$button' missing; visible package=$currentPackage", error)
+        }
     }
     @Test fun androidAccountFlowAndCacheIsolation() {
         check(BuildConfig.API_ENVIRONMENT == "development" && BuildConfig.API_BASE_URL.startsWith("http://10.0.2.2:"))
