@@ -35,13 +35,16 @@ class CatalogIntegrationTest {
             // The same production UI, repository, state and scanner implementations.
             KraPivaTheme { CatalogApp(api,store.session()!!.getString("userId"), { error("Not used") }, {}, {},model) }
         }
-        compose.waitUntil(20_000) { compose.onAllNodesWithText("Synthetic Android Тёмный Ёж").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(20_000) { !model.state.value.busy && model.state.value.items.any { it.optString("name") == "Synthetic Android Тёмный Ёж" } }
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Synthetic Android Тёмный Ёж"))
         TestEvidence.screenshot("p4-catalog.png")
+        compose.onNode(hasScrollAction()).performScrollToIndex(0)
         compose.onNodeWithText("Название, пивоварня или стиль").performTextInput("темный еж stout")
         compose.onNodeWithText("Найти").performClick()
         compose.waitUntil(15_000) { !model.state.value.busy }
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Synthetic Android Тёмный Ёж").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("Synthetic Android Тёмный Ёж").performScrollTo().performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Synthetic Android Тёмный Ёж"))
+        compose.onNodeWithText("Synthetic Android Тёмный Ёж").performClick()
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Проверено по источнику").fetchSemanticsNodes().isNotEmpty() }
         TestEvidence.screenshot("p4-position.png")
         compose.onNodeWithText("Synthetic Android Brewery").performScrollTo().performClick()

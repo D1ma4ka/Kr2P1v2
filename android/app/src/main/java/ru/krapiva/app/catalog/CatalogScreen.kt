@@ -87,16 +87,16 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
                 if (state.page == CatalogPage.POSITIONS) {
                     CatalogInput("Название, пивоварня или стиль", state.filters.q, !state.busy) { model.filters(state.filters.copy(q = it.take(120))) }
                     CatalogAction("Найти", !state.busy) { model.refresh() }
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton({ model.open(CatalogPage.SCANNER) },modifier = Modifier.weight(1f),enabled = !state.busy) { Text("Сканировать штрихкод") }
+                        TextButton({ model.proposal() },modifier = Modifier.weight(1f),enabled = !state.busy) { Text("Предложить позицию") }
+                    }
                     Filters(state, model)
-                    TextButton({ model.open(CatalogPage.SCANNER) }, enabled = !state.busy) { Text("Сканировать штрихкод") }
-                    TextButton({ model.open(CatalogPage.BREWERIES) }, enabled = !state.busy) { Text("Пивоварни") }
-                    TextButton({ model.proposal() }, enabled = !state.busy) { Text("Предложить позицию") }
-                    TextButton({ model.open(CatalogPage.PROPOSALS) }, enabled = !state.busy) { Text("Мои предложения") }
                 } else if (state.page != CatalogPage.PROPOSALS) {
                     CatalogInput("Поиск по названию", state.pickerQuery, !state.busy, model::pickerQuery)
                     CatalogAction("Найти", !state.busy) { model.refresh() }
                 }
-                TextButton({ model.refresh() }, enabled = !state.busy) { Text("Обновить") }
+                if (state.page != CatalogPage.POSITIONS) TextButton({ model.refresh() }, enabled = !state.busy) { Text("Обновить") }
                 if (state.items.isEmpty() && !state.busy) {
                     Text(if (state.error != null) "Список не загружен. Повторите запрос." else "Ничего не найдено", style = MaterialTheme.typography.titleLarge)
                     if (state.page == CatalogPage.POSITIONS) Text("Каталог пополняется после проверки источников. Предложите реальную позицию, если её ещё нет.", color = KraPivaColors.Muted)
@@ -128,8 +128,10 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
 }
 @Composable private fun Filters(state: CatalogState, model: CatalogViewModel) {
     var expanded by rememberSaveable { mutableStateOf(false) }
-    TextButton({ expanded = !expanded }) { Text(if (expanded) "Скрыть фильтры" else "Фильтры и сортировка") }
+    TextButton({ expanded = !expanded }) { Text(if (expanded) "Скрыть фильтры" else "Фильтры и разделы") }
     if (expanded) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TextButton({ model.open(CatalogPage.BREWERIES) }, enabled = !state.busy) { Text("Пивоварни") }
+        TextButton({ model.open(CatalogPage.PROPOSALS) }, enabled = !state.busy) { Text("Мои предложения") }
         Text("Сортировка")
         for ((value, label) in listOf("newest" to "Сначала новые", "name" to "По названию", "abv" to "По крепости"))
             FilterChip(selected = state.filters.sort == value, enabled = !state.busy, onClick = { model.filters(state.filters.copy(sort = value)) }, label = { Text(label) })
