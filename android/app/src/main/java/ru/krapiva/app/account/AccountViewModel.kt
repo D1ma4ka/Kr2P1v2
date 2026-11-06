@@ -23,6 +23,11 @@ data class AccountState(
 class AccountViewModel(application: Application) : AndroidViewModel(application) {
     private val store = AccountStore(application)
     val api = AccountApi(store)
+    // Retained with the account across Activity recreation, cleared on every session change.
+    val catalogOwner = object : androidx.lifecycle.ViewModelStoreOwner {
+        override val viewModelStore = androidx.lifecycle.ViewModelStore()
+    }
+    private suspend fun clearSession() { catalogOwner.viewModelStore.clear(); api.clear() }
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
     init { restore() }
@@ -35,7 +40,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
             catch (error: Exception) {
                 if (error is kotlinx.coroutines.CancellationException) throw error
                 if (error is ApiFailure && error.status == 401 && mutable.value.profile != null) {
-                    api.clear(); mutable.value = AccountState(screen = AccountScreen.LOGIN, error = "Сессия завершена. Войдите снова.")
+                    clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN, error = "Сессия завершена. Войдите снова.")
                 } else mutable.value = mutable.value.copy(error = when (error) {
                     is ApiFailure -> error.message
                     is SecurityException -> "Нет доступа к выбранной фотографии. Выберите её ещё раз."
@@ -49,7 +54,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         try {
             if (api.restore()) loadProfile() else mutable.value = AccountState(screen = AccountScreen.WELCOME)
         } catch (error: ApiFailure) {
-            if (error.status == 401) { api.clear(); mutable.value = AccountState(screen = AccountScreen.LOGIN) } else throw error
+            if (error.status == 401) { clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN) } else throw error
         }
     }
     private suspend fun loadProfile() {
@@ -88,7 +93,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     }
     fun login(email: String, password: String) = task {
         val session = api.json("v1/auth/login", "POST", JSONObject().put("email", email.trim()).put("password", password), false)
-        api.accept(session); loadProfile()
+        catalogOwner.viewModelStore.clear(); api.accept(session); loadProfile()
     }
     fun verify(token: String) = task {
         api.json("v1/auth/verify", "POST", JSONObject().put("token", token.trim()), false)
@@ -100,7 +105,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     }
     fun reset(token: String, password: String) = task {
         api.json("v1/auth/reset-password", "POST", JSONObject().put("token", token.trim()).put("password", password), false)
-        api.clear(); mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = "Пароль изменён. Войдите снова; прежние сессии отозваны.")
+        clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = "Пароль изменён. Войдите снова; прежние сессии отозваны.")
     }
     fun save(profile: JSONObject, avatar: Uri? = null, cover: Uri? = null) = task {
         val oldPhotos = listOfNotNull(mutable.value.profile?.optString("avatarAssetId"), mutable.value.profile?.optString("coverAssetId")).filter { it.isNotBlank() && it != "null" }.toSet()
@@ -143,16 +148,16 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         if (bytes.size > 8 * 1024 * 1024) throw ApiFailure(413, "Фото должно быть меньше 8 МБ")
         JSONObject(String(api.bytes("v1/media", "POST", bytes, type), Charsets.UTF_8)).getString("id")
     }
-    fun sessionExpired() = task { api.clear(); mutable.value = AccountState(screen = AccountScreen.LOGIN, error = "Сессия завершена. Войдите снова.") }
+    fun sessionExpired() = task { clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN, error = "Сессия завершена. Войдите снова.") }
     fun logout() = task {
         api.json("v1/session", "DELETE")
-        api.clear(); mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = "Вы вышли из аккаунта")
+        clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = "Вы вышли из аккаунта")
     }
-    fun clearLocally() = task { api.clear(); mutable.value = AccountState(screen = AccountScreen.LOGIN,
+    fun clearLocally() = task { clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN,
         notice = "Данные удалены с телефона. Серверная сессия действует до истечения срока или сброса пароля.") }
     fun deleteAccount() = task {
         val response = api.json("v1/me/deletion-request", "POST", JSONObject())
-        api.clear(); mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = response.getString("message"))
+        clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = response.getString("message"))
     }
-    override fun onCleared() { store.close(); super.onCleared() }
+    override fun onCleared() { catalogOwner.viewModelStore.clear(); store.close(); super.onCleared() }
 }

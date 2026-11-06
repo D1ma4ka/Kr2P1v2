@@ -86,6 +86,10 @@ class CatalogIntegrationTest {
         // Wait for the actual enabled UI, then confirm navigation before looking for native UI.
         compose.onNodeWithText("Сканировать штрихкод").performScrollTo().assertIsEnabled().performClick()
         compose.waitUntil(10_000) { model.state.value.page == CatalogPage.SCANNER }
+        // Compose's test clock only advances through Compose test APIs. Flush the screen's
+        // LaunchedEffect before a real-time UiAutomator wait, or the dialog is never launched.
+        compose.mainClock.advanceTimeByFrame()
+        compose.waitForIdle()
         // Deny and then grant through the actual Android permission UI.
         val device = UiDevice.getInstance(instrumentation)
         val allow = device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_allow_foreground_only_button"))),10_000)

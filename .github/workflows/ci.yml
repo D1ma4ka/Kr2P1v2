@@ -143,7 +143,7 @@ jobs:
           mkdir -p "$ANDROID_AVD_HOME" "$ANDROID_USER_HOME" "$ANDROID_EMULATOR_HOME"
           echo no | avdmanager create avd --force --name krapiva --path "$ANDROID_AVD_HOME/krapiva.avd" --package 'system-images;android-35;default;x86_64' --device pixel_2
           if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
-            "$ANDROID_HOME/emulator/emulator" -avd krapiva -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -camera-back emulated -camera-front none -accel on > work/android-emulator.log 2>&1 &
+            "$ANDROID_HOME/emulator/emulator" -avd krapiva -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -camera-back emulated -camera-front emulated -accel on > work/android-emulator.log 2>&1 &
           else
             # Use the existing device group for this non-root process only.
             # No chmod, udev rules, user modification or security configuration.
@@ -152,7 +152,7 @@ jobs:
             emulator_test_groups="$(id -G | tr ' ' ','),$(stat -c %g /dev/kvm)"
             sudo -n -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --groups="$emulator_test_groups" --no-new-privs --reset-env \
               env ANDROID_HOME="$ANDROID_HOME" ANDROID_AVD_HOME="$ANDROID_AVD_HOME" ANDROID_USER_HOME="$ANDROID_USER_HOME" ANDROID_EMULATOR_HOME="$ANDROID_EMULATOR_HOME" \
-              "$ANDROID_HOME/emulator/emulator" -avd krapiva -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -camera-back emulated -camera-front none -accel on > work/android-emulator.log 2>&1 &
+              "$ANDROID_HOME/emulator/emulator" -avd krapiva -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -camera-back emulated -camera-front emulated -accel on > work/android-emulator.log 2>&1 &
           fi
           emulator_test_pid=$!
           for attempt in $(seq 1 90); do

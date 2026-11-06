@@ -49,15 +49,11 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     val scroll = rememberScrollState()
     LaunchedEffect(state.screen) { scroll.scrollTo(0) }
     val authenticated = state.profile != null
-    val catalogOwner = remember(state.profile?.optString("userId")) { object : androidx.lifecycle.ViewModelStoreOwner {
-        override val viewModelStore = androidx.lifecycle.ViewModelStore()
-    } }
-    DisposableEffect(catalogOwner) { onDispose { catalogOwner.viewModelStore.clear() } }
     BackHandler(enabled = state.screen !in setOf(AccountScreen.WELCOME, AccountScreen.PROFILE, AccountScreen.RESTORING)) {
         model.navigate(if (authenticated) AccountScreen.PROFILE else AccountScreen.WELCOME)
     }
     if (state.screen == AccountScreen.CATALOG && authenticated) {
-        CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides catalogOwner) {
+        CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
             ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload, { model.navigate(AccountScreen.PROFILE) }, model::sessionExpired)
         }
         return

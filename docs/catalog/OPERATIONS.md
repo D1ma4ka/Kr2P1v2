@@ -106,7 +106,8 @@ KEEP_ONLY_LATEST, frame.close в finally, ограничение обработ�
 
 AccountStore v1→v2 добавляет зашифрованный AES-GCM SQLite read-cache: до 120
 страниц/карточек, до 100 thumbnails, TTL карточек 24h. Данные привязаны к userId,
-logout/switch очищает диск и отдельный ViewModelStore; поздняя фото-загрузка не
+logout/switch очищает диск и отдельный ViewModelStore, который переживает
+Activity recreation в AccountViewModel; поздняя фото-загрузка не
 может заново записать кэш другого аккаунта. Offline read помечен, статус мог
 измениться; barcode lookup требует сети. 403/404 удаляет соответствующую копию.
 Автоматической очереди публикации и сообщения об успехе при offline нет.

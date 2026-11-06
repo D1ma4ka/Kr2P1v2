@@ -75,14 +75,14 @@ Dev/test: SMTP_HOST только localhost/127.0.0.1/mailpit, recipient толь
 Поиск и карточки `/v1/positions`, `/v1/breweries`, `/v1/styles`, предложения
 `/v1/position-proposals` и защищённая модерация `/v1/moderation/*` работают через
 PostgreSQL. Barcode lookup нормализует GTIN, QR отдельный unsupported state.
-Миграции004/005 аддитивны, без seeds; search projection транзакционная, GIN/B-tree,
+Миграции004–006 аддитивны, без seeds; search projection транзакционная, GIN/B-tree,
 keyset cursor/limit≤50. Ранее применённые migrations не изменять.
 
 Контракты, workflow reviewer, merge, изображения/права и коды:
 [операции каталога](../docs/catalog/OPERATIONS.md). Измеренный SQL smoke
 50000 positions/3000000 GTIN и ограничения —
 [масштабирование](../docs/catalog/SCALING.md). Production и реальные записи не
-создавались. Full suite теперь16 tests (P3 regression + P4/upgrade/ACL/search).
+создавались. Full suite теперь17 tests (P3 regression + P4/upgrade/ACL/search).
 
 Перед применением к существующей БД — backup/restore из runbook. Новые
 расширения pg_trgm ставит migration owner; runtime role остаётся без DDL.
