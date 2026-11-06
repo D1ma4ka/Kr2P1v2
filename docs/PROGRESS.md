@@ -102,6 +102,15 @@ Account failure line135: Back был отправлен до появления 
 повторяет получение accessibility root в том же bounded deadline и снимает
 boot-failure кадр при исчерпании ожидания. Это не PASS тестов приложения.
 
+`152b107`, run `42226924867`: launcher readiness PASS, instrumented **4/5 PASS**.
+Sensor lifecycle (resume=1/pause=0/resume=1/dispose=0), loop/static и narrow form
+прошли. Native picker cancel/select, реальные uploads/read и offline→online
+в полном flow прошли до logout; failure line175 ждёт notice успешного выхода.
+Снимки welcome/profile/photos просмотрены: чистый UI с KraPiva Dark, без ANR.
+Liquid fixture ещё был на белом root: test Surface приведён к теме.
+Следующее: диагностировать screen/busy/error logout, завершить reset UI;
+отдельный actual sensor→render checker теперь выполняется и при E2E failure.
+
 ## Лимиты и сохранность
 
 Пятичасовой остаток **≤25%** или недельный **≤50%** → остановка и WIP/push.

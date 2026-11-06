@@ -128,6 +128,7 @@ jobs:
           done
           exit 1
       - name: Boot isolated Android 35 emulator
+        id: emulator
         timeout-minutes: 6
         run: |
           if [ ! -e /dev/kvm ]; then
@@ -171,6 +172,7 @@ jobs:
         working-directory: android
         run: ./gradlew --no-daemon connectedDebugAndroidTest
       - name: Real emulator tilt changes the rendered liquid surface
+        if: ${{ !cancelled() && steps.emulator.outcome == 'success' }}
         run: |
           # AGP uninstalls the target after instrumentation; install the same built APK.
           adb install -r android/app/build/outputs/apk/debug/app-debug.apk

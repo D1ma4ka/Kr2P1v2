@@ -2,6 +2,8 @@ package ru.krapiva.app.designsystem
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
@@ -27,12 +29,12 @@ import org.junit.Assume.assumeTrue
 class BeerHeroTest {
     @get:Rule val compose = createComposeRule()
     @Test fun boundedLeftRightAndStaticAreVisible() {
-        compose.setContent { KraPivaTheme { Column {
+        compose.setContent { KraPivaTheme { Surface(color = MaterialTheme.colorScheme.background) { Column {
             Text("KraPiva — liquid states")
             BeerHero(previewAngle = -8f)
             BeerHero(previewAngle = 8f)
             BeerHero(forceReducedMotion = true)
-        } } }
+        } } } }
         compose.onAllNodesWithContentDescription("Фирменный бокал KraPiva с пеной и хмелем").assertCountEquals(3)
         TestEvidence.screenshot("p3-liquid-states.png")
     }

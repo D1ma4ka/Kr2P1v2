@@ -25,6 +25,7 @@ import android.provider.MediaStore
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.regex.Pattern
 
 /** Real local HTTP+PostgreSQL+SMTP. Never targets staging/production or external mail. */
@@ -84,7 +85,8 @@ class AccountIntegrationTest {
         store.clear()
         val email = "android${UUID.randomUUID().toString().replace("-", "")}@example.invalid"
         val password = "Synthetic Android password!"
-        compose.setContent { KraPivaTheme { AccountApp() } }
+        lateinit var model: AccountViewModel
+        compose.setContent { model = viewModel(); KraPivaTheme { AccountApp(model) } }
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Создать аккаунт").fetchSemanticsNodes().isNotEmpty() }
         screenshot("p3-welcome.png")
         compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
@@ -172,7 +174,12 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Настройки аккаунта").performScrollTo().performClick()
         compose.waitUntil(10_000) { compose.onAllNodes(hasText("Выйти из аккаунта") and isEnabled()).fetchSemanticsNodes().size == 1 }
         compose.onNodeWithText("Выйти из аккаунта").performScrollTo().performClick()
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("Вы вышли из аккаунта").fetchSemanticsNodes().isNotEmpty() }
+        try { compose.waitUntil(20_000) { compose.onAllNodesWithText("Вы вышли из аккаунта").fetchSemanticsNodes().isNotEmpty() } }
+        catch (error: Throwable) {
+            TestEvidence.screenshot("p3-logout-timeout.png")
+            val state = model.state.value
+            throw AssertionError("Logout did not complete: screen=${state.screen}, busy=${state.busy}, error=${state.error}, notice=${state.notice}", error)
+        }
         assertNull(store.cached(userId)); assertNull(store.session())
         compose.onNodeWithText("Забыли пароль?").performScrollTo().performClick()
         compose.onNodeWithText("E-mail").performTextInput(email)
