@@ -1,143 +1,84 @@
-# KraPiva 2.0 — P3 WIP, продолжение приёмки
+# KraPiva 2.0 — P3 реализован, автоматическая приёмка PASS
 
-6 ноября 2026, Europe/Istanbul. Владелец разрешил продолжение P3 после
-аварийного сохранения `24bd744`. Только P3; остановка перед P4 обязательна.
-P0/P1/P2 DONE. **P3 не принят: runtime-проверки Android не завершены. P4 не начат.**
+6 ноября 2026, Europe/Istanbul. P0/P1/P2 завершены; реализация P3 завершена.
+Полная ручная приёмка ещё не закрыта: физический телефон/TalkBack NOT RUN.
+**P4 не начат. Работа остановлена до отдельной команды владельца.**
 
-Ветка: `codex/krapiva-2-p3`, база P2 `bf995357098df505965dd4425afca6f5eeff4810`.
-Последний сохранённый checkpoint — `55c042e` (push подтверждён).
-WIP остановки — `24bd7449ae8f42d21627cd8b2986421289fe33ea`; новые checkpoint — `git log`.
-Draft PR: https://github.com/D1ma4ka/Kr2P1v2/pull/6, base P2. Merge, force push,
-production, публикация APK и расходы не выполнялись.
+Ветка: `codex/krapiva-2-p3`. Проверенный code/test checkpoint:
+`0ca66fd7804d37669d7fb105484b73ac72fd5587`, push подтверждён.
+База P2: `bf995357098df505965dd4425afca6f5eeff4810`.
+Итоговый документационный коммит — HEAD ветки (`git log -1`).
+Draft PR: https://github.com/D1ma4ka/Kr2P1v2/pull/6 (base P2).
+Merge/force push/production/публикация APK/покупки не выполнялись.
 
 ## Что реализовано
 
-- Настоящие register/SMTP verify/resend/login/reset, scrypt, hash-only access и
-  одноразовый rotating refresh, revoke/TTL/replay и SQL rate limits; migration003.
-- Полный серверный профиль: displayName/имя/фамилия/пол/город/страна/bio/HTTPS
-  ссылки, version conflict, независимые avatar/cover, owner/friends/public и
-  field/media ACL. Durable deletion request с дедлайном и блокировкой доступа.
-- Android HTTP forms/ViewModel, Keystore AES-GCM atomic session, account-scoped
-  encrypted SQLite profile/photos, честные offline/error/retry/save/cancel/logout.
-  Фото через системный picker, просмотр/замена/удаление; внешние ссылки браузером.
-- KraPiva Dark, оригинальные mark/logo/launcher/vector assets, линейные nav icons.
-  Canvas liquid: gravity/accelerometer, rotation/filter/clamp/lifecycle,
-  no-sensor loop/reduced motion. Нет forced delay; failed restore — static hero.
-- Общий OpenAPI без Android-specific полей; обязательная iOS остаётся P10–P13.
-  Будущие destinations disabled; никакой реализации P4 или выдуманных данных.
+- Настоящие register/18+/SMTP verify/resend/login/reset, scrypt, hash-only
+  access/refresh, TTL/rotation/replay/revoke и SQL budgets; migration003.
+- Полный профиль: displayName/имя/фамилия/пол/страна/город/bio, HTTPS-ссылки
+  с собственной видимостью, version conflicts, независимые avatar/cover.
+  Owner/friends/public и прямые field/media ACL проверяются сервером.
+- Durable deletion request: SQL deadline30d, немедленная блокировка доступа,
+  публичности и сессий; запрос не называется завершённым стиранием.
+- Android HTTP forms/ViewModel, Keystore AES-GCM/AtomicFile session,
+  encrypted account-scoped SQLite profile/photos; native picker cancel/select,
+  upload/view/replace/remove, save/cancel, offline/retry, server logout/reset.
+- KraPiva Dark, оригинальные SVG/PNG/vectors/launcher, cream scanner corners.
+  Canvas beer/foam ±8°, gravity/accelerometer, filter/rotation, lifecycle,
+  no-sensor loop/reduced static; без forced delay и sensor telemetry.
+- Общий OpenAPI без Android-specific identity; iOS остаётся P10–P13.
+  Будущие destinations выключены до настоящих функций P4–P7.
 
-## Уже подтверждённые проверки
+## Подтверждённые проверки
 
-- Local backend full suite **13/13 PASS**, включая SMTP rollback, expired codes,
-  независимые token budgets и expired refresh без отзыва новых сессий.
-  Последний сохранённый вывод: ignored `work/backend-final-tests.log` (6.94s).
-- Backend CI на `8b4dc75` **SUCCESS**: SQL/HTTP/SMTP/OpenAPI/audit/container/
-  migrate/restart/isolated restore:
-  https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42111333476
-- Local Android assembleDebug/assembleDebugAndroidTest/lint/unit PASS,
-  2 unit tests; lint 0 errors/2 unused-color warnings. Последний app build/lint:
-  `work/android-profile-final.log`, 36s, 12 executed/36 cached.
-- Source provenance/180 requirements/29 screens/43 scenarios и asset contrast/
-  dimensions/XML/wrapper/hygiene PASS. AGENTS и исходное ТЗ не изменены.
-- Ранний Android/source CI без device stage на b235cea SUCCESS:
-  https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42105074471
+| Проверка | Результат и доказательство |
+|---|---|
+| Финальный Android/source CI | **SUCCESS**, run42231674746 на 0ca66fd |
+| Build/lint/unit | PASS; 2/2 unit, lint0 errors/2 unused-color warnings |
+| API35 AOSP x86_64/KVM UI | **5/5 PASS**, 3m11s: signup/18+/SMTP verify/login, profile save/cancel, native picker cancel/select, avatar/cover upload/read/view, cover delete→404 при сохранённом avatar, encrypted cache/isolation, offline→online, logout/reset/login новым паролем |
+| Actual cold process | **PASS**: force-stop → MainActivity → Keystore session → real API profile, editor enabled; offline copy не принимается |
+| Sensor lifecycle | **PASS**: active handles1→0→1→0 при resume/pause/resume/dispose |
+| Loop/static/layout | **PASS**: no-sensor bitmap меняется, reduced static неизменен; 320dp/fontScale2/IME |
+| Actual sensor→render | **PASS**: surface left=+10px/right=−4px, hero231px; исходные PNG измерены checker |
+| Visual baseline | Просмотрены 8 реальных synthetic кадров без ANR; JPEG+PNG hashes сохранены в docs/design/ |
+| Backend full suite | **13/13 PASS** ранее на неизменённом backend; CI42111333476: SQL/HTTP/SMTP/OpenAPI/audit/container/migrate/restart/isolated restore |
+| Source/assets | PASS: provenance/180 requirements/29 screens/43 scenarios, contrast/dimensions/XML/wrapper/hygiene; исходные ТЗ и AGENTS неизменны |
+| Последняя локальная проверка | assembleDebugAndroidTest + lintDebug PASS39s; Python scripts compile PASS |
 
-## Что не завершено и известные ошибки
+Android CI: https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42231674746
+Backend CI: https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42111333476
+Backend после Android-only изменений заново не пересобирался и не тестировался.
+Команды и файлы — stages/P3.md и android/README.md.
 
-- **Нет подтверждённого Android ↔ API E2E runtime PASS.** Instrumented tests
-  написаны/скомпилированы, но ещё не приняты: UI signup/verification/login,
-  profile save/cancel/photos/cache/offline/logout/reset, fontScale2/320dp,
-  no-sensor/static pixel checks, sensorservice pause/dispose и rendered tilt.
-- Local AOSP15 software emulator без KVM показал системные/System UI ANR;
-  APK установлены direct adb-shell, результат instrumentation `Process crashed`.
-  Такой запуск не считается PASS; эмулятор остановлен.
-- GitHub Android build/lint/unit проходят, device stage упирался в настройку
-  runner: KVM group → sudo Runas password → унаследованный /root AVD path.
-  Последний прочитанный failure:
-  https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42111333099
-- `af07a7c` исправляет пути: AVD/user/emulator каталоги явно в work/,
-  setpriv --reset-env восстанавливает user context; emulator code запускается
-  непривилегированно. **Результат прочитан при продолжении:** boot PASS, 5 instrumented tests,
-  3 PASS / 2 FAIL. Регистрация/письмо/вход/редактирование/фото/offline дошли
-  до settings; race после загрузки thumbnail и проверка sensor connection
-  исправляются, полный E2E ещё не принят. Run: 42112306001.
-- Screenshot baseline pending; physical tilt/TalkBack и RU staging NOT RUN/BLOCKED.
-  Запрос удаления реализован, production erasure/retention process — до эксплуатации.
-  Цели capacity не измерялись; весь продукт и iOS не объявляются завершёнными.
+## Исправленные ошибки
 
-## Первая незавершённая задача
+Android HttpURLConnection добавлял form Content-Type к DELETE без тела:
+logout/media delete отклонялись JSON-only сервером. Теперь отправляется `{}`
+JSON; оба реальных сценария приняты E2E. Исправлены ожидания native picker и
+возврата в Compose, enabled navigation после photos и точный sensorservice parser.
+CI ждёт чистого AOSP launcher; boot-only Quickstep ANR не принимается за кадр
+продукта. Любой crash/ANR при screenshot делает тест FAIL. Старые сбои и WIP
+сохранены в хронологии stages/P3.md, включая аварийный checkpoint24bd744.
 
-Повторить затронутую Android acceptance после конкретных исправлений af07:
-- ждать enabled navigation после thumbnail requests;
-- считать active sensor handles, а не оставшиеся connection/history names;
-- проверить настоящие native picker select/cancel → upload/save → media/read;
-- сохранять synthetic screenshots в MediaStore Downloads, переживающий AGP uninstall;
-- reinstall уже собранного app APK перед отдельной sensor/render проверкой.
+## Ограничения и следующая задача
 
-Local updated test APK + lint PASS, 47s; asset contrast/dimensions/XML PASS.
-Cream scanner corners приведены к точному §8.3, без изменения нормативного ТЗ.
-Backend не менялся: его 13 tests и CI заново не запускать без причины.
-После Android PASS посмотреть реальные screenshots, обновить QA/matrix/P3 report,
-сохранить результат и STOP до отдельной команды на P4.
+- Физический телефон/TalkBack **NOT RUN**; FR-136 и ручная часть A29 не закрыты.
+  Автоматический rotation/layout/IME тест не подменяет проверку TalkBack.
+- Разрешённый RU staging **BLOCKED**, production SMTP не включён.
+- До эксплуатации нужен процесс исполнения deletion/retention/backups (ADR0004,
+  P8/P9); capacity не измерялась. Полный продукт/iOS не объявляются готовыми.
+- Линт: два unused-color предупреждения, без suppressions/baseline.
 
-Продолжение: `24da698` сохранён и отправлен; run `42222956219` — build/boot PASS,
-device 3/5 PASS. Native picker и sensor lifecycle пока завершаются timeout.
-Добавлены точные phase/stack diagnostics, screenshot native picker при timeout
-и контактный лист настоящих synthetic screenshots для визуальной приёмки.
-Test APK с диагностикой компилируется (21s); следующий шаг — прочитать device
-результат, устранить подтверждённые причины двух failures и проверить rendered tilt.
-
-Run `42224732957` на `55c042e`: source/assets, build/lint/unit и boot PASS;
-device 3/5 PASS. Просмотрены настоящие кадры: поверх UI — системный Quickstep
-ANR, поэтому **визуальная приёмка FAIL**, несмотря на отдельные тесты PASS.
-Account failure line135: Back был отправлен до появления native picker.
-Подготовлены: ожидание native окна до cancel/select и возврата в app до Compose;
-точный Android15 parser `status: active` для sensor handles; ожидание чистого
-лаунчера (закрывается только явно названный Quickstep boot ANR). Любой ANR
-при снятии product screenshot делает тест FAIL. Следующий шаг: принять эти
-конкретные исправления на API35, проверить полное E2E и actual rendered tilt.
-
-`a1c8be7`, run `42226148146`: build/lint/unit PASS; новая boot readiness
-остановилась на transient `null root node` до UI tests. Readiness теперь
-повторяет получение accessibility root в том же bounded deadline и снимает
-boot-failure кадр при исчерпании ожидания. Это не PASS тестов приложения.
-
-`152b107`, run `42226924867`: launcher readiness PASS, instrumented **4/5 PASS**.
-Sensor lifecycle (resume=1/pause=0/resume=1/dispose=0), loop/static и narrow form
-прошли. Native picker cancel/select, реальные uploads/read и offline→online
-в полном flow прошли до logout; failure line175 ждёт notice успешного выхода.
-Снимки welcome/profile/photos просмотрены: чистый UI с KraPiva Dark, без ANR.
-Liquid fixture ещё был на белом root: test Surface приведён к теме.
-Следующее: диагностировать screen/busy/error logout, завершить reset UI;
-отдельный actual sensor→render checker теперь выполняется и при E2E failure.
-
-`0f6074c`, run `42228334798`: **4/5 device PASS**, rendered accelerometer→foam
-**PASS**: left=10px/right=-4px, hero231px. Чистые реальные кадры просмотрены.
-Logout error: SETTINGS/busy=false/«Некорректный запрос». Подтверждён Android
-HttpURLConnection default form Content-Type для DELETE; клиент теперь отправляет
-валидный `{}` JSON. Добавлена проверка cover removal → server404 с сохранением
-аватара, затрагивающая второй реальный DELETE path. Следующее: принять этот
-transport fix, полный logout/reset E2E и итоговый отчёт; P4 не начинать.
-
-Уточнение A1: repository reopen не равен перезапуску процесса. Добавлен
-явный JUnit Suite order (account flow последним), повторный UI login новым
-паролем после reset и host force-stop/relaunch без удаления Keystore/session.
-AGP8.9.2 поддерживает leaveApksInstalledAfterRun (проверено в options class).
-Cold check ждёт серверный профиль и enabled editor, offline fallback не PASS.
-После него очищаются только synthetic emulator app data для welcome tilt check.
+**Точная следующая задача: ждать команды владельца.** При дальнейшей приёмке
+P3 — ручной A29/TalkBack и physical tilt при наличии устройства; P4 не начинать
+без отдельной команды. Незакоммиченного функционального WIP нет.
 
 ## Лимиты и сохранность
 
-Пятичасовой остаток **≤25%** или недельный **≤50%** → остановка и WIP/push.
+Пятичасовой остаток ≤25% или недельный ≤50% → немедленные WIP/commit/push/STOP.
 Реальные остатки API недоступны; проценты не выдумываются, контроль владельца.
-Платные кредиты/сервисы не использовать.
-
-Код/документы сохранены в GitHub. Локальные synthetic credentials, tokens,
-media, SDK/JDK/cache/logs — только ignored `work/` и `.env`; не коммитить.
-Локальные DB/Mailpit volumes сохранены, dev services могут оставаться запущены;
-не применять `down -v`. История и ADR — `docs/stages/P3.md`, `docs/decisions/`.
-
-Подтверждён результат 81807ee: run42230180591 SUCCESS, **5/5 device PASS**,
-rendered tilt PASS (+10/−4px), screenshots просмотрены. DELETE fix принят.
-Текущая первая незавершённая задача — выполнить добавленный cold process check
-и повторный login новым паролем; затем финальные QA/matrix/report и STOP.
+Платные кредиты/сервисы не использовались.
+Synthetic credentials/tokens/media/SDK/JDK/cache/logs — только ignored work/ и
+.env; в Git их нет. DB/Mailpit volumes сохранены, dev services могут оставаться
+запущены; не удалять данные. В GitHub сохраняются код, документы и только
+собственные synthetic screenshots, без APK/ключей/.env.

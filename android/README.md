@@ -43,16 +43,27 @@ Production SMTP не включён, внешним адресатам dev/test 
 С работающими API/DB/Mailpit и API35 эмулятором:
 
 ```sh
-./gradlew connectedDebugAndroidTest
+./gradlew --no-daemon -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true connectedDebugAndroidTest
+cd ..
+python3 scripts/check_android_cold_start.py
+# Только изолированный emulator с synthetic test data:
+adb shell pm clear ru.krapiva.app.debug
+python3 scripts/check_android_motion.py
 ```
 
-`AccountIntegrationTest` создаёт уникальную synthetic учётку через настоящий
-HTTP и читает код из Mailpit, входит через Compose UI, сохраняет город,
-повторно открывает Keystore/SQLite repository, проверяет шифрование/isolation/
-выход. `BeerHeroTest` проверяет left/right/static states и пишет synthetic
-screenshot в app external files. Никаких реальных аккаунтов/паролей в тестах.
-В среде без writable adb home допустим direct `adb-shell` transport с ключом
-в `work/`: push APK, `pm install -r -t`, `am instrument -w -r ...AndroidJUnitRunner`.
+По умолчанию `P3AcceptanceSuite` выполняет layout/motion перед account flow.
+Последний проверяет signup/18+/SMTP verify/login, save/cancel, native photo
+picker cancel/select, независимые avatar/cover, view/remove (server404),
+шифрование/isolation, offline/retry, server logout, reset и login новым паролем.
+Сессия сохраняется для host cold check: `force-stop` → MainActivity → настоящий
+API profile + enabled editing. После него очищаются только synthetic app data
+для отдельной проверки accelerometer→rendered liquid slope. Нужен Pillow11.3.0.
+
+`BeerHeroTest` проверяет active sensor handles 1→0→1→0, loop/static pixels и
+left/right/static states. Synthetic screenshots сохраняются через MediaStore
+в `/sdcard/Download/KraPivaP3/`; host checks — в ignored `work/screenshots/`.
+CI сохраняет отчёты/PNG/contact sheet/manifest на 7 дней, без APK/ключей/.env.
+Долговечный принятый baseline и ограничения — `docs/design/VISUAL_BASELINE.md`.
 Точный результат не выводится из одного факта успешной компиляции тестового APK.
 
 ## Архитектура

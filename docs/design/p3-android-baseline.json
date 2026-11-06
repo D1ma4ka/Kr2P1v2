@@ -1,0 +1,74 @@
+{
+  "commit": "0ca66fd7804d37669d7fb105484b73ac72fd5587",
+  "run_url": "https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42231674746",
+  "artifact": "p3-android-test-evidence",
+  "original_png_retention_days": 7,
+  "review_image": "p3-android-baseline.jpg",
+  "review_kind": "JPEG contact sheet of real synthetic-account screenshots; original PNG hashes below",
+  "screenshots": [
+    {
+      "path": "KraPivaP3/p3-liquid-states.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "9f513e22e253567e9fcd228412dcf2a3c880fabc392b506893deee4b98f0b98f"
+    },
+    {
+      "path": "KraPivaP3/p3-profile-photos.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "d7a8b2ab3703ad371fb04cd9c5137f914fa59095674de6158b4d97af026cac83"
+    },
+    {
+      "path": "KraPivaP3/p3-profile.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "2a36197c8f67d9405844deae4342b780b316a56dcf3125c40f67f7c14a3eedab"
+    },
+    {
+      "path": "KraPivaP3/p3-reset-login.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "07d5dccdc6c95aa1d577b45d98af5ea5d9cb7f6e504e56b23555b30919b5ac9a"
+    },
+    {
+      "path": "KraPivaP3/p3-welcome.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "acea426ba8f1bdf9b039d1f9c79673cf8bd3acd7ae7bb126c41a30771aa0b8f4"
+    },
+    {
+      "path": "cold-start/p3-cold-start.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "5dbed0ac76ebac1b689ed2ede853fdaf2d55efc8fa39de9a899b7da51e40ccd8"
+    },
+    {
+      "path": "sensors/p3-sensor-left.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "c0a918edba79ded2cbb52df913b2b6c2982bd461a780a744b8f8c44ca7d05b21"
+    },
+    {
+      "path": "sensors/p3-sensor-right.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "cc6fe06596f94036b298473633257167efb8da53f7b6ab3155a48ba119370018"
+    }
+  ]
+}
