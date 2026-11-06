@@ -118,9 +118,27 @@ test('P4 real HTTP/PostgreSQL: empty catalog, proposals, ACL, search, GTIN, dupl
   await assert.rejects(media.get(b.id,image.id));
   await call('/v1/position-proposals','POST',{...data,requestId:randomUUID(),gtin:null,imageAssetId:image.id,imageSource:'Synthetic own image',rightsConfirmed:false},a,422);
   const imageProposal=await proposal({...data,breweryId:card.breweryId,name:'Synthetic photo',gtin:null,imageAssetId:image.id,imageSource:'Synthetic own image',rightsConfirmed:true});
-  await decision(imageProposal.id,{breweryId:card.breweryId});assert.ok((await media.get(b.id,image.id)).length>0);
+  const photoPosition=(await decision(imageProposal.id,{breweryId:card.breweryId})).positionId;assert.ok((await media.get(b.id,image.id)).length>0);
   await assert.rejects(media.remove(a.id,image.id));
   await db.pool.query("UPDATE media_assets SET moderation_status='hidden' WHERE id=$1",[image.id]);await assert.rejects(media.get(b.id,image.id));
+  const breweryImage=await media.upload(mod.id,await sharp({create:{width:12,height:12,channels:3,background:'#78b936'}}).png().toBuffer(),'image/png');
+  await call(`/v1/moderation/breweries/${card.breweryId}/image`,'PUT',{imageAssetId:breweryImage.id,imageSource:'Synthetic own brewery image',rightsConfirmed:true},a,403);
+  const breweryCard=await call(`/v1/moderation/breweries/${card.breweryId}/image`,'PUT',{imageAssetId:breweryImage.id,imageSource:'Synthetic own brewery image',rightsConfirmed:true},mod);
+  assert.equal(breweryCard.imageAssetId,breweryImage.id);assert.ok((await media.get(b.id,breweryImage.id)).length>0);await assert.rejects(media.remove(mod.id,breweryImage.id));
+  // A hidden photo must not prevent a moderator from rejecting the proposal.
+  const pendingImage=await media.upload(a.id,await sharp({create:{width:10,height:10,channels:3,background:'#1d2125'}}).png().toBuffer(),'image/png');
+  const hiddenPending=await proposal({...data,breweryId:card.breweryId,name:'Synthetic hidden pending',gtin:null,imageAssetId:pendingImage.id,imageSource:'Synthetic own image',rightsConfirmed:true});
+  await db.pool.query("UPDATE media_assets SET moderation_status='hidden' WHERE id=$1",[pendingImage.id]);
+  await decision(hiddenPending.id,{action:'reject'});
+  // Two concurrent moderator decisions: exactly one wins, the other sees a version conflict.
+  const racing=await proposal({...data,breweryId:card.breweryId,name:'Synthetic concurrent',gtin:null});
+  const statuses=await Promise.all(['accept','reject'].map(async action=>{
+   const response=await fetch(base+`/v1/moderation/position-proposals/${racing.id}/decision`,{method:'POST',headers:{authorization:'Bearer '+mod.token,'content-type':'application/json'},body:JSON.stringify({version:1,action,breweryId:card.breweryId,reason:'Synthetic concurrent review'})});
+   await response.arrayBuffer();return response.status;
+  }));assert.deepEqual(statuses.sort(),[200,409]);
+  await call(`/v1/moderation/positions/${id}/merge`,'POST',{targetId:photoPosition,reason:'Synthetic transitive alias'},mod);
+  assert.equal((await call('/v1/positions/'+secondId)).canonicalId,photoPosition);
+  assert.equal((await call('/v1/barcodes/lookup?kind=gtin&code=012345600012')).position.id,photoPosition);
   await db.pool.query("UPDATE breweries SET verification_status='rejected' WHERE id=$1",[card.breweryId]);
   assert.equal((await call('/v1/positions')).items.length,0);await call('/v1/positions/'+id,'GET',undefined,a,404);
  } finally {await app.close();await db.close();await rm(root,{recursive:true,force:true});}

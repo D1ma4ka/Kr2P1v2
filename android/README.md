@@ -1,10 +1,12 @@
-# Android — P3
+# Android — P4
 
 Kotlin/Compose/Material 3, Android 8.0+ (minSdk 26), SDK35. P1/P2 сохранены.
 Реальные регистрация/подтверждение/вход/сброс, profile editor, avatar/cover,
 privacy, session rotation/logout/deletion request и read-only offline cache.
 Все операции идут в общий backend, фиктивных ответов в приложении нет.
-Catalog/checkin/social/venues — P4–P7; их нижние назначения пока disabled.
+Каталог P4 подключён к реальному /v1 API: серверный поиск/фильтры/пагинация,
+карточки пива/пивоварен, предложения с фото, камера и ручной GTIN.
+Checkin/social/venues — P5–P7; будущие нижние назначения пока disabled.
 
 ## Сборка
 
@@ -17,7 +19,7 @@ JVM standard properties, TLS verification не отключается.
 ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest lintDebug testDebugUnitTest
 ```
 
-Package `ru.krapiva.app.debug`, version `0.1.0-p3`. APK и debug signing keys
+Package `ru.krapiva.app.debug`, version `0.1.0-p4`. APK и debug signing keys
 только локально/ignored, публикации и production signing нет. Lint ошибки
 блокируют сборку, baseline/suppressions не добавлялись. Актуальные результаты:
 [отчёт P3](../docs/stages/P3.md), [план QA](../docs/QA_TEST_PLAN.md).
@@ -73,3 +75,35 @@ CI сохраняет отчёты/PNG/contact sheet/manifest на 7 дней, �
 SQLite. Design tokens и liquid physics — `designsystem/`, ADR-MOTION описывает
 lifecycle/rotation/fallback. Все исходные field/API contracts платформенно
 нейтральны; iOS обязательна P10–P13, в текущем P3 не пишется.
+
+## P4: каталог и камера
+
+`Каталог` в нижней навигации активен после входа. Новая база пустая; тестовые
+Synthetic записи создаются только явно для acceptance, не при старте приложения.
+Поиск/сортировка/фильтры/карточки используют backend; `Фильтры и разделы` содержит
+пивоварни, собственные предложения и фильтры. Индексы и коды — docs/catalog/.
+
+Для полной CI device acceptance до запуска эмулятора, из backend/:
+
+```sh
+node --env-file=../.env dist/src/operations/catalog-device-fixtures.js
+# после boot: adb push ../work/p4-android.json /data/local/tmp/p4-android.json
+```
+
+Файл содержит только synthetic credentials; не публиковать, не логировать,
+не добавлять в artifacts/Git. CLI строго local development, создаёт реальные
+SQL accounts/проверенную позицию. Suite запускает P4 до P3 account flow, сохраняя
+последний P3 session для существующего cold-start checker. P4 flow проверяет
+реальные API search/card/brewery, открытие CameraX по permission, ручной known/
+unknown GTIN, server proposal и encrypted offline cache. Unit decoder отдельно
+проверяет EAN/QR на четырёх ориентациях; это не физическая съёмка этикетки.
+
+Camera permission отсутствует до входа в scanner; camera feature optional.
+При отказе/ошибке доступны ручной ввод/поиск; frame закрывается в finally,
+analyzer/provider/observer/executor освобождаются при закрытии. QR не открывает
+URL и не направляется в GTIN mapping. Нет платного SDK/model download.
+
+Кэш: AccountStore v1→v2, AES-GCM, userId, TTL24h/120 entries/100 thumbnails;
+logout/switch очищает cache и каталоговый ViewModelStore, requests после выхода
+не записывают фото в старый аккаунт. Barcode lookup всегда требует сети.
+API остаётся общим для обязательного будущего iOS-клиента.

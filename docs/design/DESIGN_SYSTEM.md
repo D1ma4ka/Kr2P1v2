@@ -51,3 +51,12 @@ Error #FFB4AB, focus/warning amber, success hop-light; disabled muted с
 Доступные auth/profile/settings экраны используют тему; остальные появляются
 только с реальными функциями P4–P7. Нижняя композиция пяти пунктов зафиксирована,
 доступен профиль; будущие назначения disabled, никаких имитаций server flows.
+
+## Реализованное состояние P4
+
+CatalogScreen использует KraPiva Dark/общие typography и radii, общий
+BeerPositionCard, original mark вместо отсутствующего фото, источники/статусы,
+пятиэлементную нижнюю навигацию с активным каталогом. Server empty/error и offline
+состояния видимы; нет демонстрационных рейтингов/чекинов. Scanner cream corners,
+permission/manual fallback; proposal form использует native picker. SVG/иконки
+P3 сохранены. Actual screenshot baseline дополняется после device acceptance.

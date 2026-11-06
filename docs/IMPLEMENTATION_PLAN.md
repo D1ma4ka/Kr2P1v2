@@ -1,7 +1,7 @@
 # План KraPiva 2.0 — ТЗ v1.3
 
 Нормативный источник: TECHNICAL_SPECIFICATION.md, §12/15/16/17.
-P0 и P1 завершены; их код и результаты не пересоздаются. P2 принят: локальный backend и CI проверены. **P1.1/P3 реализованы, приёмочные проверки в процессе; iOS не начата.**
+P0 и P1 завершены; их код и результаты не пересоздаются. P2 принят: локальный backend и CI проверены. **P1.1/P3 реализованы, автоматическая приёмка PASS; P4 в заключительной проверке; iOS не начата.**
 После каждого согласованного этапа: проверка → diff/status → commit/push →
 отчёт → остановка до новой команды владельца. Правила лимитов — PROGRESS.md.
 
@@ -11,8 +11,8 @@ P0 и P1 завершены; их код и результаты не перес
 | P1 | Android/backend foundation, оригинальные прежние ресурсы и CI | 69ed3e9 CI PASS, fbe95ba отчёт | DONE, не повторять |
 | P2 | Расширенная SQL-схема профиля/позиций/чек-инов/соцсети/мест/кодов, migrations, media отдельно от SQL, test SMTP, переносимый локальный запуск, платформенно-нейтральный OpenAPI; конфигурация API окружений | API+DB+media+SMTP локально, persistence после restart, реальные test accounts/CRUD/ACL и contracts, DEPLOYMENT_RU; обновить совместимость source checker с v1.3 | DONE — stages/P2.md; staging/production не развёрнуты |
 | P1.1 (уточнение UI) | Новые semantic tokens, original SVG/icon, sans-serif, пять пунктов и home components, ASSET_INVENTORY/visual baseline | Компоненты и screenshot/контраст; не переписывать P1/backend | P3 — адаптация доступных auth/profile screens, не блокирует P2 |
-| P3 | Аккаунты/полный профиль/фото/ACL, account-scoped cache; S-01/S-29 real loading и welcome с sensor liquid, fallback, reduced motion; согласованный P1.1 UI | A1/A12/A15/A25–A30, IDOR и настоящий test SMTP; без forced delay | IN PROGRESS — stages/P3.md |
-| P4 | Новый каталог, brewery card, поиск, предложения/moderation, scanner; отдельная семантика GTIN/QR | A2/A9/A21, пустой старт и реальная камера | PLANNED |
+| P3 | Аккаунты/полный профиль/фото/ACL, account-scoped cache; S-01/S-29 real loading и welcome с sensor liquid, fallback, reduced motion; согласованный P1.1 UI | A1/A12/A15/A25–A30, IDOR и настоящий test SMTP; без forced delay | DONE implementation/automated acceptance; physical/TalkBack NOT RUN — stages/P3.md |
+| P4 | Новый каталог, brewery card, поиск, предложения/moderation, scanner; отдельная семантика GTIN/QR | A2/A9/A21, пустой старт и реальная камера | IN PROGRESS — stages/P4.md |
 | P5 | Чекины/вкусовые теги/фото, фильтры, editable offline drafts, unique list, wishlist, style pie/rating histogram/unrated/drilldown, реальные агрегаты; данные home | A3/A4/A7/A13/A14/A24, изменение/удаление/merge, sync | PLANNED |
 | P6 | Взаимные друзья, feed/comments/reactions, публичные агрегаты с ACL; доступ из home | A5/A6, два аккаунта, cursor/retry/privacy/media | PLANNED |
 | P7 | Badge rule engine/10 правил/3 pins; бары и магазины, интерактивная внутренняя карта, clusters, bbox/map-list, reports/admin | A8/A10/A11/A16–A18; реальная карта/лицензия, Craft Republic только после проверки | PLANNED |
@@ -25,7 +25,7 @@ P0 и P1 завершены; их код и результаты не перес
 
 P1.1 — будущая точечная адаптация, а не повторный P1. Функциональные home/CTA
 появляются с реальными API P4–P7: пустой mock home не считается приёмкой.
-Текущий запрос владельца разрешил P3 с утверждённым UI/motion.
+Текущий запрос владельца разрешил P4; P3 сохранён, P5 не начинать.
 Платформенные границы API проектируются с P2; KMP/iOS код не пишется до P10.
 
 ## Внешние решения и срок
