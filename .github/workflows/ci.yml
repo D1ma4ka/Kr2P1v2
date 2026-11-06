@@ -38,7 +38,7 @@ jobs:
         run: |
           if [ "$EVENT_NAME" = workflow_dispatch ]; then
             echo 'android=true' >> "$GITHUB_OUTPUT"
-          elif git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- android/ assets/ .github/workflows/ci.yml ':(exclude,glob)android/**/*.md' ':(exclude,glob)assets/**/*.md'; then
+          elif git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- android/ assets/ .github/workflows/ci.yml scripts/check_android_motion.py scripts/prepare_android_emulator.py scripts/preview_android_evidence.py ':(exclude,glob)android/**/*.md' ':(exclude,glob)assets/**/*.md'; then
             echo 'android=false' >> "$GITHUB_OUTPUT"
           else
             echo 'android=true' >> "$GITHUB_OUTPUT"
