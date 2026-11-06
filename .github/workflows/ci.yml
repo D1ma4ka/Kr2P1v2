@@ -171,6 +171,8 @@ jobs:
         run: ./gradlew --no-daemon connectedDebugAndroidTest
       - name: Real emulator tilt changes the rendered liquid surface
         run: |
+          # AGP uninstalls the target after instrumentation; install the same built APK.
+          adb install -r android/app/build/outputs/apk/debug/app-debug.apk
           python -m pip install Pillow==11.3.0
           python scripts/check_android_motion.py
       - name: Retain synthetic UI evidence (no APK or credentials)
@@ -178,7 +180,7 @@ jobs:
         run: |
           mkdir -p work/screenshots
           if [ -f work/android-emulator.log ]; then tail -n 30 work/android-emulator.log; fi
-          adb pull /sdcard/Android/data/ru.krapiva.app.debug/files/ work/screenshots/ || true
+          adb pull /sdcard/Download/KraPivaP3/ work/screenshots/ || true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:

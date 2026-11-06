@@ -219,8 +219,8 @@ private fun visibilityLabel(value: String) = when(value) { "public" -> "Все �
         for (i in 0 until original.length()) add(original.getJSONObject(i).getString("url") to original.getJSONObject(i).getString("visibility"))
     } }
     var pickerNotice by remember { mutableStateOf<String?>(null) }
-    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { if (it != null) avatarUri = it else pickerNotice = "Фото не выбрано. Профиль не изменён." }
-    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { if (it != null) coverUri = it else pickerNotice = "Обложка не выбрана. Профиль не изменён." }
+    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { if (it != null) { avatarUri = it; pickerNotice = null } else pickerNotice = "Фото не выбрано. Профиль не изменён." }
+    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { if (it != null) { coverUri = it; pickerNotice = null } else pickerNotice = "Обложка не выбрана. Профиль не изменён." }
     val enabled = !state.busy
     Title("Редактирование профиля")
     pickerNotice?.let { Text(it, color = KraPivaColors.Muted) }

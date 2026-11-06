@@ -1,12 +1,12 @@
-# KraPiva 2.0 — P3 WIP, АВАРИЙНАЯ ОСТАНОВКА
+# KraPiva 2.0 — P3 WIP, продолжение приёмки
 
-6 ноября 2026, Europe/Istanbul. Разработка остановлена по прямой команде
-владельца. **Не запускать задачи, сборки, тесты или исследования до «Продолжай».**
+6 ноября 2026, Europe/Istanbul. Владелец разрешил продолжение P3 после
+аварийного сохранения `24bd744`. Только P3; остановка перед P4 обязательна.
 P0/P1/P2 DONE. **P3 не принят: runtime-проверки Android не завершены. P4 не начат.**
 
 Ветка: `codex/krapiva-2-p3`, база P2 `bf995357098df505965dd4425afca6f5eeff4810`.
 Последний code/config checkpoint перед отчётом — `af07a7c` (push подтверждён).
-Финальный WIP-коммит сохранения — `git log -1`; его полный SHA сообщён владельцу.
+WIP остановки — `24bd7449ae8f42d21627cd8b2986421289fe33ea`; новые checkpoint — `git log`.
 Draft PR: https://github.com/D1ma4ka/Kr2P1v2/pull/6, base P2. Merge, force push,
 production, публикация APK и расходы не выполнялись.
 
@@ -57,23 +57,28 @@ production, публикация APK и расходы не выполнялис
   https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42111333099
 - `af07a7c` исправляет пути: AVD/user/emulator каталоги явно в work/,
   setpriv --reset-env восстанавливает user context; emulator code запускается
-  непривилегированно. **Результат этого CI на момент стоп-команды не прочитан.**
-  Ранее автоматически запущенный удалённый CI может ещё выполняться;
-  WIP-сохранение помечено `[skip ci]`, новых проверок оно не запускает.
+  непривилегированно. **Результат прочитан при продолжении:** boot PASS, 5 instrumented tests,
+  3 PASS / 2 FAIL. Регистрация/письмо/вход/редактирование/фото/offline дошли
+  до settings; race после загрузки thumbnail и проверка sensor connection
+  исправляются, полный E2E ещё не принят. Run: 42112306001.
 - Screenshot baseline pending; physical tilt/TalkBack и RU staging NOT RUN/BLOCKED.
   Запрос удаления реализован, production erasure/retention process — до эксплуатации.
   Цели capacity не измерялись; весь продукт и iOS не объявляются завершёнными.
 
-## Точная следующая задача — только после «Продолжай»
+## Первая незавершённая задача
 
-1. Прочитать AGENTS, этот файл и `docs/stages/P3.md`; проверить branch/HEAD/status.
-2. **Прочитать уже запущенный CI для `af07a7c`**, не запускать сборку повторно
-   автоматически. Если boot прошёл — разобрать реальные instrumented results;
-   если нет — прочитать startup log и исправить только конкретную причину.
-3. Завершить настоящие Android account/profile/motion acceptance, посмотреть
-   реальные screenshots, обновить QA/matrix/P3 evidence. Не выдавать compile
-   test APK или unit math за runtime/physical PASS.
-4. После проверки сохранить результат, отчёт и STOP. P4 — отдельная команда.
+Повторить затронутую Android acceptance после конкретных исправлений af07:
+- ждать enabled navigation после thumbnail requests;
+- считать active sensor handles, а не оставшиеся connection/history names;
+- проверить настоящие native picker select/cancel → upload/save → media/read;
+- сохранять synthetic screenshots в MediaStore Downloads, переживающий AGP uninstall;
+- reinstall уже собранного app APK перед отдельной sensor/render проверкой.
+
+Local updated test APK + lint PASS, 47s; asset contrast/dimensions/XML PASS.
+Cream scanner corners приведены к точному §8.3, без изменения нормативного ТЗ.
+Backend не менялся: его 13 tests и CI заново не запускать без причины.
+После Android PASS посмотреть реальные screenshots, обновить QA/matrix/P3 report,
+сохранить результат и STOP до отдельной команды на P4.
 
 ## Лимиты и сохранность
 

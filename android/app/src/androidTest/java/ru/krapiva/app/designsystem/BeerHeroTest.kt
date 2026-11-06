@@ -1,6 +1,5 @@
 package ru.krapiva.app.designsystem
 
-import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.*
@@ -8,7 +7,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Rule
 import org.junit.Test
-import java.io.File
+import ru.krapiva.app.TestEvidence
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -35,11 +34,7 @@ class BeerHeroTest {
             BeerHero(forceReducedMotion = true)
         } } }
         compose.onAllNodesWithContentDescription("Фирменный бокал KraPiva с пеной и хмелем").assertCountEquals(3)
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val file = File(context.getExternalFilesDir(null), "p3-liquid-states.png")
-        InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot().let { bitmap ->
-            file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        }
+        TestEvidence.screenshot("p3-liquid-states.png")
     }
     @Test fun noSensorLoopMovesAndReducedMotionStaysStill() {
         compose.setContent { KraPivaTheme { Column {
@@ -63,19 +58,28 @@ class BeerHeroTest {
             registry = LifecycleRegistry(owner).apply { currentState = Lifecycle.State.RESUMED }
         }
         val visible = mutableStateOf(true)
-        fun subscribed(): Boolean = ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("dumpsys sensorservice")).use {
-            it.readBytes().toString(Charsets.UTF_8).substringAfter("open event connections")
-                .substringBefore("Previous Registrations:").contains(instrumentation.targetContext.packageName)
+        fun subscriptions(): Int = ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand("dumpsys sensorservice")).use {
+            // Connection objects/history can outlive unregistration. Count active
+            // sensor handles in this app's connection, not occurrences of its name.
+            val connections = it.readBytes().toString(Charsets.UTF_8)
+                .substringBefore("Previous Registrations:").split("Connection Number:").drop(1)
+            connections.filter { connection -> connection.contains(instrumentation.targetContext.packageName) }
+                .sumOf { connection -> Regex("0x[0-9a-fA-F]+\\s*\\|\\s*first flush pending").findAll(connection).count() }
+        }
+        fun expectSubscriptions(expected: Int, phase: String) {
+            var actual = -1
+            try { compose.waitUntil(10_000) { actual = subscriptions(); actual == expected } }
+            catch (error: Exception) { throw AssertionError("Sensor subscriptions during $phase: expected=$expected, actual=$actual", error) }
         }
         compose.setContent { KraPivaTheme {
             CompositionLocalProvider(LocalLifecycleOwner provides owner) { if (visible.value) BeerHero() }
         } }
-        compose.waitUntil(10_000) { subscribed() }
+        expectSubscriptions(1, "resume")
         compose.runOnIdle { registry.currentState = Lifecycle.State.CREATED }
-        compose.waitUntil(10_000) { !subscribed() }
+        expectSubscriptions(0, "pause")
         compose.runOnIdle { registry.currentState = Lifecycle.State.RESUMED }
-        compose.waitUntil(10_000) { subscribed() }
+        expectSubscriptions(1, "second resume without duplicate listeners")
         compose.runOnIdle { visible.value = false }
-        compose.waitUntil(10_000) { !subscribed() }
+        expectSubscriptions(0, "disposal")
     }
 }

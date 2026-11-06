@@ -112,8 +112,8 @@ fun BeerHero(modifier: Modifier = Modifier, previewAngle: Float? = null, forceRe
             val y = if (vertical == 0) h * .08f else h * .96f
             val dx = if (side == 0) w * .13f else -w * .13f
             val dy = if (vertical == 0) h * .12f else -h * .12f
-            drawLine(KraPivaColors.Amber, Offset(x, y), Offset(x + dx, y), w * .025f)
-            drawLine(KraPivaColors.Amber, Offset(x, y), Offset(x, y + dy), w * .025f)
+            drawLine(KraPivaColors.Cream, Offset(x, y), Offset(x + dx, y), w * .025f)
+            drawLine(KraPivaColors.Cream, Offset(x, y), Offset(x, y + dy), w * .025f)
         }
     }
 }
