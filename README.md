@@ -8,12 +8,13 @@ A modern social platform for craft beer enthusiasts and bars
 совершеннолетних пользователей: каталог пивных позиций, дневник и социальная сеть
 с настоящим сервером и постоянной БД.
 
-**P0–P3 реализованы; P4 проходит заключительную приёмку.**
+**P0–P4 реализованы; автоматическая приёмка P4 PASS. P5 ожидает команды владельца.**
 Android auth/profile связан с настоящим сервером: PostgreSQL, migrations, owner API, сессии,
 private media, local SMTP и OpenAPI. Account workflows P3 работают через HTTP/SQL/SMTP; социальные
 сценарии относятся к P5–P7. Ручная проверка physical phone/TalkBack ещё NOT RUN.
 P4 добавил настоящий каталог/search/brewery/proposals/moderation/GTIN scanner;
-приёмка камеры ещё выполняется. Это не публичный production сервис.
+камера/разрешения/освобождение и offline переходы проверены на эмуляторе;
+оптический захват физической этикетки ещё NOT RUN. Это не публичный production сервис.
 
 Текущая точка продолжения и результаты — [прогресс](docs/PROGRESS.md).
 Команды запуска и восстановления — [локальный backend](docs/DEPLOYMENT_RU.md),

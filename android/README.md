@@ -107,3 +107,13 @@ URL и не направляется в GTIN mapping. Нет платного SD
 logout/switch очищает cache и каталоговый ViewModelStore, requests после выхода
 не записывают фото в старый аккаунт. Barcode lookup всегда требует сети.
 API остаётся общим для обязательного будущего iOS-клиента.
+
+
+## Финальная приёмка P4
+
+CI42292450630 на a89d494 SUCCESS: build/lint,6 JVM и7 instrumented tests.
+Actual MainActivity recreation сохраняет catalog card/filters; logout отменяет
+catalog scope/очищает encrypted cache. Camera deny→grant/open→release и реальное
+radio offline→cached card/banner→online refresh PASS. P3 cold session и sensors
+PASS в том же run. Baseline: ../docs/design/p4-review.jpg и PNG hash manifest.
+Physical optical capture/TalkBack NOT RUN; A9 manual часть остаётся открыта.

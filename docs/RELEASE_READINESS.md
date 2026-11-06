@@ -1,6 +1,6 @@
-# Готовность KraPiva 2.0 — P4 в заключительной проверке
+# Готовность KraPiva 2.0 — P4 реализован, автоматические проверки PASS
 
-P0–P3 сохранены; P4 реализован, camera device acceptance ещё IN PROGRESS.
+P0–P3 сохранены; P4 реализован: Android7/7, unit6, backend17/17 PASS; physical scan/TalkBack NOT RUN.
 Двухплатформенный продукт и production не готовы. P5 требует новой команды.
 Актуальная точка Git/лимиты/доказательства: [PROGRESS](PROGRESS.md), [P4](stages/P4.md).
 
@@ -9,7 +9,7 @@ P0–P3 сохранены; P4 реализован, camera device acceptance е
 | Provenance v1.0/v1.3 | PASS | исходные SHA, AGENTS unchanged,180 ID/29 screens/43 scenarios |
 | Auth/profile/privacy/media/motion P3 | PASS automated | stages/P3.md; реальный API35/SQL/SMTP/cold start; physical/TalkBack NOT RUN |
 | Catalog/search/moderation P4 | PASS server | 17 real tests; фото/source/ACL, merge/alias/concurrency, upgrade migrations |
-| Android P4 | IN PROGRESS | build/lint/unit6 PASS; scanner device acceptance не закрыта |
+| Android P4 | PASS automated | build/lint/unit6 + instrumented7 PASS, camera deny/grant/open/release, recreation и offline→online; physical optical scan NOT RUN |
 | Catalog scale smoke | PASS bounded | 50000 synthetic positions/3000000 GTIN, EXPLAIN/plans/timings; catalog/SCALING.md |
 | Restart/backup/restore | PASS local | CI SQL+media isolated restore, session/ACL/photo hashes; P2/P3/P4 server foundation |
 | Diary/wishlist/stats/social/map/badges | INCOMPLETE | P5–P7; имеющаяся SQL foundation не подменяет функции |

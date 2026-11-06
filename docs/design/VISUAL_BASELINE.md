@@ -31,3 +31,24 @@ TCG software emulator не считается доказательством п�
 Home/catalog/checkin/badges baseline — с настоящими функциями P4–P7;
 iOS parity — P12/P13. Physical phone/TalkBack **NOT RUN**; эти изображения
 и automated320dp/fontScale2 не подменяют ручную проверку A29/FR136.
+
+
+# P4 — визуальная приёмка
+
+7 ноября 2026, Europe/Istanbul; code/test `a89d494`, CI SUCCESS:
+https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42292450630
+
+Просмотрены 9 реальных synthetic кадров: каталог, пивоварня, карточка online/
+offline/после recreation, owner queue, scanner deny/open/unknown. Graphite/amber
+cards/navigation, оригинальный cream mark вместо отсутствующего фото; нет
+демонстрационных рейтингов. Native camera preview ограничен viewport220dp,
+заголовок/manual controls не перекрыты. Системных ANR поверх кадров нет.
+
+- [P4 contact sheet](p4-review.jpg) — производный JPEG из CI contact sheet.
+- [Исходные PNG SHA-256/размеры/run/source SHA](p4-screenshot-manifest.json).
+- Оригиналы1080×1920 и XML доступны в Actions artifacts7days; JPEG/manifest в Git.
+
+Цветные блоки камеры — emulated camera scene; каталог и имена — исключительно
+synthetic fixture, отправленная в настоящую disposable dev DB через API/SQL.
+Это не продуктовый mock catalog. Физический optical scan/TalkBack NOT RUN.
+Home/checkin/badges baseline — будущие P5–P7; P5 пока не начат.

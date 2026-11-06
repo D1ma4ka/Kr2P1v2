@@ -2,7 +2,8 @@
 
 43 приёмочных сценария: A19 backend foundation проверена, A20 BLOCKED;
 P3 автоматическая приёмка PASS (stages/P3.md). P4 SQL/API/search/cards PASS,
-финальная камера/device acceptance в процессе (stages/P4.md).
+Android7/7 PASS, камера/разрешения/освобождение, offline/recreation PASS
+(stages/P4.md); физический оптический scan/TalkBack NOT RUN.
 Будущие полные продуктовые сценарии P5–P13 NOT RUN. Старые фактические P1 build/HTTP/asset
 проверки сохранены в stages/P1.md, не выдаются за продуктовые E2E.
 Нужны настоящие API/SQL/media/test SMTP и два аккаунта; privacy/IDOR и чужой
@@ -12,14 +13,14 @@ P3 автоматическая приёмка PASS (stages/P3.md). P4 SQL/API/s
 | ID | Сценарий из ТЗ | Этап | Результат |
 |---|---|---|---|
 | A1 | новый пользователь: открыть → 18+ → зарегистрироваться → подтвердить e-mail → войти → создать профиль → перезапустить → данные и авторизация сохранены. | P3 | PASS: Android→SMTP/API/SQL + actual force-stop/relaunch с Keystore (42231674746) |
-| A2 | новая позиция: пустой каталог → «не найдено» → предложить позицию с пивоварней → модератор подтверждает → позиция видна в каталоге, без старых импортов. | P4 | PARTIAL: empty→proposal→moderation→catalog SQL/HTTP PASS; Android read/card/search PASS, submission device flow pending |
+| A2 | новая позиция: пустой каталог → «не найдено» → предложить позицию с пивоварней → модератор подтверждает → позиция видна в каталоге, без старых импортов. | P4 | PASS automated: empty→proposal→moderation→catalog real SQL/HTTP; Android search/card/brewery + submission→owner queue PASS, CI42292450630 |
 | A3 | чекин: найти позицию → выбрать → поставить 4,25 → добавить текст и фото → отправить → запись в собственном дневнике и у друзей по видимости. | P5 | NOT RUN |
 | A4 | повтор и уникальность: сделать A, A, B → всего 3, уникальных 2 → удалить B → всего 2, уникальных 1. Для A в разных подтверждённых вариантах — отдельные `positionId`. | P5 | NOT RUN |
 | A5 | социальная сеть: U1 отправляет заявку U2 → U2 принимает → U1 публикует видимый чекин → U2 видит его в ленте, ставит реакцию и оставляет комментарий → U1 видит их после перезапуска. | P6 | NOT RUN |
 | A6 | приватность: U1 скрывает чекин → U2 не видит его в ленте, по прямому ID или через API, даже если раньше видел. | P6 | NOT RUN |
 | A7 | wishlist: добавить позицию → проверить в профиле → открыть второе устройство/сессию → список совпадает → удалить → в обоих местах отсутствует. | P5 | NOT RUN |
 | A8 | значки: реальные события достигают порога → значок открывается → закрепить три → четвёртый отклоняется → состояние сохраняется в БД и UI. | P7 | NOT RUN |
-| A9 | штрихкод: скан неизвестного GTIN → «не найдено» → ручное добавление; код после подтверждения карточки даёт совпадение; исходная база OFF отсутствует. | P4 | PARTIAL: real GTIN mappings/unknown→proposal→accept→lookup SQL PASS, six-format decoder unit PASS; camera/manual UI acceptance pending |
+| A9 | штрихкод: скан неизвестного GTIN → «не найдено» → ручное добавление; код после подтверждения карточки даёт совпадение; исходная база OFF отсутствует. | P4 | PARTIAL manual: real GTIN unknown→proposal→accept→lookup SQL PASS; six-format/four-rotation bitmap decoder PASS; native camera deny/grant/open/release + known/unknown manual UI PASS. Physical optical capture of a printed label NOT RUN |
 | A10 | бар и карта: поиск реального заведения → встроенная карта/метка → карточка → профиль заведения → привязка к чекину → видимость после сохранения. Проверить карту↔список и cluster. | P7 | NOT RUN |
 | A11 | модерация: жалоба на чужой публичный контент → модератор скрывает → недоступно API и UI → есть запись в audit log. | P7 | NOT RUN |
 | A12 | восстановление: сброс пароля → письмо → смена пароля → предыдущие сессии отозваны по принятой политике. | P3 | PASS: Android SMTP reset, new password login and durable session revoke (run42231674746); P4 regression P3 tests PASS |

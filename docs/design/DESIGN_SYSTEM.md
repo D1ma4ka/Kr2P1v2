@@ -59,4 +59,6 @@ BeerPositionCard, original mark вместо отсутствующего фот
 пятиэлементную нижнюю навигацию с активным каталогом. Server empty/error и offline
 состояния видимы; нет демонстрационных рейтингов/чекинов. Scanner cream corners,
 permission/manual fallback; proposal form использует native picker. SVG/иконки
-P3 сохранены. Actual screenshot baseline дополняется после device acceptance.
+P3 сохранены. Actual API35 baseline: [P4 JPEG](p4-review.jpg),
+[original PNG hashes](p4-screenshot-manifest.json), CI42292450630 SUCCESS.
+PreviewView220dp ограничен native bounds и Compose clip; manual controls читаемы.

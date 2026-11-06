@@ -1,6 +1,6 @@
 # Матрица требований — актуальное ТЗ v1.3
 
-Актуализация 2026-11-05. Источник: TECHNICAL_SPECIFICATION.md, версия 1.3.
+Актуализация 2026-11-07 (Europe/Istanbul). Источник: TECHNICAL_SPECIFICATION.md, версия 1.3.
 180 требований: 135 FR + 45 NFR; 174 MUST, 5 SHOULD, 1 LATER.
 Номера FR имеют пропуски; отсутствующие требования не добавлялись.
 P0/P1 остаются DONE; результаты server foundation P2 перечислены по строкам.
@@ -9,6 +9,8 @@ iOS и будущие product screens не считаются выполненн
 Пути и тесты с пометкой «план» не существуют и не являются доказательством PASS.
 A19 backend persistence проверен локально (stages/P2.md); A20 remote staging
 BLOCKED. P3 Android E2E/cold start/motion PASS: run42231674746; ручной TalkBack NOT RUN.
+P4 implementation/automated PASS: backend17, Android unit6/device7, CI42292450630.
+A9 physical optical capture и TalkBack NOT RUN; полный ручной сценарий PARTIAL.
 Будущие полные продуктовые E2E NOT RUN; 29 целевых экранов не объявляются принятыми.
 
 | ID | Приоритет | Критерий из v1.3 | Этап | Код / проверка | Статус |
@@ -27,15 +29,15 @@ BLOCKED. P3 Android E2E/cold start/motion PASS: run42231674746; ручной Tal
 | FR-021 | MUST | Производитель/пивоварня — отдельная сущность от бренда, стиля, позиционного выпуска; не заполнять неизвестные поля фиктивными значениями (DB). | P4 | P4 brewery/release/brand/style/position separate; nullable unknown fields; catalog.test SQL/HTTP PASS | DONE |
 | FR-022 | MUST | Карточка позиции: название, пивоварня, стиль, ABV/IBU если известно, формат/объём если известно, описание/изображение при наличии, источник и статус проверки (UI+API). | P4 | P4 shared API full card + Android Detail; source/status/nulls/photo rights; SQL and device card steps PASS (stages/P4.md) | DONE |
 | FR-023 | MUST | Поиск позиций по имени, пивоварне, стилю, с нормализацией строк; фильтры и сортировка, пустой результат (UI+API). | P4 | P4 indexed AND normalized search, brewery/style/packaging/ABV filters, three keyset sorts; SQL cursor/empty tests + Android search PASS | DONE |
-| FR-024 | MUST | Пользователь может предложить новую реальную позицию вручную; заявка попадает в очередь модерации или явно помечается непроверенной, без ложного статуса «проверено» (E2E). | P4 | P4 real owner proposals/queue + native form; server accept/reject/link PASS, device submission acceptance pending | INCOMPLETE |
+| FR-024 | MUST | Пользователь может предложить новую реальную позицию вручную; заявка попадает в очередь модерации или явно помечается непроверенной, без ложного статуса «проверено» (E2E). | P4 | Real owner proposal→SQL queue UI PASS, NaN guard/comma decimal; server review/idempotency/revisions/ACL PASS | DONE |
 | FR-025 | MUST | Детектор потенциальных дублей по нормализованным полям, с ручным разрешением; устойчивые идентификаторы и редиректы при слиянии (DB). | P4 | P4 normalized duplicate candidates, explicit decision, atomic merge/flattened aliases/checkin/wishlist/GTIN transfer and concurrent review PASS | DONE |
 | FR-026 | MUST | Нет скрытого обращения к Untappd и копирования материалов конкурентов (аудит кода/трафика). | P4 | P4 source audit: app calls own API only; no competitor/OFF integration or legacy catalog imports | DONE |
 | FR-027 | MUST | Если источник карточки/изображения неизвестен или лицензия не подтверждена, не публиковать его как чужую фотографию; пользовательская загрузка проходит правила прав и модерации. | P4 | P4 own sanitized uploads + source/rights confirmation/moderator approval, bounded pending review ACL and reject revocation; SQL/HTTP PASS | DONE |
 | FR-028 | SHOULD | Возможность редактировать предложенную карточку до модерации, история исправлений. | P4 | P4 pending own editor, optimistic version conflict, SQL revision history; owner/409/revisions tests PASS | DONE |
-| FR-030 | MUST | Запрос разрешения камеры только при открытии сканера; корректный отказ/закрытие; ручной поиск всегда доступен (UI). | P4 | P4 CameraX permission/manual/error/close UI implemented; emulator acceptance IN PROGRESS, no device PASS claimed | INCOMPLETE |
-| FR-031 | MUST | Считывание поддерживаемых GTIN/EAN/UPC средствами камеры, валидация формата и контрольной цифры (интеграция/тест). | P4 | P4 ZXing EAN8/EAN13/UPC-A/UPC-E/ITF14 decoder four rotations + checksum unit PASS; camera readiness acceptance pending | INCOMPLETE |
+| FR-030 | MUST | Запрос разрешения камеры только при открытии сканера; корректный отказ/закрытие; ручной поиск всегда доступен (UI). | P4 | CameraX only on scanner; API35 deny→grant/open→close/released availability PASS, manual fallback available; CI42292450630 | DONE |
+| FR-031 | MUST | Считывание поддерживаемых GTIN/EAN/UPC средствами камеры, валидация формата и контрольной цифры (интеграция/тест). | P4 | ZXing EAN8/EAN13/UPC-A/UPC-E/ITF14 bitmap four rotations/checksum PASS; actual CameraX open/frame lifecycle PASS; physical printed-label optical capture NOT RUN, A9 PARTIAL | DONE |
 | FR-032 | MUST | Поиск кода только в **новой**, собственноручно наполненной и подтверждённой таблице barcode mappings. Старые коды и изображения запрещено копировать. | P4 | P4 verified new barcode_mappings only, unique GTIN/checksum/canonical lookup and conflicting accept rollback tests PASS | DONE |
-| FR-033 | MUST | При совпадении — открыть достоверную позицию. При отсутствии — сообщение «Не найдено», предложение ручного поиска/создания позиции, а не фиктивный результат. | P4 | P4 server found/not_found/canonical + Android scanner/manual/proposal routing implemented; final device acceptance pending | INCOMPLETE |
+| FR-033 | MUST | При совпадении — открыть достоверную позицию. При отсутствии — сообщение «Не найдено», предложение ручного поиска/создания позиции, а не фиктивный результат. | P4 | Real found→verified card and unknown→honest message/proposal Android PASS; backend canonical aliases/GTIN/non-beer separation PASS | DONE |
 | FR-034 | MUST | Непивные/некорректные коды: чёткие отдельные состояния там, где данные позволяют; не выдавать неизвестный код за не-пиво без доказательств. | P4 | P4 explicit invalid/checksum/unknown/non-beer-with-proof/unsupported QR; unknown never implies non-beer; server tests PASS | DONE |
 | FR-040 | MUST | Создание чекина по **одной существующей или явно непроверенной пивной позиции**; момент, собственная заметка, оценка, подача, место, фотографии (UI+API). | P5 | План: backend/ и android/; OpenAPI/SQL/Android/E2E по критерию, NOT RUN | INCOMPLETE |
 | FR-041 | MUST | Оценка в диапазоне 0,25–5,0 с шагом 0,25; вариант «без оценки» отдельно, без искусственного нуля (UI+DB). | P5 | План: backend/ и android/; OpenAPI/SQL/Android/E2E по критерию, NOT RUN | INCOMPLETE |
@@ -210,10 +212,10 @@ IMPLEMENTATION_PLAN.md, QA_TEST_PLAN.md и PLATFORM_PARITY.md.
 | S-01 | System splash → branded loading → авторизационный шлюз / 18+ | INCOMPLETE; реализация по этапам, runtime NOT RUN |
 | S-02 | Регистрация/подтверждение e-mail | INCOMPLETE; реализация по этапам, runtime NOT RUN |
 | S-03 | Вход/восстановление пароля | INCOMPLETE; реализация по этапам, runtime NOT RUN |
-| S-04 | Каталог / поиск | INCOMPLETE; реализация по этапам, runtime NOT RUN |
-| S-05 | Карточка пивной позиции | INCOMPLETE; реализация по этапам, runtime NOT RUN |
-| S-06 | Камера-сканер | INCOMPLETE; реализация по этапам, runtime NOT RUN |
-| S-07 | Предложить позицию | INCOMPLETE; реализация по этапам, runtime NOT RUN |
+| S-04 | Каталог / поиск | P4 implemented; real Android/API automated PASS, CI42292450630 |
+| S-05 | Карточка пивной позиции | P4 implemented; real Android/API automated PASS, CI42292450630 |
+| S-06 | Камера-сканер | P4 implemented; native camera/manual/decoder automated PASS; physical optical scan NOT RUN |
+| S-07 | Предложить позицию | P4 implemented; real Android/API automated PASS, CI42292450630 |
 | S-08 | Создать/редактировать чекин | INCOMPLETE; реализация по этапам, runtime NOT RUN |
 | S-09 | Личный дневник | INCOMPLETE; реализация по этапам, runtime NOT RUN |
 | S-10 | Отдельный чекин | INCOMPLETE; реализация по этапам, runtime NOT RUN |
@@ -232,7 +234,7 @@ IMPLEMENTATION_PLAN.md, QA_TEST_PLAN.md и PLATFORM_PARITY.md.
 | S-23 | Встроенная карта | INCOMPLETE; реализация по этапам, runtime NOT RUN |
 | S-24 | Статистика стилей | INCOMPLETE; реализация по этапам, runtime NOT RUN |
 | S-25 | Статистика оценок | INCOMPLETE; реализация по этапам, runtime NOT RUN |
-| S-26 | Пивоварня | INCOMPLETE; реализация по этапам, runtime NOT RUN |
+| S-26 | Пивоварня | P4 implemented; real Android/API automated PASS, CI42292450630 |
 | S-27 | Пивные магазины | INCOMPLETE; реализация по этапам, runtime NOT RUN |
 | S-28 | Главная / домашний дашборд | INCOMPLETE; реализация по этапам, runtime NOT RUN |
 | S-29 | Welcome / onboarding brand hero | INCOMPLETE; реализация по этапам, runtime NOT RUN |

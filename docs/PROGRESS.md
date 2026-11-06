@@ -1,111 +1,58 @@
-# KraPiva 2.0 — P4 реализован, заключительная приёмка IN PROGRESS
+# KraPiva 2.0 — P4 реализован, автоматическая приёмка PASS
 
-6 ноября 2026, Europe/Istanbul. P4 разрешён владельцем; P0–P3 сохранены.
+7 ноября 2026, Europe/Istanbul. P0–P3 сохранены; P5 не начат.
 Ветка: `codex/krapiva-2-p3`, база P3 `9f617e7`.
-Текущий frontend checkpoint `98d064b`, push подтверждён. Дальнейшее состояние
-и все предыдущие неудачные проверки: [отчёт P4](stages/P4.md).
+Проверенный code/test checkpoint: `a89d4946e8579cadaa02cb84d6fc19459d550258`.
+Итоговый документационный коммит — HEAD ветки. Draft PR: https://github.com/D1ma4ka/Kr2P1v2/pull/6
 
-- Реальные PostgreSQL каталог/пивоварни/стили/карточки/поиск, GIN/B-tree,
-  keyset pagination/filters/sorts, новые GTIN mappings и отдельный unsupported QR.
-- Proposals/owner revisions/moderation/duplicate candidates/atomic merges+aliases,
-  audit, photo rights; moderator preview ограничен только pending submissions.
-- Android KraPiva Dark: каталог, карточки, предложения/native picker,
-  CameraX/ZXing/manual entry/отказ и errors, encrypted account cache.
-- Backend17/17 PASS; Android build/lint/unit6 PASS. Device acceptance ещё
-  IN PROGRESS: предыдущие два прогона P4 не прошли camera readiness; P3 5/5 PASS.
-- Synthetic SQL smoke 50000 positions/3000000 GTIN PASS: selective search p95=3.40ms,
-  barcode2.25ms; прогретый кэш/последовательные запросы, не production capacity.
+## Реализовано
 
-Полные инструкции: [операции](catalog/OPERATIONS.md), [масштабирование](catalog/SCALING.md).
-Физический телефон/TalkBack и RU staging остаются NOT RUN/BLOCKED.
-Платные сервисы не подключались, main/production не изменялись. P5 не начат.
-
-Пятичасовой остаток ≤25% или недельный ≤50% → commit/push/STOP.
-Реальные квоты инструментально недоступны: контроль владельца, значения не выдуманы.
-
----
-
-# KraPiva 2.0 — P3 реализован, автоматическая приёмка PASS
-
-6 ноября 2026, Europe/Istanbul. P0/P1/P2 завершены; реализация P3 завершена.
-Полная ручная приёмка ещё не закрыта: физический телефон/TalkBack NOT RUN.
-**P4 не начат. Работа остановлена до отдельной команды владельца.**
-
-Ветка: `codex/krapiva-2-p3`. Проверенный code/test checkpoint:
-`0ca66fd7804d37669d7fb105484b73ac72fd5587`, push подтверждён.
-База P2: `bf995357098df505965dd4425afca6f5eeff4810`.
-Итоговый документационный коммит — HEAD ветки (`git log -1`).
-Draft PR: https://github.com/D1ma4ka/Kr2P1v2/pull/6 (base P2).
-Merge/force push/production/публикация APK/покупки не выполнялись.
-
-## Что реализовано
-
-- Настоящие register/18+/SMTP verify/resend/login/reset, scrypt, hash-only
-  access/refresh, TTL/rotation/replay/revoke и SQL budgets; migration003.
-- Полный профиль: displayName/имя/фамилия/пол/страна/город/bio, HTTPS-ссылки
-  с собственной видимостью, version conflicts, независимые avatar/cover.
-  Owner/friends/public и прямые field/media ACL проверяются сервером.
-- Durable deletion request: SQL deadline30d, немедленная блокировка доступа,
-  публичности и сессий; запрос не называется завершённым стиранием.
-- Android HTTP forms/ViewModel, Keystore AES-GCM/AtomicFile session,
-  encrypted account-scoped SQLite profile/photos; native picker cancel/select,
-  upload/view/replace/remove, save/cancel, offline/retry, server logout/reset.
-- KraPiva Dark, оригинальные SVG/PNG/vectors/launcher, cream scanner corners.
-  Canvas beer/foam ±8°, gravity/accelerometer, filter/rotation, lifecycle,
-  no-sensor loop/reduced static; без forced delay и sensor telemetry.
-- Общий OpenAPI без Android-specific identity; iOS остаётся P10–P13.
-  Будущие destinations выключены до настоящих функций P4–P7.
+- PostgreSQL каталог/пивоварни/стили, verified карточки с источником и статусом,
+  AND-поиск с нормализацией, фильтры/сортировки/keyset pagination, GIN/B-tree.
+- Предложения с фото/правами/источником, версии и owner queue; moderator review,
+  duplicate candidates, атомарный merge с сохранением aliases/GTIN/связей и audit.
+- GTIN checksum/канонизация, несколько кодов на позицию, unknown отдельно от
+  доказанного non-beer; QR отдельно, payload не отправляется и не открывается.
+- Android KraPiva Dark: каталог/карточки/пивоварни/предложения, native picker,
+  CameraX/ZXing/manual fallback/deny/retry/освобождение камеры.
+- Ограниченный encrypted account cache с TTL24h, честный offline banner,
+  сохранение состояния при Activity recreation и очистка при logout.
+- Общий OpenAPI/UUID/cursors, миграции004–006 без переписывания P2/P3; iOS-compatible
+  backend. Сам iOS — будущие обязательные P10–P13, пока NOT STARTED.
 
 ## Подтверждённые проверки
 
 | Проверка | Результат и доказательство |
 |---|---|
-| Финальный Android/source CI | **SUCCESS**, run42231674746 на 0ca66fd |
-| Build/lint/unit | PASS; 2/2 unit, lint0 errors/2 unused-color warnings |
-| API35 AOSP x86_64/KVM UI | **5/5 PASS**, 3m11s: signup/18+/SMTP verify/login, profile save/cancel, native picker cancel/select, avatar/cover upload/read/view, cover delete→404 при сохранённом avatar, encrypted cache/isolation, offline→online, logout/reset/login новым паролем |
-| Actual cold process | **PASS**: force-stop → MainActivity → Keystore session → real API profile, editor enabled; offline copy не принимается |
-| Sensor lifecycle | **PASS**: active handles1→0→1→0 при resume/pause/resume/dispose |
-| Loop/static/layout | **PASS**: no-sensor bitmap меняется, reduced static неизменен; 320dp/fontScale2/IME |
-| Actual sensor→render | **PASS**: surface left=+10px/right=−4px, hero231px; исходные PNG измерены checker |
-| Visual baseline | Просмотрены 8 реальных synthetic кадров без ANR; JPEG+PNG hashes сохранены в docs/design/ |
-| Backend full suite | **13/13 PASS** ранее на неизменённом backend; CI42111333476: SQL/HTTP/SMTP/OpenAPI/audit/container/migrate/restart/isolated restore |
-| Source/assets | PASS: provenance/180 requirements/29 screens/43 scenarios, contrast/dimensions/XML/wrapper/hygiene; исходные ТЗ и AGENTS неизменны |
-| Последняя локальная проверка | assembleDebugAndroidTest + lintDebug PASS39s; Python scripts compile PASS |
+| Финальный Android/source CI | SUCCESS на a89d494: https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42292450630 |
+| Build/lint/unit | PASS, 6 JVM tests, включая реальные изображения EAN8/EAN13/UPC-A/UPC-E/ITF14/QR во всех четырёх ориентациях |
+| API35 AOSP instrumented | 7/7 PASS: пять прежних P3 + catalog integration + actual MainActivity recreation/logout/cache isolation |
+| P4 device flow | Реальный HTTP: search/card/brewery, camera deny→grant/open→release, known/unknown manual lookup, NaN guard→6,5→SQL proposal, radio offline→encrypted card/banner→online refresh |
+| P3 regression | Реальные auth/profile/SMTP/media; force-stop/relaunch сессии и actual sensor→render PASS |
+| Backend | 17/17 real HTTP/SQL/SMTP/media/contract/migration tests PASS; audit0; non-root container/migrate001–006/restart/isolated SQL+media restore SUCCESS: https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42287948994 |
+| SQL scale smoke | 50000 synthetic positions/3000000 GTIN; 30 warm sequential samples: GTIN p95=2.25ms, selective search3.40ms. EXPLAIN B-tree/GIN; это не production HTTP/concurrency capacity |
+| Visual baseline | 9 реальных P4 screenshots просмотрены; docs/design/p4-review.jpg + original PNG SHA-256 manifest |
+| Source/docs | verify_p0.py + check_foundation.py + git diff --check; исходные AGENTS/ТЗ/180 IDs/29 screens/43 scenarios сохранены |
 
-Android CI: https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42231674746
-Backend CI: https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42111333476
-Backend после Android-only изменений заново не пересобирался и не тестировался.
-Команды и файлы — stages/P3.md и android/README.md.
+Backend CI относится к последнему изменению runtime сервера (a60677b, включено
+в5235c47); последующие изменения только Android/tests/docs, full backend suite
+без необходимости не повторялась. Полная хронология, файлы и коммиты:
+[отчёт P4](stages/P4.md); P3 отдельно: [отчёт P3](stages/P3.md).
+Инструкции: [операции](catalog/OPERATIONS.md), [масштабирование](catalog/SCALING.md).
 
-## Исправленные ошибки
+## Непроверенное и границы
 
-Android HttpURLConnection добавлял form Content-Type к DELETE без тела:
-logout/media delete отклонялись JSON-only сервером. Теперь отправляется `{}`
-JSON; оба реальных сценария приняты E2E. Исправлены ожидания native picker и
-возврата в Compose, enabled navigation после photos и точный sensorservice parser.
-CI ждёт чистого AOSP launcher; boot-only Quickstep ANR не принимается за кадр
-продукта. Любой crash/ANR при screenshot делает тест FAIL. Старые сбои и WIP
-сохранены в хронологии stages/P3.md, включая аварийный checkpoint24bd744.
+Физический телефон/оптический захват печатной этикетки/TalkBack — NOT RUN:
+здесь нет физического устройства. Decoder bitmap tests и камера эмулятора
+не подменяют такую проверку. A9 остаётся PARTIAL по этой ручной части.
+RU staging/production — BLOCKED до отдельного решения об инфраструктуре;
+production SMTP не включён. Два прежних lint unused-color advisories сохранены.
+Каталог стартует пустым; synthetic fixtures только тестовые, импорт сторонней
+базы/фотографий не выполнялся. P5–P7 функции и iOS не объявляются готовыми.
 
-## Ограничения и следующая задача
-
-- Физический телефон/TalkBack **NOT RUN**; FR-136 и ручная часть A29 не закрыты.
-  Автоматический rotation/layout/IME тест не подменяет проверку TalkBack.
-- Разрешённый RU staging **BLOCKED**, production SMTP не включён.
-- До эксплуатации нужен процесс исполнения deletion/retention/backups (ADR0004,
-  P8/P9); capacity не измерялась. Полный продукт/iOS не объявляются готовыми.
-- Линт: два unused-color предупреждения, без suppressions/baseline.
-
-**Точная следующая задача: ждать команды владельца.** При дальнейшей приёмке
-P3 — ручной A29/TalkBack и physical tilt при наличии устройства; P4 не начинать
-без отдельной команды. Незакоммиченного функционального WIP нет.
-
-## Лимиты и сохранность
-
-Пятичасовой остаток ≤25% или недельный ≤50% → немедленные WIP/commit/push/STOP.
-Реальные остатки API недоступны; проценты не выдумываются, контроль владельца.
-Платные кредиты/сервисы не использовались.
-Synthetic credentials/tokens/media/SDK/JDK/cache/logs — только ignored work/ и
-.env; в Git их нет. DB/Mailpit volumes сохранены, dev services могут оставаться
-запущены; не удалять данные. В GitHub сохраняются код, документы и только
-собственные synthetic screenshots, без APK/ключей/.env.
+**Следующее действие: ждать команды владельца на P5.** Merge/main/production,
+релиз APK, покупки и платные сервисы не выполнялись.
+Пороги остановки: пятичасовой остаток≤25% или недельный≤50% → commit/push/STOP.
+Реальные остатки квот недоступны; их контролирует владелец, проценты не придуманы.
+SDK/JDK/fixtures/credentials/logs остаются ignored work/; секреты/APK в Git не
+добавлены. Локальные dev DB/SMTP volumes сохранены, данные не удалять.
