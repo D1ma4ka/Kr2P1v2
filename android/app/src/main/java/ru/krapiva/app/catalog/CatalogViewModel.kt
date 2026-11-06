@@ -105,7 +105,7 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
         val current = mutable.value.proposal
         val response = if (current == null) repository.propose(data) else repository.edit(current.getString("id"), data.put("version", current.getInt("version")))
         uploads.clear()
-        mutable.value = CatalogState(page = CatalogPage.PROPOSALS, notice = "Заявка ${response.getString("id")} сохранена на сервере. Ожидает проверки.")
+        mutable.value = CatalogState(page = CatalogPage.PROPOSALS, notice = "Заявка ${response.getString("id")} сохранена на сервере.")
         history.clear()
         // Fetch explicitly here to preserve the successful submission notice.
         val (page, offline) = repository.read("v1/me/position-proposals?limit=20")

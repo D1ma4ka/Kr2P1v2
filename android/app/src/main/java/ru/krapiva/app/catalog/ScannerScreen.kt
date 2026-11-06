@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
@@ -46,7 +47,7 @@ internal fun ScannerScreen(state: CatalogState, model: CatalogViewModel) {
         CatalogTitle("Сканер штрихкода")
         Text("Наведите камеру на EAN или UPC. QR не является товарным штрихкодом.")
         if (permission && !state.busy && state.lookupState == null && state.error == null) key(scanVersion) {
-            Box(Modifier.fillMaxWidth().height(220.dp)) {
+            Box(Modifier.fillMaxWidth().height(220.dp).clipToBounds()) {
                 CameraPreview(context, { code,kind -> input = if (kind == "gtin") code else ""; model.lookup(code,kind) }, { cameraError = it }, { cameraReady = true })
                 ScannerCorners()
             }
@@ -89,8 +90,8 @@ internal fun luma(image: ImageProxy): ByteArray {
 private fun CameraPreview(context: Context, result: (String,String) -> Unit, failure: (String) -> Unit, ready: () -> Unit) {
     val owner = LocalLifecycleOwner.current
     val onResult by rememberUpdatedState(result); val onFailure by rememberUpdatedState(failure); val onReady by rememberUpdatedState(ready)
-    val previewView = remember { PreviewView(context).apply { implementationMode = PreviewView.ImplementationMode.COMPATIBLE } }
-    AndroidView({ previewView },Modifier.fillMaxSize())
+    val previewView = remember { PreviewView(context).apply { implementationMode = PreviewView.ImplementationMode.COMPATIBLE; clipToOutline = true; outlineProvider = android.view.ViewOutlineProvider.BOUNDS } }
+    AndroidView({ previewView },Modifier.fillMaxSize().clipToBounds())
     DisposableEffect(owner,previewView) {
         val executor = Executors.newSingleThreadExecutor(); val consumed = AtomicBoolean(false); val disposed = AtomicBoolean(false)
         val providerFuture = ProcessCameraProvider.getInstance(context)

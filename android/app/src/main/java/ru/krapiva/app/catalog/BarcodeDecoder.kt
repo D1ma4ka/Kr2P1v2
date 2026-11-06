@@ -14,6 +14,8 @@ internal class BarcodeDecoder {
         repeat(4) {
             try {
                 val hit = reader.decodeWithState(BinaryBitmap(HybridBinarizer(PlanarYUVLuminanceSource(pixels,width,height,0,0,width,height,false))))
+                // Only ITF-14 carries a GTIN; shorter internal ITF codes are not EAN-8.
+                if (hit.barcodeFormat == BarcodeFormat.ITF && hit.text.length != 14) return null
                 val kind = if (hit.barcodeFormat == BarcodeFormat.QR_CODE) "qr" else "gtin"
                 val code = if (hit.barcodeFormat == BarcodeFormat.UPC_E) UPCEReader.convertUPCEtoUPCA(hit.text) else hit.text
                 if (kind == "qr" || Gtin.normalize(code) != null) return ScannedCode(code,kind)

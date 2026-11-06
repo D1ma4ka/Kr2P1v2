@@ -24,6 +24,11 @@ class CatalogIntegrationTest {
     @get:Rule val compose = createComposeRule()
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private fun shell(command: String): String = ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command)).use { String(it.readBytes()) }
+    private fun networkReady(): Boolean = runCatching {
+        val connection = java.net.URL("http://10.0.2.2:53000/health/ready").openConnection() as java.net.HttpURLConnection
+        try { connection.connectTimeout = 1000; connection.readTimeout = 1000; connection.responseCode == 200 }
+        finally { connection.disconnect() }
+    }.getOrDefault(false)
     private fun waitForText(value: String, timeout: Long = 15_000) {
         compose.waitUntil(timeout) { runCatching { compose.onAllNodesWithText(value).fetchSemanticsNodes().isNotEmpty() }.getOrDefault(false) }
     }
@@ -149,12 +154,20 @@ class CatalogIntegrationTest {
         // Actual offline read: disable the emulator radios and use a newly constructed repository.
         shell("svc wifi disable"); shell("svc data disable")
         try {
+            compose.waitUntil(20_000) { !networkReady() }
             runBlocking {
                 val reopened = AccountApi(store); assertTrue(reopened.restore())
                 val cached = reopened.catalogGet("v1/positions/${fixture.getString("positionId")}")
                 assertTrue(cached.second); assertEquals(fixture.getString("positionId"),cached.first.getString("id"))
             }
+            compose.runOnIdle { model.detail(fixture.getString("positionId")) }
+            compose.waitUntil(30_000) { model.state.value.page == CatalogPage.POSITION && model.state.value.offline && !model.state.value.busy }
+            compose.onNodeWithText("Нет связи с сервером · сохранённая копия, до 24 часов. Статус мог измениться.").assertExists()
+            screenshot("p4-offline-position.png")
         } finally { shell("svc wifi enable"); shell("svc data enable") }
+        compose.waitUntil(30_000) { networkReady() }
+        compose.runOnIdle { model.refresh() }
+        compose.waitUntil(20_000) { !model.state.value.busy && !model.state.value.offline }
         val owner = store.session()!!.getString("userId")
         store.clear(); assertNull(store.cachedCatalog(owner,"v1/positions/${fixture.getString("positionId")}")); store.close()
     }

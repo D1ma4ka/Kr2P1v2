@@ -17,6 +17,9 @@ class BarcodeDecoderTest {
                 pixels = rotateLuma(pixels,width,height); val oldWidth = width; width = height; height = oldWidth
             }
         }
+        val internalCode = MultiFormatWriter().encode("96385074",BarcodeFormat.ITF,480,240,mapOf(com.google.zxing.EncodeHintType.MARGIN to 20))
+        val internalPixels = ByteArray(internalCode.width*internalCode.height) { i -> if (internalCode[i%internalCode.width,i/internalCode.width]) 0 else 255.toByte() }
+        assertNull("ITF-8 must not be mistaken for an EAN-8 product",BarcodeDecoder().decode(internalPixels,internalCode.width,internalCode.height))
         assertNull(BarcodeDecoder().decode(ByteArray(320*240) { 255.toByte() },320,240))
     }
 }
