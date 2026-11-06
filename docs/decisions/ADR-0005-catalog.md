@@ -46,3 +46,9 @@ Read-cache ограничен и привязан к аккаунту, очищ�
 Откат: вернуть прежний binary только после согласования совместимости, восстановить
 SQL+media backup в отдельную БД. Старые checksum migrations не редактировать.
 Публикация, production, роли реальных пользователей, P5 не входят в эту работу.
+
+Уточнение P4: moderator/admin видит private photo **только** при явной связи с
+pending position_proposal. Он не получает доступ к произвольным private profile/
+checkin/unattached uploads. После reject право review снимается; после accept
+работает обычный approved catalog ACL. Migration006 индексирует pending image
+reference, источник и actor решения сохраняются. Оба направления ACL проверены.

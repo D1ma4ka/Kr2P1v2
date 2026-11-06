@@ -123,8 +123,12 @@ test('P4 real HTTP/PostgreSQL: empty catalog, proposals, ACL, search, GTIN, dupl
   // Sanitized photo remains private until a rights-confirmed proposal is accepted.
   const image=await media.upload(a.id,await sharp({create:{width:16,height:16,channels:3,background:'#f5a623'}}).png().toBuffer(),'image/png');
   await assert.rejects(media.get(b.id,image.id));
+  await assert.rejects(media.get(mod.id,image.id));
   await call('/v1/position-proposals','POST',{...data,requestId:randomUUID(),gtin:null,imageAssetId:image.id,imageSource:'Synthetic own image',rightsConfirmed:false},a,422);
-  const imageProposal=await proposal({...data,breweryId:card.breweryId,name:'Synthetic photo',gtin:null,imageAssetId:image.id,imageSource:'Synthetic own image',rightsConfirmed:true});
+  const imageProposal=await proposal({...data,breweryId:card.breweryId,name:'Synthetic photo',gtin:null,imageAssetId:image.id.toUpperCase(),imageSource:'Synthetic own image',rightsConfirmed:true});
+  assert.equal(imageProposal.proposedData.imageAssetId,image.id);
+  assert.ok((await media.get(mod.id,image.id)).length>0);
+  await assert.rejects(media.get(b.id,image.id));
   const photoPosition=(await decision(imageProposal.id,{breweryId:card.breweryId})).positionId;assert.ok((await media.get(b.id,image.id)).length>0);
   await assert.rejects(media.remove(a.id,image.id));
   await db.pool.query("UPDATE media_assets SET moderation_status='hidden' WHERE id=$1",[image.id]);await assert.rejects(media.get(b.id,image.id));
@@ -133,6 +137,11 @@ test('P4 real HTTP/PostgreSQL: empty catalog, proposals, ACL, search, GTIN, dupl
   const breweryCard=await call(`/v1/moderation/breweries/${card.breweryId}/image`,'PUT',{imageAssetId:breweryImage.id,imageSource:'Synthetic own brewery image',rightsConfirmed:true},mod);
   assert.equal(breweryCard.imageAssetId,breweryImage.id);assert.ok((await media.get(b.id,breweryImage.id)).length>0);await assert.rejects(media.remove(mod.id,breweryImage.id));
   // A hidden photo must not prevent a moderator from rejecting the proposal.
+  const reviewOnlyImage=await media.upload(a.id,await sharp({create:{width:10,height:10,channels:3,background:'#1d2125'}}).png().toBuffer(),'image/png');
+  const reviewOnly=await proposal({...data,breweryId:card.breweryId,name:'Synthetic private review',gtin:null,imageAssetId:reviewOnlyImage.id,imageSource:'Synthetic own photo',rightsConfirmed:true});
+  assert.ok((await media.get(mod.id,reviewOnlyImage.id)).length>0);
+  await decision(reviewOnly.id,{action:'reject'});
+  await assert.rejects(media.get(mod.id,reviewOnlyImage.id));
   const pendingImage=await media.upload(a.id,await sharp({create:{width:10,height:10,channels:3,background:'#1d2125'}}).png().toBuffer(),'image/png');
   const hiddenPending=await proposal({...data,breweryId:card.breweryId,name:'Synthetic hidden pending',gtin:null,imageAssetId:pendingImage.id,imageSource:'Synthetic own image',rightsConfirmed:true});
   await db.pool.query("UPDATE media_assets SET moderation_status='hidden' WHERE id=$1",[pendingImage.id]);
@@ -162,6 +171,7 @@ test('P3 → P4 additive migration retains stable catalog IDs and rebuilds searc
   await writeFile(join(directory,'004_catalog.sql'),await readFile('migrations/004_catalog.sql'));
   await migrate(db.pool,directory);
   await cp('migrations/005_catalog_batch_projection.sql',join(directory,'005_catalog_batch_projection.sql'));
+  await cp('migrations/006_proposal_media_review.sql',join(directory,'006_proposal_media_review.sql'));
   await migrate(db.pool,directory);await migrate(db.pool,directory);
   const after=(await db.pool.query('SELECT * FROM beer_positions WHERE id=$1',[old.position])).rows[0];
   for(const key of Object.keys(before)) assert.deepEqual(after[key],before[key]);

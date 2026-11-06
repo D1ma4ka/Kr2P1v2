@@ -19,6 +19,8 @@ async function validate(db:Db,user:string,data:ProposalInput) {
  const cleaned=Object.fromEntries(Object.entries(data).map(([k,v])=>[k,typeof v==='string'?v.trim()||null:v])) as unknown as ProposalInput;
  if(!cleaned.name||!cleaned.breweryName||!cleaned.source) throw new ApiError(422,'SOURCE_REQUIRED','Укажите название, пивоварню и источник');
  if(cleaned.gtin) cleaned.gtin=normalizeGtin(cleaned.gtin);
+ if(cleaned.breweryId) cleaned.breweryId=cleaned.breweryId.toLowerCase();
+ if(cleaned.imageAssetId) cleaned.imageAssetId=cleaned.imageAssetId.toLowerCase();
  if(cleaned.breweryId) {
   const b=await db.query("SELECT name FROM breweries WHERE id=$1 AND verification_status='verified'",[cleaned.breweryId]);
   if(!b.rows[0]) throw notFound(); cleaned.breweryName=b.rows[0].name;
