@@ -48,7 +48,7 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Assertive }) }
             state.notice?.let { Text(it, modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Polite }) }
-            if (state.offline) Text("Нет сети · сохранённая копия, до 24 часов. Статус мог измениться.", color = KraPivaColors.Muted, modifier = Modifier.padding(horizontal = 16.dp))
+            if (state.offline) Text("Нет связи с сервером · сохранённая копия, до 24 часов. Статус мог измениться.", color = KraPivaColors.Muted, modifier = Modifier.padding(horizontal = 16.dp))
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (state.page) {
                     CatalogPage.POSITIONS, CatalogPage.BREWERIES, CatalogPage.STYLES, CatalogPage.PROPOSALS -> CatalogList(state, model)
@@ -150,7 +150,7 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
     val id = data.text("imageAssetId")
     var bitmap by remember(id, offline) { mutableStateOf<android.graphics.Bitmap?>(null) }
     var failed by remember(id, offline) { mutableStateOf(false) }
-    LaunchedEffect(id, offline) {
+    LaunchedEffect(id, offline, data) {
         if (id != null) try {
             val bytes = repository.photo(id, offline)
             bitmap = bytes?.let { withContext(Dispatchers.IO) { BitmapFactory.decodeByteArray(it, 0, it.size) } }

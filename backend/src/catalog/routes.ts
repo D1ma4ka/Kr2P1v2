@@ -24,11 +24,11 @@ export async function catalogRoutes(app:FastifyInstance,pool:pg.Pool) {
   const rows=(await pool.query(`SELECT s.id,s.name FROM styles s WHERE EXISTS(SELECT 1 FROM catalog_search c WHERE c.style_id=s.id) AND catalog_normalize(s.name) LIKE $1 AND ($2::uuid IS NULL OR s.id>$2::uuid) ORDER BY s.id LIMIT $3`,['%'+repo.normalize(request.query.q??'')+'%',after?.[1]??null,limit+1])).rows;
   const items=rows.slice(0,limit);return {items,nextCursor:rows.length>limit?encodeCursor({id:items.at(-1)!.id,createdAt:'2000-01-01T00:00:00.000Z'}):null};
  });
- app.post<{Body:p.ProposalInput&{requestId:string}}>('/v1/position-proposals',{schema:{...secure,body:s.object({...c.inputFields,requestId:s.uuid},['name','breweryName','source','requestId']),response:{...s.errors,201:c.proposal}}},async(request,reply)=>{
+ app.post<{Body:p.ProposalInput&{requestId:string}}>('/v1/position-proposals',{bodyLimit:64*1024,schema:{...secure,body:s.object({...c.inputFields,requestId:s.uuid},['name','breweryName','source','requestId']),response:{...s.errors,201:c.proposal}}},async(request,reply)=>{
   const {requestId,...data}=request.body;return reply.code(201).send(await p.propose(pool,request.userId,requestId,data));
  });
  app.get<{Querystring:{limit?:string;cursor?:string}}>('/v1/me/position-proposals',{schema:{...schema(s.page(c.proposal)),querystring:s.pageQuery}},request=>p.proposalList(pool,request.userId,request.query));
- app.patch<{Params:{id:string};Body:p.ProposalInput&{version:number}}>('/v1/position-proposals/:id',{schema:{...schema(c.proposal),params:s.idParams,body:s.object({...c.inputFields,version:s.version},['name','breweryName','source','version'])}},request=>{
+ app.patch<{Params:{id:string};Body:p.ProposalInput&{version:number}}>('/v1/position-proposals/:id',{bodyLimit:64*1024,schema:{...schema(c.proposal),params:s.idParams,body:s.object({...c.inputFields,version:s.version},['name','breweryName','source','version'])}},request=>{
   const {version,...data}=request.body;return p.editProposal(pool,request.userId,request.params.id,version,data);
  });
  const candidate=s.object({id:s.uuid,name:{type:'string'},breweryName:{type:'string'},packaging:s.nullableText(80),volumeMl:{type:['integer','null']},edition:s.nullableText(200),variant:s.nullableText(200)});

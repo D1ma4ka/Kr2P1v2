@@ -28,6 +28,7 @@ ABV-фильтре исключается. Редактирование сорт
 ## Предложение → проверка
 
 `POST /v1/position-proposals`: name/breweryName/source обязательны,
+JSON body limit64KiB для предложений (учтён UTF-8), поля по схеме ограничены.
 requestId — клиентский UUID для безопасного повтора. Неизвестные данные — null
 или пропущены; ABV 0…100, IBU 0…1000, volumeMl 1…100000. breweryId может ссылаться
 на уже проверенную пивоварню; brand отдельно от brewery и style.
@@ -83,7 +84,8 @@ unsupported_qr. Некорректная длина/checksum → 422 INVALID_GTI
 не является not_found. Непроверенные mappings не участвуют в поиске.
 
 `kind=qr` всегда отдельное unsupported_qr; цифровой QR не считается GTIN,
-URL не запускается. QR business payload/schema не утверждены: отдельный контракт
+URL не запускается. Android распознаёт unsupported_qr локально: содержимое QR
+не отправляется на сервер. QR business payload/schema не утверждены: отдельный контракт
 в будущем, не создавать 3 млн реальных QR или сущность без спецификации.
 
 Только moderator/admin может записать доказанный non-beer:

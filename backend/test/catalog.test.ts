@@ -47,6 +47,9 @@ test('P4 real HTTP/PostgreSQL: empty catalog, proposals, ACL, search, GTIN, dupl
   await call('/v1/barcodes/lookup?kind=gtin&code=4006381333932','GET',undefined,a,422);
   await call('/v1/positions?limit=51','GET',undefined,a,400);
   await call('/v1/moderation/position-proposals','GET',undefined,a,403);
+  const longText='Synthetic '+('я'.repeat(4990));
+  const longProposal=await proposal({...data,description:longText,source:'Synthetic '+('я'.repeat(1990)),brewerySource:'Synthetic '+('я'.repeat(1990)),gtin:null});
+  await decision(longProposal.id,{action:'reject'});
   const key=randomUUID(),request={...data,requestId:key};
   const first=await call('/v1/position-proposals','POST',request,a,201);
   assert.equal((await call('/v1/position-proposals','POST',request,a,201)).id,first.id);

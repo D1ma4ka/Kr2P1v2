@@ -23,7 +23,7 @@ for report in (project / "android/app/build/outputs/androidTest-results").rglob(
             for line in lines:
                 if "at ru.krapiva." in line or "WakeLockRefCount" in line or "status:" in line or "Connection Number:" in line:
                     print(line)
-paths = sorted(root.rglob("p3-*.png"))
+paths = sorted(root.rglob("p[34]-*.png"))
 if not paths:
     print("No emulator screenshots available; visual acceptance is not claimed.")
     raise SystemExit(0)

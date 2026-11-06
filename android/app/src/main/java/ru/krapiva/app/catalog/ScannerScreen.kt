@@ -64,7 +64,7 @@ internal fun ScannerScreen(state: CatalogState, model: CatalogViewModel) {
         }
         CatalogInput("Введите EAN / UPC / GTIN",input,!state.busy) { input = it.take(14) }
         CatalogAction("Проверить код",!state.busy) { model.lookup(input) }
-        TextButton({ model.open(CatalogPage.SCANNER); scanVersion++ },enabled = !state.busy) { Text("Сканировать снова") }
+        TextButton({ cameraError = null; cameraReady = false; model.open(CatalogPage.SCANNER); scanVersion++ },enabled = !state.busy) { Text("Сканировать снова") }
         TextButton({ model.open(CatalogPage.POSITIONS) },enabled = !state.busy) { Text("Ручной поиск") }
     }
 }

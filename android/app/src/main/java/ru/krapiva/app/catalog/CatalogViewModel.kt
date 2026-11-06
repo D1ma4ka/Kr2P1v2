@@ -114,7 +114,12 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
     }
     fun lookup(code: String, kind: String = "gtin") {
         if (mutable.value.busy) return
-        val valid = if (kind == "gtin") Gtin.normalize(code) else code
+        if (kind == "qr") {
+            // QR may contain private URLs, contacts or Wi-Fi credentials. It has no product route.
+            mutable.value = mutable.value.copy(code = "", lookupState = "unsupported_qr", lookupSource = null, error = null)
+            return
+        }
+        val valid = Gtin.normalize(code)
         if (valid == null) { mutable.value = mutable.value.copy(error = "Некорректный штрихкод или контрольная цифра", lookupState = "invalid"); return }
         task {
             val result = repository.lookup(valid, kind)
