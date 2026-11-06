@@ -211,6 +211,13 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Повторите пароль").performTextInput("New synthetic Android password!")
         compose.onNodeWithText("Сменить пароль").performScrollTo().performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("E-mail").performTextInput(email)
+        compose.onNodeWithText("Пароль · 12–128 символов").performTextInput("New synthetic Android password!")
+        compose.onNodeWithText("Войти").performScrollTo().performClick()
+        compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.PROFILE && !model.state.value.busy }
+        compose.onNodeWithText("Synthetic Android").assertExists()
+        compose.onNodeWithText("Тестовый город").assertExists()
+        screenshot("p3-reset-login.png")
         store.close()
     }
 }

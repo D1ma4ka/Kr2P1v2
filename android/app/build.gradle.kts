@@ -37,6 +37,7 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["class"] = "ru.krapiva.app.P3AcceptanceSuite"
         versionCode = 1
         versionName = "0.1.0"
     }

@@ -119,6 +119,13 @@ HttpURLConnection default form Content-Type для DELETE; клиент тепе
 аватара, затрагивающая второй реальный DELETE path. Следующее: принять этот
 transport fix, полный logout/reset E2E и итоговый отчёт; P4 не начинать.
 
+Уточнение A1: repository reopen не равен перезапуску процесса. Добавлен
+явный JUnit Suite order (account flow последним), повторный UI login новым
+паролем после reset и host force-stop/relaunch без удаления Keystore/session.
+AGP8.9.2 поддерживает leaveApksInstalledAfterRun (проверено в options class).
+Cold check ждёт серверный профиль и enabled editor, offline fallback не PASS.
+После него очищаются только synthetic emulator app data для welcome tilt check.
+
 ## Лимиты и сохранность
 
 Пятичасовой остаток **≤25%** или недельный **≤50%** → остановка и WIP/push.
@@ -129,3 +136,8 @@ transport fix, полный logout/reset E2E и итоговый отчёт; P4 
 media, SDK/JDK/cache/logs — только ignored `work/` и `.env`; не коммитить.
 Локальные DB/Mailpit volumes сохранены, dev services могут оставаться запущены;
 не применять `down -v`. История и ADR — `docs/stages/P3.md`, `docs/decisions/`.
+
+Подтверждён результат 81807ee: run42230180591 SUCCESS, **5/5 device PASS**,
+rendered tilt PASS (+10/−4px), screenshots просмотрены. DELETE fix принят.
+Текущая первая незавершённая задача — выполнить добавленный cold process check
+и повторный login новым паролем; затем финальные QA/matrix/report и STOP.
