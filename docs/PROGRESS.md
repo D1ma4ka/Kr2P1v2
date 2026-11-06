@@ -1,11 +1,27 @@
-# KraPiva 2.0 — P4 IN PROGRESS
+# KraPiva 2.0 — P4 реализован, заключительная приёмка IN PROGRESS
 
-6 ноября 2026, Europe/Istanbul. P4 разрешён владельцем. Работа в существующей
-ветке `codex/krapiva-2-p3`, база `9f617e7`. Детали: [P4](stages/P4.md).
-Подэтапы: schema/search → moderation/merge → Android/scanner → checks/report.
-Backend реализован: существующие 13 и новые 2 теста PASS, PostgreSQL/HTTP реальные.
-Android и нагрузочная проверка ещё IN PROGRESS. P5 не начат.
-Квоты недоступны: ≤25% пятичасового или ≤50% недельного → commit/push/STOP.
+6 ноября 2026, Europe/Istanbul. P4 разрешён владельцем; P0–P3 сохранены.
+Ветка: `codex/krapiva-2-p3`, база P3 `9f617e7`.
+Текущий frontend checkpoint `98d064b`, push подтверждён. Дальнейшее состояние
+и все предыдущие неудачные проверки: [отчёт P4](stages/P4.md).
+
+- Реальные PostgreSQL каталог/пивоварни/стили/карточки/поиск, GIN/B-tree,
+  keyset pagination/filters/sorts, новые GTIN mappings и отдельный unsupported QR.
+- Proposals/owner revisions/moderation/duplicate candidates/atomic merges+aliases,
+  audit, photo rights; moderator preview ограничен только pending submissions.
+- Android KraPiva Dark: каталог, карточки, предложения/native picker,
+  CameraX/ZXing/manual entry/отказ и errors, encrypted account cache.
+- Backend17/17 PASS; Android build/lint/unit6 PASS. Device acceptance ещё
+  IN PROGRESS: предыдущие два прогона P4 не прошли camera readiness; P3 5/5 PASS.
+- Synthetic SQL smoke 50000 positions/3000000 GTIN PASS: selective search p95=3.40ms,
+  barcode2.25ms; прогретый кэш/последовательные запросы, не production capacity.
+
+Полные инструкции: [операции](catalog/OPERATIONS.md), [масштабирование](catalog/SCALING.md).
+Физический телефон/TalkBack и RU staging остаются NOT RUN/BLOCKED.
+Платные сервисы не подключались, main/production не изменялись. P5 не начат.
+
+Пятичасовой остаток ≤25% или недельный ≤50% → commit/push/STOP.
+Реальные квоты инструментально недоступны: контроль владельца, значения не выдуманы.
 
 ---
 

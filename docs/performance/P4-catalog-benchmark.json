@@ -302,5 +302,6 @@
         "Execution Time": 0.131
       }
     ]
-  }
+  },
+  "migrationCheckpoint": "001 through 005; later 006 only indexes pending proposal image review, outside this benchmark dataset"
 }

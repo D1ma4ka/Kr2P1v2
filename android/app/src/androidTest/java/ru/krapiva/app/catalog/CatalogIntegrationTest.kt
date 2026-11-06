@@ -27,6 +27,11 @@ class CatalogIntegrationTest {
     private fun waitForText(value: String, timeout: Long = 15_000) {
         compose.waitUntil(timeout) { runCatching { compose.onAllNodesWithText(value).fetchSemanticsNodes().isNotEmpty() }.getOrDefault(false) }
     }
+    private fun screenshot(name: String) {
+        compose.waitForIdle()
+        UiDevice.getInstance(instrumentation).waitForIdle()
+        TestEvidence.screenshot(name)
+    }
     private var activeModel: CatalogViewModel? = null
     @Test fun catalogSearchBreweryScannerProposalAndEncryptedCache() {
         try { catalogFlow() } catch (error: Throwable) {
@@ -38,7 +43,8 @@ class CatalogIntegrationTest {
             runCatching { println("P4_CAMERA_SERVICE=" + shell("dumpsys media.camera").take(12000)) }
             runCatching { println("P4_CAMERA_LOG=" + shell("logcat -d -t 250 -s CameraX Camera2CameraImpl CameraStateRegistry AndroidRuntime").takeLast(12000)) }
             runCatching { TestEvidence.screenshot("p4-failure.png") }
-            throw error
+            throw AssertionError("P4_STATE=" + activeModel?.state?.value?.let { "page=${it.page},busy=${it.busy},error=${it.error},lookup=${it.lookupState}" } +
+                "\nP4_NATIVE_PACKAGE=" + device.currentPackageName + "\nP4_CAMERA_PERMISSION=" + instrumentation.targetContext.checkSelfPermission(android.Manifest.permission.CAMERA) + "\n" + error, error)
         }
     }
     private fun catalogFlow() {
@@ -59,7 +65,7 @@ class CatalogIntegrationTest {
             assertEquals("unsupported_qr",model.state.value.lookupState)
             assertEquals("",model.state.value.code); assertFalse(model.state.value.busy)
         }
-        TestEvidence.screenshot("p4-catalog.png")
+        screenshot("p4-catalog.png")
         compose.onNode(hasScrollAction()).performScrollToIndex(0)
         compose.onNodeWithText("Название, пивоварня или стиль").performTextInput("темный еж stout")
         compose.onNodeWithText("Найти").performClick()
@@ -68,15 +74,19 @@ class CatalogIntegrationTest {
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Synthetic Android Тёмный Ёж"))
         compose.onNodeWithText("Synthetic Android Тёмный Ёж").performClick()
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Проверено по источнику").fetchSemanticsNodes().isNotEmpty() }
-        TestEvidence.screenshot("p4-position.png")
+        screenshot("p4-position.png")
         compose.onNodeWithText("Synthetic Android Brewery").performScrollTo().performClick()
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Позиции пивоварни").fetchSemanticsNodes().isNotEmpty() }
-        TestEvidence.screenshot("p4-brewery.png")
+        screenshot("p4-brewery.png")
         compose.onNodeWithText("Позиции пивоварни").performClick()
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Сканировать штрихкод").fetchSemanticsNodes().isNotEmpty() }
-        compose.waitUntil(15_000) { !model.state.value.busy }
+        compose.waitUntil(15_000) {
+            !model.state.value.busy && compose.onAllNodes(hasText("Сканировать штрихкод") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        // Wait for the actual enabled UI, then confirm navigation before looking for native UI.
+        compose.onNodeWithText("Сканировать штрихкод").performScrollTo().assertIsEnabled().performClick()
+        compose.waitUntil(10_000) { model.state.value.page == CatalogPage.SCANNER }
         // Deny and then grant through the actual Android permission UI.
-        compose.onNodeWithText("Сканировать штрихкод").performScrollTo().performClick()
         val device = UiDevice.getInstance(instrumentation)
         val allow = device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_allow_foreground_only_button"))),10_000)
         assertNotNull("The native camera permission dialog must be visible",allow)
@@ -86,7 +96,7 @@ class CatalogIntegrationTest {
             assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg(instrumentation.targetContext.packageName)),15_000))
             waitForText("Разрешить камеру")
             compose.onNodeWithText("Введите EAN / UPC / GTIN").assertExists()
-            TestEvidence.screenshot("p4-scanner-denied.png")
+            screenshot("p4-scanner-denied.png")
             compose.onNodeWithText("Разрешить камеру").performScrollTo().performClick()
             val grant = device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_allow_foreground_only_button"))),10_000)
             assertNotNull(grant); grant.click()
@@ -102,7 +112,7 @@ class CatalogIntegrationTest {
         }
         cameraManager.registerAvailabilityCallback(availability,android.os.Handler(android.os.Looper.getMainLooper()))
         compose.waitUntil(10_000) { !cameraAvailable.get() }
-        TestEvidence.screenshot("p4-scanner-camera.png")
+        screenshot("p4-scanner-camera.png")
         compose.onNodeWithText("Введите EAN / UPC / GTIN").performScrollTo().performTextInput(fixture.getString("gtin"))
         compose.onNodeWithText("Проверить код").performScrollTo().performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Synthetic Android Тёмный Ёж").fetchSemanticsNodes().isNotEmpty() }
@@ -113,7 +123,7 @@ class CatalogIntegrationTest {
         compose.onNodeWithText("Введите EAN / UPC / GTIN").performScrollTo().performTextReplacement("96385074")
         compose.onNodeWithText("Проверить код").performScrollTo().performClick()
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Позиция не найдена").fetchSemanticsNodes().isNotEmpty() }
-        TestEvidence.screenshot("p4-scanner-unknown.png")
+        screenshot("p4-scanner-unknown.png")
         compose.onNodeWithText("Предложить позицию").performScrollTo().performClick()
         compose.onNodeWithText("Название *").performScrollTo().performTextInput("Synthetic Android proposal")
         compose.onNodeWithText("Пивоварня *").performScrollTo().performTextInput("Synthetic new brewery")
@@ -124,7 +134,7 @@ class CatalogIntegrationTest {
         compose.onNodeWithText("Крепость, %").performScrollTo().performTextReplacement("6,5")
         compose.onNodeWithText("Отправить на проверку").performScrollTo().performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Ожидает проверки").fetchSemanticsNodes().isNotEmpty() }
-        TestEvidence.screenshot("p4-proposals.png")
+        screenshot("p4-proposals.png")
         runBlocking {
             val proposals = api.json("v1/me/position-proposals").getJSONArray("items")
             assertTrue((0 until proposals.length()).any { proposals.getJSONObject(it).getJSONObject("proposedData").getString("name") == "Synthetic Android proposal" })
