@@ -53,3 +53,9 @@ Android SQLite cache v2→v3: таблица diary_drafts с encrypted JSON и �
 Photo picker сохраняет доступ URI при поддержке Android; если доступ потерян,
 пользователь выбирает фото заново, успех не имитируется. Неприкреплённые upload
 assets остаются owner-private; retention cleanup относится к операционному P8.
+
+Совместимость курсоров: opaque P2 cursors (createdAt/UUID) не переносятся через
+выкатку P5. Они возвращают400 INVALID_CURSOR; начать чтение дневника с первой
+страницы. Формат P5 привязан к новым фильтрам/sort и occurredAt. Исходные поля
+checkin/UUID/versions и legacy create request hashes сохраняются; PATCH старого
+клиента без новых optional fields не стирает существующие tags/photos/serving.

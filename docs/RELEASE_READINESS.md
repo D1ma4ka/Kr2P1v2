@@ -1,8 +1,9 @@
-# Готовность KraPiva 2.0 — P4 реализован, автоматические проверки PASS
+# Готовность KraPiva 2.0 — P5 реализован, автоматическая приёмка PASS
 
 P0–P3 сохранены; P4 реализован: Android7/7, unit6, backend17/17 PASS; physical scan/TalkBack NOT RUN.
-Двухплатформенный продукт и production не готовы. P5 требует новой команды.
-Актуальная точка Git/лимиты/доказательства: [PROGRESS](PROGRESS.md), [P4](stages/P4.md).
+P5 backend19 PASS, Android8 unit/build/lint +9 instrumented PASS; physical/TalkBack NOT RUN.
+Двухплатформенный продукт и production не готовы. P6 требует новой команды.
+Актуальная точка Git/лимиты/доказательства: [PROGRESS](PROGRESS.md), [P5](stages/P5.md), [P4 baseline](stages/P4.md).
 
 | Область | Статус | Доказательство / оставшееся |
 |---|---|---|
@@ -11,8 +12,9 @@ P0–P3 сохранены; P4 реализован: Android7/7, unit6, backend1
 | Catalog/search/moderation P4 | PASS server | 17 real tests; фото/source/ACL, merge/alias/concurrency, upgrade migrations |
 | Android P4 | PASS automated | build/lint/unit6 + instrumented7 PASS, camera deny/grant/open/release, recreation и offline→online; physical optical scan NOT RUN |
 | Catalog scale smoke | PASS bounded | 50000 synthetic positions/3000000 GTIN, EXPLAIN/plans/timings; catalog/SCALING.md |
-| Restart/backup/restore | PASS local | CI SQL+media isolated restore, session/ACL/photo hashes; P2/P3/P4 server foundation |
-| Diary/wishlist/stats/social/map/badges | INCOMPLETE | P5–P7; имеющаяся SQL foundation не подменяет функции |
+| Restart/backup/restore | PASS local | CI SQL+media isolated restore, session/ACL/photo hashes; P2/P3/P4/P5 server foundation |
+| Diary/wishlist/stats/home P5 | PASS automated | real SQL/API19 + Android8 unit/build/lint/device9 PASS; stages/P5.md |
+| Social/map/badges | INCOMPLETE | P6–P7; SQL foundation не подменяет функции |
 | Device/accessibility/security/load | INCOMPLETE | P8 regression/physical/production load/retention и release R8 ещё нужны |
 | RU staging/production | BLOCKED | размещение/DNS/TLS/SMTP/legal/budget не согласованы и не развёрнуты |
 | iOS/MUST parity/publication | INCOMPLETE | P10–P13, обязательный второй клиент; Mac/Xcode/iPhone/Apple доступы позже |
@@ -24,4 +26,4 @@ STAGING_VERIFIED/PRODUCTION_DEPLOYED не заявляются. Synthetic data �
 До релиза: измерения нагрузки/доступности на разрешённом RU staging, production
 SMTP/storage/backup/retention/legal/signing, dependency/license review и устранение
 зафиксированных lint advisories. Публичный релиз/покупки/production/main merge
-не выполнялись. Draft PR6 содержит накопленные P3–P4 поверх рабочей P2 ветки.
+не выполнялись. Draft PR6 содержит накопленные P3–P5 поверх рабочей P2 ветки.

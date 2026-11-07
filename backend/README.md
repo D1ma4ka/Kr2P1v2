@@ -97,3 +97,5 @@ PostgreSQL diary/filter/keyset, unique positions, wishlist and personal/visible
 aggregates. Routes/semantics/rollback: [P5 operations](../docs/diary/OPERATIONS.md).
 Первый серверный P5 CI42350134181 SUCCESS18/18; recovery/upgrade дополняют suite
 до19, следующий CI и Android acceptance — docs/stages/P5.md.
+
+Финальный backend P5 `a7910a3e4b38d73e80dbb622d1841a9e68249b5d`:19/19 и runtime/restore SUCCESS, https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42354708687.

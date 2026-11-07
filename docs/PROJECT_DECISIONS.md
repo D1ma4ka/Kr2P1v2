@@ -128,3 +128,15 @@ ADR0005 фиксирует каталог/GTIN/QR/merge/media, SQL004/005 адд
 к P5, не merge в main, не использовать платные ресурсы. Пороги остатка ≤25%
 пятичасового или ≤50% недельного → безопасный commit/push/STOP; инструмента
 квот нет, контроль владельца. После P4 — отчёт и остановка.
+
+
+## P5 разрешён владельцем 7 ноября 2026
+
+Новый прямой запрос разрешает полный P5 по v1.3 в существующей рабочей ветке.
+Приоритет: real PostgreSQL, positionId distinct/повторы/quarter ratings/history/
+stats, без mocks. Прежняя остановка перед P5 снята, следующая — перед P6.
+Порог пятичасового остатка≤25% или недельного≤50% → safe commit/push/STOP;
+реальные остатки недоступны, ручной контроль владельца. Никаких расходов,
+main merge, production/release/iOS work. ADR-0006 фиксирует правила расчёта,
+privacy, migration007, cache/drafts, iOS-neutral contracts. P4 manual physical
+scan/TalkBack остаются NOT RUN; прежние API/device проверки не выдаются за них.

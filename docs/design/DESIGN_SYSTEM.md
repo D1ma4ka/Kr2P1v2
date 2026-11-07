@@ -62,3 +62,13 @@ permission/manual fallback; proposal form использует native picker. SV
 P3 сохранены. Actual API35 baseline: [P4 JPEG](p4-review.jpg),
 [original PNG hashes](p4-screenshot-manifest.json), CI42292450630 SUCCESS.
 PreviewView220dp ограничен native bounds и Compose clip; manual controls читаемы.
+
+
+## Реализованное состояние P5
+
+DiaryCard/BeerPositionCard/Profile используют общие KraPiva graphite/amber/cream
+tokens. Интерактивные style/brewery bars и20 rating bins имеют текстовые counts,
+подписанный denominator, unknown/unrated/empty состояния; цвет не единственный
+канал. Editor/photo picker/local dates, unsent drafts/offline notices и real home
+имеют baseline p5-review.jpg + original PNG hash manifest. Полная physical
+TalkBack/font-scale regression всех новых экранов остаётся P8/NOT RUN.

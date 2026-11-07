@@ -1,4 +1,4 @@
-# Android — P5 IN PROGRESS
+# Android — P5
 
 Kotlin/Compose/Material 3, Android 8.0+ (minSdk 26), SDK35. P1/P2 сохранены.
 Реальные регистрация/подтверждение/вход/сброс, profile editor, avatar/cover,
@@ -7,7 +7,7 @@ privacy, session rotation/logout/deletion request и read-only offline cache.
 Каталог P4 подключён к реальному /v1 API: серверный поиск/фильтры/пагинация,
 карточки пива/пивоварен, предложения с фото, камера и ручной GTIN.
 P5: настоящий чекин/дневник/wishlist/charts/home, encrypted editable drafts;
-приёмка в процессе. Social/venues — P6–P7, бары пока disabled.
+автоматическая приёмка PASS. Social/venues — P6–P7, бары пока disabled.
 
 ## Сборка
 
@@ -118,3 +118,13 @@ catalog scope/очищает encrypted cache. Camera deny→grant/open→release
 radio offline→cached card/banner→online refresh PASS. P3 cold session и sensors
 PASS в том же run. Baseline: ../docs/design/p4-review.jpg и PNG hash manifest.
 Physical optical capture/TalkBack NOT RUN; A9 manual часть остаётся открыта.
+
+
+## P5 automated acceptance
+
+Code `0f06c9dedb92c93255aa513c9ab3beb1a081c2f0`, CI SUCCESS: https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42355943975
+8 JVM +9 instrumented tests, native multiple photo picker cancel/select, real SQL
+create/edit/delete and second API refresh, wishlist UI, charts/drilldown, actual
+MainActivity recreation/unsaved input/logout, radios offline/cache/draft recovery.
+P3 cold start/sensors and P4 camera remain PASS. Physical/TalkBack NOT RUN.
+Commands and semantics: ../docs/diary/OPERATIONS.md; baseline: ../docs/design/p5-review.jpg.

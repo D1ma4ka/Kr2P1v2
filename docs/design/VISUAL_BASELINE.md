@@ -52,3 +52,14 @@ cards/navigation, оригинальный cream mark вместо отсутс�
 synthetic fixture, отправленная в настоящую disposable dev DB через API/SQL.
 Это не продуктовый mock catalog. Физический optical scan/TalkBack NOT RUN.
 Home/checkin/badges baseline — будущие P5–P7; P5 пока не начат.
+
+
+# P5 — визуальная приёмка
+
+7 ноября 2026, Europe/Istanbul. Code `0f06c9dedb92c93255aa513c9ab3beb1a081c2f0`, CI SUCCESS: https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42355943975
+Просмотрены настоящие synthetic-only API35 кадры home empty/counts, чек-ин/фото,
+диаграммы/unique drilldown/wishlist, offline diary и unsent drafts/recreated editor.
+[P5 contact sheet](p5-review.jpg) — производный JPEG из CI contact sheet;
+[Original PNG SHA-256/размеры/run](p5-screenshot-manifest.json). Оригиналы и XML
+в Actions artifact7days, JPEG/manifest остаются в Git. Нет APK/credentials/реальных
+пользовательских данных. Physical/TalkBack NOT RUN; P6/P7 screens не заявляются.
