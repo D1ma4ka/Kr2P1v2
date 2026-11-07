@@ -1,3 +1,4 @@
+import type pg from 'pg';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {test} from 'node:test';
@@ -110,4 +111,46 @@ test('P6 real HTTP/PostgreSQL/SMTP: two registered accounts, friendship state ma
  await call('/v1/me/deletion-request','POST',{},ta,202);await call(path,'GET',undefined,tb,404);assert.equal((await call('/v1/friends','GET',undefined,tb)).items.length,0);
  assert.equal((await db.pool.query('SELECT count(*)::int AS n FROM reactions WHERE checkin_id=$1',[first.id])).rows[0].n,1);
  }finally{await app.close();await db.close();await rm(dir,{recursive:true,force:true});}
+});
+
+test('P6 concurrent privacy/unfriend serializes against social writes; comment cursors and suspension',async()=>{
+ const db=await testDatabase();await migrate(db.pool);const f=await fixtures(db.pool);
+ const app=buildApp(readConfig({NODE_ENV:'test',LOG_LEVEL:'silent'}),db.pool),url=await app.listen({host:'127.0.0.1',port:0});
+ const call=async(path:string,method='GET',body?:unknown,token=f.b.token)=>{
+ const response=await fetch(url+path,{method,headers:{authorization:'Bearer '+token,...(body===undefined?{}:{'content-type':'application/json'}),'idempotency-key':randomUUID()},...(body===undefined?{}:{body:JSON.stringify(body)})});
+ const text=await response.text();return {status:response.status,data:text?JSON.parse(text):null};
+ };
+ const blockers:pg.PoolClient[]=[];
+ try{
+ await db.pool.query("UPDATE user_profiles SET profile_visibility='public'");
+ await db.pool.query('INSERT INTO friendships(user_low,user_high)VALUES(least($1::uuid,$2::uuid),greatest($1::uuid,$2::uuid))',[f.a.id,f.b.id]);
+ const created=await call('/v1/checkins','POST',{positionId:f.position,body:'Race checkin',visibility:'friends',ratingQuarters:17,occurredAt:'2026-11-07T12:00:00Z'},f.a.token);assert.equal(created.status,201);
+ const id=created.data.id,path='/v1/social/checkins/'+id;
+ // Two writes with the same server timestamp must still page exactly once each.
+ const ids=[randomUUID(),randomUUID(),randomUUID()];
+ for(const cid of ids)assert.equal((await call(path+'/comments/'+cid,'PUT',{body:'Original'})).status,200);
+ await db.pool.query("UPDATE comments SET created_at='2026-11-07T12:00:00Z' WHERE checkin_id=$1",[id]);
+ const seen=new Set<string>();let cursor:string|null=null;
+ do{const result=await call(path+'/comments?limit=1'+(cursor?'&cursor='+cursor:''));assert.equal(result.status,200);for(const item of result.data.items){assert.ok(!seen.has(item.id));seen.add(item.id);}cursor=result.data.nextCursor;}while(cursor);
+ assert.equal(seen.size,3);
+ const firstPage=(await call(path+'/comments?limit=1')).data;
+ assert.equal((await call(path+'/comments?cursor='+firstPage.nextCursor,'GET',undefined,f.a.token)).status,400);
+ const malformed=JSON.parse(Buffer.from(firstPage.nextCursor,'base64url').toString());malformed[1]='2026-02-31T12:00:00Z';
+ assert.equal((await call(path+'/comments?cursor='+Buffer.from(JSON.stringify(malformed)).toString('base64url'))).status,400);
+ // Do not send uncontrolled sleeps: observe a real PostgreSQL lock wait before releasing it.
+ const waitForLock=async()=>{const deadline=Date.now()+1200;while(Date.now()<deadline){if((await db.pool.query("SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock'")).rowCount)return;await new Promise(resolve=>setTimeout(resolve,10));}throw Error('Expected actual ACL row lock wait');};
+ let lock=await db.pool.connect();blockers.push(lock);await lock.query('BEGIN');await lock.query("UPDATE user_profiles SET profile_visibility='private' WHERE user_id=$1",[f.a.id]);
+ const pending=call(path+'/like','PUT');await waitForLock();await lock.query('COMMIT');assert.equal((await pending).status,404);
+ assert.equal((await db.pool.query('SELECT count(*)::int n FROM reactions WHERE checkin_id=$1',[id])).rows[0].n,0);
+ await db.pool.query("UPDATE user_profiles SET profile_visibility='friends' WHERE user_id=$1",[f.a.id]);
+ await lock.query('BEGIN');await lock.query('DELETE FROM friendships WHERE user_low=least($1::uuid,$2::uuid) AND user_high=greatest($1::uuid,$2::uuid)',[f.a.id,f.b.id]);
+ const deniedId=randomUUID(),pendingComment=call(path+'/comments/'+deniedId,'PUT',{body:'Must not be saved'});await waitForLock();await lock.query('COMMIT');assert.equal((await pendingComment).status,404);
+ assert.equal((await db.pool.query('SELECT id FROM comments WHERE id=$1',[deniedId])).rowCount,0);
+ await db.pool.query("UPDATE user_profiles SET profile_visibility='public' WHERE user_id=$1",[f.a.id]);
+ await db.pool.query("UPDATE checkins SET visibility='public' WHERE id=$1",[id]);
+ assert.equal((await call(path)).status,200);assert.equal((await call('/v1/feed')).data.items.length,0); // public stranger is not in friends feed
+ await db.pool.query("UPDATE users SET status='suspended' WHERE id=$1",[f.b.id]);
+ assert.equal((await call(path,'GET',undefined,f.a.token)).data.commentCount,0);
+ assert.equal((await call(path+'/comments','GET',undefined,f.a.token)).data.items.length,0);
+ }finally{for(const lock of blockers){await lock.query('ROLLBACK');lock.release();}await app.close();await db.close();}
 });

@@ -90,7 +90,7 @@ class SocialIntegrationTest {
             compose.onNodeWithText("Ваш комментарий").performScrollTo().performTextInput("P6 Android comment")
             click("Отправить комментарий");ready(model)
             assertEquals("P6 Android comment",request("v1/social/checkins/${checkin.getString("id")}/comments",tb).getJSONArray("items").getJSONObject(0).getString("body"))
-            compose.onNodeWithText("P6 Android comment").assertExists();TestEvidence.screenshot("p6-comments.png")
+            compose.onNode(hasScrollAction()).performScrollToNode(hasText("P6 Android comment"));compose.onNodeWithText("P6 Android comment").assertExists();TestEvidence.screenshot("p6-comments.png")
             click("Удалить комментарий");compose.onNodeWithText("Удалить",useUnmergedTree = true).performClick();ready(model)
             assertEquals(0,request("v1/social/checkins/${checkin.getString("id")}/comments",tb).getJSONArray("items").length())
             click("Убрать лайк · 1");ready(model)
@@ -111,6 +111,7 @@ class SocialIntegrationTest {
             compose.onNodeWithText("Друзья").performClick();ready(model);click("Удалить из друзей");compose.onNodeWithText("Удалить",useUnmergedTree = true).performClick();ready(model)
             assertFalse(request("v1/users/${a.getString("userId")}/relationship",tb).getBoolean("friends"))
             shell("svc wifi disable");shell("svc data disable")
+            compose.waitUntil(15_000) { runCatching { request("health/ready");false }.getOrDefault(true) }
             compose.runOnIdle { model.refresh() };compose.waitUntil(25_000) { !model.state.value.busy };assertNotNull(model.state.value.error);assertTrue(model.state.value.items.isEmpty());TestEvidence.screenshot("p6-offline.png")
             shell("svc wifi enable");shell("svc data enable")
         } finally {

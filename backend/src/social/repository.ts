@@ -29,7 +29,7 @@ function page(rows:any[],limit:number,hash:string,key='createdAt',id='id') {
 export async function search(pool:pg.Pool,user:string,q:PageQuery) {
  const {limit,hash,after}=paging(q,`people:${user}`);
  const rows=(await pool.query(`SELECT ${person},${time('u.created_at')} AS "createdAt" FROM users u JOIN user_profiles p ON p.user_id=u.id
- WHERE u.id<>$1 AND ${profileVisible} AND length(btrim($2))>=2 AND strpos(catalog_normalize(u.display_name),catalog_normalize(btrim($2)))>0
+ WHERE u.id<>$1 AND ${profileVisible} AND length(catalog_normalize($2))>=2 AND catalog_normalize(u.display_name) LIKE '%'||catalog_normalize($2)||'%'
  AND ($3::timestamptz IS NULL OR (u.created_at,u.id)<($3,$4::uuid)) ORDER BY u.created_at DESC,u.id DESC LIMIT $5`,[user,q.q??'',after?.[0]??null,after?.[1]??null,limit+1])).rows;
  return page(rows,limit,hash,'createdAt','userId');
 }
@@ -49,6 +49,9 @@ export async function requestFriend(pool:pg.Pool,user:string,id:string,target:st
  await pairLock(client,user,target);
  const old=(await client.query(`SELECT ${requestCols} FROM friend_requests WHERE id=$1`,[id])).rows[0];
  if(old){if(old.fromUserId!==user||old.toUserId!==target.toLowerCase())throw conflict();return old;}
+ await client.query('SELECT user_id FROM user_profiles WHERE user_id=$1 FOR SHARE',[target]);
+ const participants=await client.query("SELECT id FROM users WHERE id=ANY($1::uuid[]) AND status='active' ORDER BY id FOR SHARE",[[user,target]]);
+ if(participants.rowCount!==2)throw notFound();
  const allowed=await client.query(`SELECT u.id FROM users u JOIN user_profiles p ON p.user_id=u.id WHERE u.id=$2 AND ${profileVisible} FOR SHARE OF u,p`,[user,target]);
  if(!allowed.rowCount)throw notFound();
  const rel=await relationship(client,user,target);
@@ -105,7 +108,10 @@ export async function publicStats(pool:pg.Pool,user:string,owner:string) {
 async function lockCheckin(client:pg.PoolClient,user:string,id:string) {
  const c=(await client.query('SELECT user_id FROM checkins WHERE id=$1',[id])).rows[0];if(!c)throw notFound();
  await client.query('SELECT user_low FROM friendships WHERE user_low=least($1::uuid,$2::uuid) AND user_high=greatest($1::uuid,$2::uuid) FOR SHARE',[user,c.user_id]);
- await client.query('SELECT u.id FROM users u JOIN user_profiles p ON p.user_id=u.id WHERE u.id=$1 FOR SHARE OF u,p',[c.user_id]);
+ // Profile updates lock profile before display-name user row: keep the same order.
+ await client.query('SELECT user_id FROM user_profiles WHERE user_id=$1 FOR SHARE',[c.user_id]);
+ const participants=await client.query("SELECT id FROM users WHERE id=ANY($1::uuid[]) AND status='active' ORDER BY id FOR SHARE",[[user,c.user_id]]);
+ if(participants.rowCount!==new Set([user,c.user_id]).size)throw notFound();
  await client.query('SELECT id FROM checkins WHERE id=$1 FOR SHARE',[id]);
  await checkin(client,user,id);
 }

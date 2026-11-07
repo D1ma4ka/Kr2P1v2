@@ -89,7 +89,7 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
                     } }
                 } }
                 if(state.page == SocialPage.DETAIL) state.data?.let { row -> item {
-                    SocialCheckin(row,api,state.revision,!state.busy,{ model.open(SocialPage.PROFILE,row.getString("userId")) },{})
+                    SocialCheckin(row,api,state.revision,!state.busy,{ model.open(SocialPage.PROFILE,row.getString("userId")) },null)
                     TextButton({ onPosition(row.getString("positionId")) },enabled = !state.busy) { Text("Открыть позицию") }
                     DiaryButton(if(row.getBoolean("liked"))"Убрать лайк · ${row.getInt("likeCount")}" else "Нравится · ${row.getInt("likeCount")}",!state.busy,model::like)
                     Text("Комментарии: ${row.getInt("commentCount")}",style = MaterialTheme.typography.titleLarge)
@@ -125,23 +125,25 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
     }
     remove?.let { (id,friend) -> AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { remove = null },title = { Text(if(friend)"Удалить из друзей?" else "Удалить комментарий?") },text = { Text(if(friend)"Доступ к записям для друзей прекратится. Для новой дружбы потребуется заявка." else "Комментарий исчезнет из обсуждения.") },confirmButton = { TextButton({ remove = null;if(friend)model.removeFriend(id)else model.removeComment(id) }) { Text("Удалить") } },dismissButton = { TextButton({ remove = null }) { Text("Отмена") } }) }
 }
-@Composable private fun SocialCheckin(row: JSONObject,api: AccountApi,revision: Int,enabled: Boolean,onUser: () -> Unit,onDetail: () -> Unit) {
+@Composable private fun SocialCheckin(row: JSONObject,api: AccountApi,revision: Int,enabled: Boolean,onUser: () -> Unit,onDetail: (() -> Unit)?) {
     DiaryCard {
         TextButton(onUser,enabled = enabled) { Text(row.getString("displayName")) }
-        CheckinCard(row,enabled,onDetail)
+        CheckinCard(row,enabled && onDetail != null) { onDetail?.invoke() }
         key(row.getString("id"),revision) { for(id in row.getJSONArray("mediaIds").strings()) SocialPhoto(api,id,"Фото в ленте") }
-        TextButton(onDetail,enabled = enabled) { Text("Лайки: ${row.getInt("likeCount")} · комментарии: ${row.getInt("commentCount")}") }
+        if(onDetail != null) TextButton(onDetail,enabled = enabled) { Text("Лайки: ${row.getInt("likeCount")} · комментарии: ${row.getInt("commentCount")}") }
     }
 }
 @Composable private fun SocialPhoto(api: AccountApi,id: String,label: String,cover: Boolean = false) {
     var full by remember(id) { mutableStateOf(false) }
+    var loading by remember(id) { mutableStateOf(true) }
     val result by produceState<ByteArray?>(null,id,full) {
-        value = null
+        value = null;loading = true
         try { value = api.bytes("v1/media/$id" + if(full)"" else "?size=thumbnail") }
         catch(e: Exception) { if(e is CancellationException) throw e }
+        finally { loading = false }
     }
     val bitmap = remember(result) { result?.let { BitmapFactory.decodeByteArray(it,0,it.size) } }
-    if(bitmap == null) Text("Фото недоступно или загружается",color = KraPivaColors.Muted)
+    if(bitmap == null) Text(if(loading)"Загрузка фото…" else "Фото недоступно. Обновите страницу.",color = KraPivaColors.Muted)
     else Image(bitmap.asImageBitmap(),label,Modifier.fillMaxWidth().height(if(cover)140.dp else 180.dp).clickable { full = true },contentScale = ContentScale.Fit)
     if(full) AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { full = false },text = { bitmap?.let { Image(it.asImageBitmap(),"Просмотр фото",Modifier.fillMaxWidth().heightIn(max = 420.dp),contentScale = ContentScale.Fit) } },confirmButton = { TextButton({ full = false }) { Text("Закрыть") } })
 }
