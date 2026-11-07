@@ -133,6 +133,6 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
     fun delete() = task {
         val data = mutable.value.data ?: return@task
         api.json("v1/checkins/${data.getString("id")}","DELETE",JSONObject().put("version",data.getInt("version")))
-        api.invalidateDiary(); mutable.value = DiaryState(page = DiaryPage.DIARY,notice = "Чекин удалён"); load()
+        api.invalidateDiary(); mutable.value = DiaryState(page = DiaryPage.DIARY,busy = true,notice = "Чекин удалён"); load()
     }
 }
