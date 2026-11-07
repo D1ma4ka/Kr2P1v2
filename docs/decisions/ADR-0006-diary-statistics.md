@@ -44,4 +44,8 @@ Android кеш ограничен и зашифрован существующи
 инвалидируется, данные читаются заново; offline помечает возможную устарелость.
 Venue text допустим до P7; ссылка на verified venue возможна из существующей БД,
 карточка показывает только сохранённые атрибуты. Карта/каталог мест — отдельный P7.
+Транзитивные merge сериализованы существующим advisory catalog lock220024:
+create/wishlist берут shared, moderator merge — exclusive, не блокируя друг друга
+для независимых обычных creates. Owner-only checkin-request lookup позволяет
+восстановить результат потерянного HTTP acknowledgement до новой отправки.
 API: нейтральные JSON/UUID/quarter integers для Android и будущего iOS.

@@ -33,11 +33,12 @@ import ru.krapiva.app.account.NavigationMark
 import ru.krapiva.app.designsystem.KraPivaColors
 
 @Composable
-fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String, onProfile: () -> Unit, expired: () -> Unit, providedModel: CatalogViewModel? = null) {
+fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String, onProfile: () -> Unit, expired: () -> Unit, providedModel: CatalogViewModel? = null, onHome: (() -> Unit)? = null, onCheckin: ((JSONObject?) -> Unit)? = null, requestedPosition: String? = null, consumePosition: () -> Unit = {}) {
     val model: CatalogViewModel = providedModel ?: viewModel(key = "catalog-$userId", factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T = CatalogViewModel(CatalogRepository(api), upload, expired) as T
     })
     val state by model.state.collectAsStateWithLifecycle()
+    LaunchedEffect(requestedPosition,state.busy) { if (!state.busy) requestedPosition?.let { model.detail(it); consumePosition() } }
     BackHandler { if (!model.back()) onProfile() }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.safeDrawingPadding().imePadding()) {
@@ -52,7 +53,7 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (state.page) {
                     CatalogPage.POSITIONS, CatalogPage.BREWERIES, CatalogPage.STYLES, CatalogPage.PROPOSALS -> CatalogList(state, model)
-                    CatalogPage.POSITION, CatalogPage.BREWERY -> Detail(state, model)
+                    CatalogPage.POSITION, CatalogPage.BREWERY -> Detail(state, model, api, onCheckin)
                     CatalogPage.PROPOSAL -> ProposalForm(state, model)
                     CatalogPage.SCANNER -> ScannerScreen(state, model)
                 }
@@ -60,8 +61,8 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
             NavigationBar(containerColor = KraPivaColors.Surface) {
                 for (label in listOf("Главная", "Каталог", "Чекин", "Бары", "Профиль")) NavigationBarItem(
                     colors = NavigationBarItemDefaults.colors(indicatorColor = KraPivaColors.Amber.copy(alpha = .12f), selectedTextColor = KraPivaColors.Amber, unselectedTextColor = KraPivaColors.Muted),
-                    selected = label == "Каталог", enabled = label in setOf("Каталог", "Профиль") && !state.busy,
-                    onClick = { if (label == "Профиль") onProfile() },
+                    selected = label == "Каталог", enabled = (label in setOf("Каталог", "Профиль") || label == "Главная" && onHome != null || label == "Чекин" && onCheckin != null) && !state.busy,
+                    onClick = { when(label) { "Профиль" -> onProfile();"Главная" -> onHome?.invoke();"Чекин" -> onCheckin?.invoke(null) } },
                     icon = {
                         if (label == "Чекин") Surface(color = KraPivaColors.Amber, shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)) {
                             Box(Modifier.size(40.dp),contentAlignment = Alignment.Center) { NavigationMark(label,KraPivaColors.Ink) }
@@ -177,7 +178,7 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
         }
     }
 }
-@Composable private fun Detail(state: CatalogState, model: CatalogViewModel) {
+@Composable private fun Detail(state: CatalogState, model: CatalogViewModel, api: AccountApi, onCheckin: ((JSONObject?) -> Unit)?) {
     val data = state.detail ?: return
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         CatalogImage(data, model.repository, state.offline, true)
@@ -195,6 +196,9 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
         data.text("description")?.let { Text(it) }
         Text("Источник: ${data.getString("source")}", color = KraPivaColors.Muted)
         data.text("imageSource")?.let { Text("Источник фото: $it", color = KraPivaColors.Muted) }
+        if(state.page == CatalogPage.POSITION) key(data) {
+            ru.krapiva.app.diary.PositionDiaryActions(api,data.getString("canonicalId")) { onCheckin?.invoke(data) }
+        }
         TextButton({ model.refresh() }, enabled = !state.busy) { Text("Обновить карточку") }
     }
 }

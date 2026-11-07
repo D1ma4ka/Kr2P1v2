@@ -36,6 +36,7 @@ test('P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media
  const venue=(await db.pool.query("INSERT INTO venues(name,type,city,source,status)VALUES('Synthetic bar','bar','Synthetic city','fixture','verified')RETURNING id")).rows[0].id;
  const key=randomUUID(),extras={tagIds:[tags[0].id],mediaIds:[photo.id],servingFormat:'Кран',venueId:venue};
  const first=await create(f.position,17,extras,f.a.token,key);assert.equal(first.mediaIds[0],photo.id);assert.equal(first.tagLabels[0],tags[0].label);assert.equal(first.venueName,'Synthetic bar');
+ assert.equal((await call('/v1/me/checkin-requests/'+key)).checkinId,first.id);assert.equal((await call('/v1/me/checkin-requests/'+key,'GET',undefined,f.b.token)).checkinId,null);
  assert.equal((await create(f.position,17,extras,f.a.token,key,200)).id,first.id);
  await create(f.position,18,extras,f.a.token,key,409);
  const repeated=await create(f.position,19,{venueText:'Дом',occurredAt:'2026-11-07T11:00:00Z'});
@@ -82,7 +83,23 @@ test('P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media
  await call('/v1/checkins/'+thirdC.id,'DELETE',{version:1},f.a.token,204);assert.equal((await call('/v1/me/statistics')).uniquePositions,1);
  await call('/v1/checkins/'+repeated.id,'DELETE',{version:2},f.a.token,204);assert.equal((await call('/v1/me/statistics')).uniquePositions,1);
  await call('/v1/me/wishlist/'+second,'DELETE');assert.equal((await call('/v1/me/wishlist')).items.length,0);
+ await db.pool.query('UPDATE beer_releases SET style_id=NULL WHERE id=$1',[release]);const unknown=await call('/v1/me/statistics');assert.equal(unknown.styles.find((x:any)=>x.id===null).count,1);assert.equal((await call('/v1/me/unique-positions?styleId=unknown')).items.length,1);
+ await db.pool.query('UPDATE beer_releases SET style_id=$1 WHERE id=$2',[styles[0].id,release]);
  const current=await call('/v1/checkins/'+first.id);await call('/v1/checkins/'+first.id,'PATCH',{...editBody,version:current.version,mediaIds:[],tagIds:[]});
  assert.equal((await call('/v1/checkins?hasPhoto=true')).items.length,0);await call('/v1/media/'+photo.id,'DELETE',undefined,f.a.token,204);
  }finally{await app.close();await db.close();await rm(dir,{recursive:true,force:true});}
+});
+
+test('P4 → P5 migration preserves historical checkins and legacy idempotency acknowledgements',async()=>{
+ const {cp}=await import('node:fs/promises');const {tokenHash}=await import('../src/identity/sessions.js');const {createCheckin}=await import('../src/checkins/repository.js');const {statistics}=await import('../src/checkins/statistics.js');
+ const db=await testDatabase(),dir=await mkdtemp(join(tmpdir(),'krapiva-p4-upgrade-'));
+ try {
+  for(const name of ['001_foundation.sql','002_request_budgets.sql','003_accounts.sql','004_catalog.sql','005_catalog_batch_projection.sql','006_proposal_media_review.sql'])await cp('migrations/'+name,join(dir,name));
+  await migrate(db.pool,dir);const f=await fixtures(db.pool),key=randomUUID();
+  const input={positionId:f.position,ratingQuarters:17,body:'Persisted P4 history',occurredAt:'2026-11-07T10:00:00.000Z',visibility:'private'};
+  const id=(await db.pool.query('INSERT INTO checkins(user_id,position_id,rating_quarters,body,occurred_at,visibility)VALUES($1,$2,$3,$4,$5,$6)RETURNING id',[f.a.id,input.positionId,input.ratingQuarters,input.body,input.occurredAt,input.visibility])).rows[0].id;
+  await db.pool.query("INSERT INTO idempotency_keys(user_id,key,operation,request_hash,resource_id)VALUES($1,$2,'create-checkin',$3,$4)",[f.a.id,key,tokenHash(JSON.stringify(input)),id]);
+  await migrate(db.pool);const replay=await createCheckin(db.pool,f.a.id,key,input);assert.equal(replay.replay,true);assert.equal(replay.row.id,id);
+  assert.equal((await statistics(db.pool,f.a.id)).totalCheckins,1);assert.equal((await db.pool.query('SELECT * FROM taste_tags')).rowCount,12);assert.equal((await db.pool.query('SELECT * FROM beer_positions')).rowCount,1);
+ }finally{await db.close();await rm(dir,{recursive:true,force:true});}
 });

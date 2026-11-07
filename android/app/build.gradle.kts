@@ -43,7 +43,7 @@ android {
     }
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"; versionNameSuffix = "-p4"
+            applicationIdSuffix = ".debug"; versionNameSuffix = "-p5"
             buildConfigField("String", "API_BASE_URL", quoted(devApi))
             buildConfigField("String", "API_ENVIRONMENT", quoted("development"))
             buildConfigField("boolean", "ALLOW_LOCAL_HTTP", "true")

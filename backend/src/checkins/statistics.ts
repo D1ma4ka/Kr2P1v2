@@ -48,6 +48,7 @@ export async function wishlistChange(pool:pg.Pool,user:string,id:string,add:bool
  // The row share lock serializes canonical resolution with P4 merges.
  const {transaction}=await import('../db/pool.js');
  return transaction(pool,async client=>{
+ await client.query('SELECT pg_advisory_xact_lock_shared(220024)');
  const source=(await client.query('SELECT id,status,merged_into_id FROM beer_positions WHERE id=$1 FOR SHARE',[id])).rows[0];
  if(!source)throw notFound();const canonical=source.status==='merged'?source.merged_into_id:id;
  if(add){const p=await client.query("SELECT id FROM beer_positions WHERE id=$1 AND status='verified' FOR SHARE",[canonical]);if(!p.rowCount)throw notFound();

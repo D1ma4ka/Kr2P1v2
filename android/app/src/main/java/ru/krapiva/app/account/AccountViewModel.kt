@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
 import java.io.IOException
 
-enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG }
+enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG, DIARY }
 data class AccountState(
     val screen: AccountScreen = AccountScreen.RESTORING, val busy: Boolean = false,
     val error: String? = null, val notice: String? = null, val profile: JSONObject? = null,
@@ -27,7 +27,17 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     val catalogOwner = object : androidx.lifecycle.ViewModelStoreOwner {
         override val viewModelStore = androidx.lifecycle.ViewModelStore()
     }
-    private suspend fun clearSession() { catalogOwner.viewModelStore.clear(); api.clear() }
+    var diaryRequest = 0; private set
+    var diaryEntry = "HOME"; private set
+    var diaryPosition: JSONObject? = null; private set
+    var catalogPosition: String? = null; private set
+    fun openDiary(entry: String = "HOME",position: JSONObject? = null) {
+        if (mutable.value.busy) return
+        diaryRequest++; diaryEntry = entry; diaryPosition = position; navigate(AccountScreen.DIARY)
+    }
+    fun openPosition(id: String) { catalogPosition = id; navigate(AccountScreen.CATALOG) }
+    fun consumeCatalogPosition() { catalogPosition = null }
+    private suspend fun clearSession() { catalogOwner.viewModelStore.clear(); diaryPosition = null; catalogPosition = null; api.clear() }
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
     init { restore() }

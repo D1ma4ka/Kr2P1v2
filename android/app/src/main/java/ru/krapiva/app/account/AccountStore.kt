@@ -15,7 +15,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** Tokens never enter preferences, backups, logs or saved instance state. */
-class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.db", null, 2) {
+class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.db", null, 3) {
     private val sessionFile = AtomicFile(File(context.noBackupFilesDir, "session.enc"))
     private val key: SecretKey by lazy {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -48,12 +48,30 @@ class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.
     override fun onConfigure(db: SQLiteDatabase) { db.rawQuery("PRAGMA secure_delete=ON", null).use { it.moveToFirst() } }
     override fun onCreate(db: SQLiteDatabase) {
         createCatalog(db)
+        createDrafts(db)
         db.execSQL("CREATE TABLE profile(user_id TEXT PRIMARY KEY, payload BLOB NOT NULL)")
         db.execSQL("CREATE TABLE photos(user_id TEXT NOT NULL, media_id TEXT NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(user_id,media_id))")
     }
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) { if (oldVersion < 2) createCatalog(db) }
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) { if (oldVersion < 2) createCatalog(db); if (oldVersion < 3) createDrafts(db) }
     private fun createCatalog(db: SQLiteDatabase) {
         db.execSQL("CREATE TABLE catalog(user_id TEXT NOT NULL, path TEXT NOT NULL, payload BLOB NOT NULL, saved_at INTEGER NOT NULL, PRIMARY KEY(user_id,path))")
+    }
+    private fun createDrafts(db: SQLiteDatabase) {
+        db.execSQL("CREATE TABLE diary_drafts(user_id TEXT NOT NULL,id TEXT NOT NULL,payload BLOB NOT NULL,saved_at INTEGER NOT NULL,PRIMARY KEY(user_id,id))")
+    }
+    @Synchronized fun saveDraft(user: String, id: String, data: JSONObject) {
+        if (session()?.optString("userId") != user) return
+        val count = readableDatabase.rawQuery("SELECT count(*) FROM diary_drafts WHERE user_id=? AND id<>?", arrayOf(user,id)).use { it.moveToFirst(); it.getInt(0) }
+        require(count < 20) { "Сохранено 20 черновиков. Удалите ненужные." }
+        writableDatabase.execSQL("INSERT OR REPLACE INTO diary_drafts(user_id,id,payload,saved_at) VALUES(?,?,?,?)", arrayOf(user,id,encrypt(data.toString()),System.currentTimeMillis()))
+    }
+    fun drafts(user: String): org.json.JSONArray = org.json.JSONArray().apply {
+        readableDatabase.rawQuery("SELECT payload FROM diary_drafts WHERE user_id=? ORDER BY saved_at DESC", arrayOf(user)).use { while(it.moveToNext()) put(JSONObject(decrypt(it.getBlob(0)))) }
+    }
+    fun removeDraft(user: String,id: String) { writableDatabase.delete("diary_drafts","user_id=? AND id=?",arrayOf(user,id)) }
+    @Synchronized fun invalidateDiary(user: String) {
+        if (session()?.optString("userId") != user) return
+        writableDatabase.delete("catalog", "user_id=? AND (path LIKE 'v1/checkins%' OR path LIKE 'v1/me/%' OR path LIKE '%/statistics')",arrayOf(user))
     }
     @Synchronized fun cacheCatalog(user: String, path: String, payload: JSONObject) {
         if (session()?.optString("userId") != user) return
@@ -72,6 +90,7 @@ class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.
     }
     @Synchronized fun clear() {
         sessionFile.delete()
+        writableDatabase.delete("diary_drafts", null, null)
         writableDatabase.delete("catalog", null, null)
         writableDatabase.delete("profile", null, null)
         writableDatabase.delete("photos", null, null)

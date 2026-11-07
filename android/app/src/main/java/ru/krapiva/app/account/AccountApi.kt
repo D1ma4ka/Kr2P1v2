@@ -18,7 +18,7 @@ class AccountApi(private val store: AccountStore) {
         store.clear(); store.saveSession(value); session = value
     }
     suspend fun clear() = withContext(Dispatchers.IO) { session = null; store.clear() }
-    private fun raw(path: String, method: String, body: ByteArray?, contentType: String, token: String?): ByteArray {
+    private fun raw(path: String, method: String, body: ByteArray?, contentType: String, token: String?, requestId: String? = null): ByteArray {
         // Android's HttpURLConnection adds form Content-Type to bodyless DELETE.
         // Send valid empty JSON so Fastify's JSON-only API can parse the request.
         val payload = body ?: if (method == "DELETE") "{}".toByteArray(Charsets.UTF_8) else null
@@ -26,6 +26,7 @@ class AccountApi(private val store: AccountStore) {
         try {
             connection.requestMethod = method; connection.connectTimeout = 10_000; connection.readTimeout = 15_000
             connection.instanceFollowRedirects = false
+            if (requestId != null) connection.setRequestProperty("Idempotency-Key", requestId)
             connection.setRequestProperty("Accept", "application/json, image/jpeg")
             if (token != null) connection.setRequestProperty("Authorization", "Bearer $token")
             if (payload != null) {
@@ -42,10 +43,10 @@ class AccountApi(private val store: AccountStore) {
             return bytes
         } finally { connection.disconnect() }
     }
-    suspend fun bytes(path: String, method: String = "GET", body: ByteArray? = null, contentType: String = "application/json", secure: Boolean = true): ByteArray = withContext(Dispatchers.IO) {
+    suspend fun bytes(path: String, method: String = "GET", body: ByteArray? = null, contentType: String = "application/json", secure: Boolean = true, requestId: String? = null): ByteArray = withContext(Dispatchers.IO) {
         if (secure && session == null) throw ApiFailure(401, "Требуется вход")
         val access = if (secure) session?.getString("accessToken") else null
-        try { raw(path, method, body, contentType, access) }
+        try { raw(path, method, body, contentType, access, requestId) }
         catch (error: ApiFailure) {
             if (error.status != 401 || !secure) throw error
             val token = refreshMutex.withLock {
@@ -57,11 +58,11 @@ class AccountApi(private val store: AccountStore) {
                     next.getString("accessToken")
                 }
             }
-            raw(path, method, body, contentType, token)
+            raw(path, method, body, contentType, token, requestId)
         }
     }
-    suspend fun json(path: String, method: String = "GET", body: JSONObject? = null, secure: Boolean = true): JSONObject {
-        val data = bytes(path, method, body?.toString()?.toByteArray(Charsets.UTF_8), secure = secure)
+    suspend fun json(path: String, method: String = "GET", body: JSONObject? = null, secure: Boolean = true, requestId: String? = null): JSONObject {
+        val data = bytes(path, method, body?.toString()?.toByteArray(Charsets.UTF_8), secure = secure, requestId = requestId)
         return if (data.isEmpty()) JSONObject() else JSONObject(String(data, Charsets.UTF_8))
     }
     suspend fun catalogGet(path: String): Pair<JSONObject, Boolean> = withContext(Dispatchers.IO) {
@@ -74,6 +75,10 @@ class AccountApi(private val store: AccountStore) {
             cached to true
         }
     }
+    suspend fun invalidateDiary() = withContext(Dispatchers.IO) { session?.getString("userId")?.let(store::invalidateDiary); Unit }
+    suspend fun drafts(): org.json.JSONArray = withContext(Dispatchers.IO) { session?.getString("userId")?.let(store::drafts) ?: org.json.JSONArray() }
+    suspend fun saveDraft(data: JSONObject) = withContext(Dispatchers.IO) { session?.getString("userId")?.let { store.saveDraft(it,data.getString("draftId"),data) }; Unit }
+    suspend fun removeDraft(id: String) = withContext(Dispatchers.IO) { session?.getString("userId")?.let { store.removeDraft(it,id) }; Unit }
     suspend fun cached(): JSONObject? = withContext(Dispatchers.IO) { session?.let { store.cached(it.getString("userId")) } }
     suspend fun cache(profile: JSONObject) = withContext(Dispatchers.IO) { store.cache(profile.getString("userId"), profile) }
     suspend fun photo(mediaId: String, offline: Boolean = false): ByteArray? = withContext(Dispatchers.IO) {

@@ -54,7 +54,14 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     }
     if (state.screen == AccountScreen.CATALOG && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload, { model.navigate(AccountScreen.PROFILE) }, model::sessionExpired)
+            ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload, { model.navigate(AccountScreen.PROFILE) }, model::sessionExpired, onHome = { model.openDiary() }, onCheckin = { model.openDiary("new",it) }, requestedPosition = model.catalogPosition, consumePosition = model::consumeCatalogPosition)
+        }
+        return
+    }
+    if (state.screen == AccountScreen.DIARY && authenticated) {
+        CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
+            ru.krapiva.app.diary.DiaryApp(model.api,state.profile!!.getString("userId"),model.diaryRequest,model.diaryEntry,model.diaryPosition,model::upload,
+                { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.CATALOG) },model::openPosition,model::sessionExpired)
         }
         return
     }
@@ -83,15 +90,15 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
                         AccountScreen.PROFILE -> Profile(state, model)
                         AccountScreen.EDIT -> ProfileEditor(state, model)
                         AccountScreen.SETTINGS -> Settings(state, model)
-                        AccountScreen.CATALOG -> Unit
+                        AccountScreen.CATALOG, AccountScreen.DIARY -> Unit
                     }
                 }
             }
             if (authenticated) NavigationBar {
                 // Destinations become enabled with their real features in P4–P7.
                 for (label in listOf("Главная", "Каталог", "Чекин", "Бары", "Профиль")) NavigationBarItem(
-                    selected = label == "Профиль", enabled = label in setOf("Профиль", "Каталог") && !state.busy,
-                    onClick = { model.navigate(if (label == "Каталог") AccountScreen.CATALOG else AccountScreen.PROFILE) }, icon = {
+                    selected = label == "Профиль", enabled = label in setOf("Профиль", "Каталог", "Главная", "Чекин") && !state.busy,
+                    onClick = { when(label) { "Главная" -> model.openDiary(); "Чекин" -> model.openDiary("new"); else -> model.navigate(if (label == "Каталог") AccountScreen.CATALOG else AccountScreen.PROFILE) } }, icon = {
                         if (label == "Чекин") Surface(color = KraPivaColors.Amber, shape = RoundedCornerShape(12.dp)) {
                             Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { NavigationMark(label, KraPivaColors.Ink) }
                         } else NavigationMark(label, if (label == "Профиль") KraPivaColors.Cream else KraPivaColors.Muted)
@@ -203,6 +210,7 @@ private fun JSONObject.text(key: String): String = if (isNull(key)) "" else optS
     if (state.offline) Text("Сохранённая копия · изменения требуют сети", color = KraPivaColors.Amber)
     Action("Обновить", !state.busy, model::refresh)
     Action("Редактировать профиль", !state.busy && !state.offline) { model.navigate(AccountScreen.EDIT) }
+    ru.krapiva.app.diary.ProfileDiarySummary(model.api) { model.openDiary(it) }
     Link("Настройки аккаунта", !state.busy) { model.navigate(AccountScreen.SETTINGS) }
 }
 private fun visibilityLabel(value: String) = when(value) { "public" -> "Все пользователи"; "friends" -> "Друзья"; else -> "Только я" }

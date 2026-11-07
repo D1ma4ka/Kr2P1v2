@@ -46,7 +46,8 @@ export async function createCheckin(pool:pg.Pool,user:string,key:string,input:Ch
  await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`${user}:${key.toLowerCase()}:create-checkin`]);
  const old=(await client.query("SELECT request_hash,resource_id FROM idempotency_keys WHERE user_id=$1 AND key=$2 AND operation='create-checkin'",[user,key])).rows[0];
  if(old){if(old.request_hash!==hash)throw conflict();return{row:await getCheckin(client,user,old.resource_id).catch(e=>{if(e instanceof ApiError&&e.statusCode===404)throw conflict();throw e;}),replay:true};}
- // Lock the source before resolving an alias, serializing with the P4 merge transaction.
+ await client.query('SELECT pg_advisory_xact_lock_shared(220024)');
+ // Shared catalog lock serializes transitive alias resolution with P4 merge.
  const source=(await client.query("SELECT id,status,merged_into_id FROM beer_positions WHERE id=$1 FOR SHARE",[n.positionId])).rows[0];
  const position=source?.status==='merged'?source.merged_into_id:n.positionId;
  if(!(await client.query("SELECT id FROM beer_positions WHERE id=$1 AND status='verified' FOR SHARE",[position])).rowCount)throw new ApiError(422,'POSITION_UNAVAILABLE','Позиция недоступна');
