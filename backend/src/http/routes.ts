@@ -4,7 +4,7 @@ import type { MediaService } from "../media/service.js";
 import type { FastifyInstance } from "fastify";
 import type pg from "pg";
 import { authenticate, tokenHash } from "../identity/sessions.js";
-import { createCheckin, deleteCheckin, getCheckin, listCheckins, updateCheckin, type CheckinInput } from "../checkins/repository.js";
+import {diaryRoutes} from "../checkins/routes.js";
 import * as s from "./schemas.js";
 declare module "fastify" { interface FastifyRequest { userId: string; } }
 import {profile,updateProfile,type ProfileUpdate} from '../profiles/repository.js';
@@ -37,22 +37,5 @@ export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media
     return reply.code(204).send();
   });
   await catalogRoutes(app,pool);
-  app.get<{ Querystring:{limit?:string;cursor?:string} }>("/v1/checkins", {schema:{...secure,querystring:s.pageQuery,response:{...s.errors,200:s.page(s.checkinSchema)}}},
-    request=>listCheckins(pool,request.userId,Number(request.query.limit??20),request.query.cursor));
-  app.get<{ Params:{id:string} }>("/v1/checkins/:id",{schema:{...secure,params:s.idParams,response:{...s.errors,200:s.checkinSchema}}},
-    request=>getCheckin(pool,request.userId,request.params.id));
-  app.post<{ Body:CheckinInput;Headers:{'idempotency-key':string} }>("/v1/checkins",{schema:{...secure,
-    headers:{type:'object',required:['idempotency-key'],properties:{'idempotency-key':s.uuid}},
-    body:s.object(s.checkinFields),response:{...s.errors,200:s.checkinSchema,201:s.checkinSchema}}},async(request,reply)=>{
-    const result=await createCheckin(pool,request.userId,request.headers['idempotency-key'],request.body);
-    return reply.code(result.replay?200:201).send(result.row);
-  });
-  const {positionId:_positionId,...mutableFields}=s.checkinFields;
-  app.patch<{Params:{id:string};Body:Omit<CheckinInput,'positionId'>&{version:number}}>("/v1/checkins/:id",{schema:{...secure,
-    params:s.idParams,body:s.object({...mutableFields,version:s.version}),response:{...s.errors,200:s.checkinSchema}}},
-    request=>updateCheckin(pool,request.userId,request.params.id,request.body));
-  app.delete<{Params:{id:string};Body:{version:number}}>("/v1/checkins/:id",{schema:{...secure,params:s.idParams,
-    body:s.object({version:s.version}),response:{...s.errors,204:{type:'null'}}}},async(request,reply)=>{
-    await deleteCheckin(pool,request.userId,request.params.id,request.body.version); return reply.code(204).send();
-  });
+  await diaryRoutes(app,pool);
 }
