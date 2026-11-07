@@ -8,16 +8,19 @@ A modern social platform for craft beer enthusiasts and bars
 совершеннолетних пользователей: каталог пивных позиций, дневник и социальная сеть
 с настоящим сервером и постоянной БД.
 
-**P0–P4 сохранены; P5 реализован, автоматическая приёмка PASS. P6 не начат.**
+**P0–P5 сохранены; P6 WIP, аварийная остановка владельцем. Android-приёмка не завершена; P7 не начат.**
 Android auth/profile связан с настоящим сервером: PostgreSQL, migrations, owner API, сессии,
-private media, local SMTP и OpenAPI. Account workflows P3 работают через HTTP/SQL/SMTP; социальные
-сценарии относятся к P6–P7. Ручная проверка physical phone/TalkBack ещё NOT RUN.
+private media, local SMTP и OpenAPI. Account workflows P3 и социальные
+функции P6 работают через общий HTTP/SQL/SMTP backend. Ручная проверка physical phone/TalkBack ещё NOT RUN.
 P4 добавил настоящий каталог/search/brewery/proposals/moderation/GTIN scanner;
 камера/разрешения/освобождение и offline переходы проверены на эмуляторе;
 оптический захват физической этикетки ещё NOT RUN. Это не публичный production сервис.
 
 P5 добавляет настоящие чекины/дневник, wishlist, unique positions, оценки,
 диаграммы/home и encrypted editable drafts. [Операции P5](docs/diary/OPERATIONS.md).
+
+P6 добавляет взаимных друзей, ленту с фото, лайки, комментарии и серверную приватность.
+[Операции P6](docs/social/OPERATIONS.md), [проверки P6](docs/stages/P6.md).
 
 Текущая точка продолжения и результаты — [прогресс](docs/PROGRESS.md).
 Команды запуска и восстановления — [локальный backend](docs/DEPLOYMENT_RU.md),
@@ -48,7 +51,7 @@ git diff --check
 
 Изменения ведутся в рабочей ветке. Правила репозитория: [AGENTS.md](AGENTS.md).
 После каждого этапа — проверка, commit/push, отчёт и остановка до сообщения
-владельца «Продолжай». P4 разрешён текущим запросом; после отчёта остановиться до команды на P5.
+владельца «Продолжай». Текущая работа P6 остановлена владельцем; ждать команды «Продолжай».
 
 ## Актуальные требования v1.3
 

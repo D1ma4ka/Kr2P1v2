@@ -14,7 +14,7 @@ P0 и P1 завершены; их код и результаты не перес
 | P3 | Аккаунты/полный профиль/фото/ACL, account-scoped cache; S-01/S-29 real loading и welcome с sensor liquid, fallback, reduced motion; согласованный P1.1 UI | A1/A12/A15/A25–A30, IDOR и настоящий test SMTP; без forced delay | DONE implementation/automated acceptance; physical/TalkBack NOT RUN — stages/P3.md |
 | P4 | Новый каталог, brewery card, поиск, предложения/moderation, scanner; отдельная семантика GTIN/QR | A2/A9/A21, пустой старт и реальная камера | DONE implementation/automated; physical scan/TalkBack NOT RUN — stages/P4.md |
 | P5 | Чекины/вкусовые теги/фото, фильтры, editable offline drafts, unique list, wishlist, style pie/rating histogram/unrated/drilldown, реальные агрегаты; данные home | A3/A4/A7/A13/A14/A24, изменение/удаление/merge, sync | DONE implementation/automated; physical/TalkBack NOT RUN — stages/P5.md |
-| P6 | Взаимные друзья, feed/comments/reactions, публичные агрегаты с ACL; доступ из home | A5/A6, два аккаунта, cursor/retry/privacy/media | PLANNED |
+| P6 | Взаимные друзья, feed/comments/reactions, публичные агрегаты с ACL; доступ из home | A5/A6, два аккаунта, cursor/retry/privacy/media | WIP, STOP владельца; Android acceptance pending; stages/P6.md |
 | P7 | Badge rule engine/10 правил/3 pins; бары и магазины, интерактивная внутренняя карта, clusters, bbox/map-list, reports/admin | A8/A10/A11/A16–A18; реальная карта/лицензия, Craft Republic только после проверки | PLANNED |
 | P8 | Android/server regression, cache/security/licenses/accessibility, full visual baseline, motion lifecycle/CPU, backup+restore, load/capacity plan | A1–A30; измерения в описанной среде, не утверждать 500k concurrent | PLANNED |
 | P9 | Android RC, APK/hash, CI/runbooks, RU staging/production readiness отдельно | Android DoD §10.3; разрешение на выпуск отдельно; весь проект ещё INCOMPLETE | PLANNED |
@@ -25,7 +25,7 @@ P0 и P1 завершены; их код и результаты не перес
 
 P1.1 — будущая точечная адаптация, а не повторный P1. Функциональные home/CTA
 появляются с реальными API P4–P7: пустой mock home не считается приёмкой.
-Текущий запрос владельца разрешил P5; P0–P4 сохранены, P6 не начинать.
+P6 остановлен владельцем; ждать «Продолжай». P0–P5 сохранены, P7 не начинать.
 Платформенные границы API проектируются с P2; KMP/iOS код не пишется до P10.
 
 ## Внешние решения и срок

@@ -1,100 +1,89 @@
-# KraPiva 2.0 — P6, продолжение приёмки
+# KraPiva 2.0 — P6 WIP, аварийная остановка
 
-7 ноября 2026, Europe/Istanbul. **Продолжение разрешено владельцем.**
-P6 НЕ ЗАВЕРШЁН и не принят. P0–P5 сохранены; P7 не начат.
-Ветка: `codex/krapiva-2-p3`. Проверенный P5 baseline:
-`b2cc8441d3b9e0f226bf8e552a9010c6f94a46ab`.
-Draft PR6: https://github.com/D1ma4ka/Kr2P1v2/pull/6 — без merge.
-Финальный WIP этой остановки — HEAD ветки, сообщение с `[skip ci]`.
+7 ноября 2026, Europe/Istanbul. Продолжение разрешено владельцем после аварийного
+сохранения `b929b7e854cf79c933a8ae55729de433df265605`. P0–P5 не повторяются.
+Ветка: `codex/krapiva-2-p3`. P5 baseline: `b2cc8441d3b9e0f226bf8e552a9010c6f94a46ab`.
+Draft PR: https://github.com/D1ma4ka/Kr2P1v2/pull/6 — без merge.
+**Работа остановлена по прямой команде владельца. P6 НЕ ЗАВЕРШЁН и не принят. P7 НЕ НАЧАТ.**
 
-## Сохранённая реализация
+## Реализация
 
-- Настоящий PostgreSQL backend: поиск видимых пользователей, взаимные заявки,
-  accept/reject/cancel/remove, лента друзей, profile content/statistics по ACL,
-  уникальные лайки, комментарии/create/delete с UUID и безопасными повторами.
-- Additive migration008, общий iOS-neutral OpenAPI, ADR-0007. Никаких фиктивных
-  социальных операций/production пользователей, старого каталога или платных сервисов.
-- Проверки текущей profile/checkin privacy, hidden/deleted/suspended состояния,
-  direct media и комментариев. SQL locks защищают конкурентную смену прав/unfriend.
-- Android: home/profile/own-checkin переходы, поиск/заявки/друзья/чужой профиль,
-  лента с фото, лайки/комментарии/delete, KraPiva Dark и состояния ошибок/сети.
-  Social data/images не сохраняются в disk cache; stop/dispose/failure очищают их.
-- Реальный Android test двух аккаунтов добавлен в существующий acceptance suite.
+- PostgreSQL: поиск видимых пользователей, взаимные заявки/accept/reject/cancel,
+  remove, лента друзей с фото, чужие профили и доступная зрителю статистика.
+- Лайки PUT/DELETE с уникальностью, комментарии с UUID/безопасным повтором и
+  удалением только своего. Keyset pagination, terminal request replay без
+  восстановления удалённой дружбы, tombstone комментария без воскрешения.
+- Server ACL для profile/checkin privacy, hidden/deleted/suspended, direct reads,
+  comments и media. SQL locks сериализуют social writes и изменение прав/unfriend.
+- Android: вход из home/profile/own checkin, поиск/заявки/друзья/лента/профиль/
+  обсуждение; loading/empty/error/offline/retry, подтверждение удаления.
+  KraPiva Dark, существующие компоненты и общая навигация сохранены.
+- Social content/photo не записываются в disk cache; очистка stop/dispose/failure,
+  повторный запрос при foreground/refresh. Черновик комментария и его retry UUID
+  сохраняются в account scope при recreation; logout очищает scope.
+- Additive migration008, общий OpenAPI, ADR-0007. Нет заглушек социальных операций,
+  production fixtures или отдельного серверного состояния для платформ.
 
-Сохранённые в GitHub контрольные точки до остановки:
-`b30de95c1a75a685f43bc7de3e454009472afbfa` (backend/API/tests/ADR),
-`bb0f898288d25fe893ca44db3753d1c6cb88dd31` (Android/UI/test).
-Финальный WIP дополнительно сохраняет SQL concurrency hardening/tests, UI photo
-loading/error и устранение no-op detail button, scroll/network ожидания теста и docs.
-Файлы: backend/src/social/, backend/migrations/008_social.sql, backend/test/social.test.ts,
-android/app/src/main/java/ru/krapiva/app/social/, android/app/src/androidTest/java/ru/krapiva/app/social/,
-интеграционные изменения account/diary/routes/readiness, docs/api/openapi.yaml,
-[ADR-0007](decisions/ADR-0007-social.md), [операции](social/OPERATIONS.md), [P6](stages/P6.md).
+## Подтверждённые проверки
 
-## Что действительно проверено до STOP
+Backend CI https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42398072924
+на `7ad1584379af9604d691e1b64c31a0277b200a3f`: **SUCCESS**.
+Полный **21/21 PASS**,20.54s, npm audit **0 vulnerabilities**, non-root container,
+миграции, PostgreSQL/SMTP/media restart и isolated pg_restore PASS.
+Два аккаунта social test зарегистрированы через HTTP→SMTP→verification→login.
+Проверены общая дружба/лента/лайки/комментарии/restart, IDOR, privacy/media,
+конкурентные повторы и реальный lock wait при privacy/unfriend. Runtime restore
+сохраняет social UUID/feed/counts/comment, private photo bytes и прежние session ACL.
+Backend после этого прогона не менялся (кроме README).
 
-- Backend checkpoint: `npm run build`, OpenAPI generation, полный suite **20/20 PASS**
-  с PostgreSQL17.7/Node24.22.1/Mailpit1.27.8. Включает19 прежних tests и новый P6.
-- Два аккаунта зарегистрированы через HTTP/SMTP verification/login, дружба/лента/
-  лайки/комментарии сохраняются после restart; privacy/media/IDOR/retry проверены.
-- После SQL hardening: build + targeted **2/2 social tests PASS**. Реальные lock waits,
-  privacy/unfriend→404 без записи, comments timestamp ties/cursor bounds/suspension.
-  Полный suite после этих правок не повторялся; **21/21 не заявляется**.
-- npm audit: **0 vulnerabilities**, включая полный audit до остановки.
-- verify_p0/check_foundation и whitespace прошли до последних WIP правок.
-- CI42371748373 на bb0f898: source и Build/lint завершились, последнее наблюдение —
-  запуск Android35 emulator. Итог runtime **НЕ ПРОВЕРЕН**; повторно после STOP не читался.
-  https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42371748373
-- Backend workflow42371748340: integration **SKIPPED**, только changed-components
-  SUCCESS. Не считать его подтверждением backend/container/restore приёмки P6.
-- Последние Android WIP изменения **НЕ СОБРАНЫ/НЕ ПРОВЕРЕНЫ**.
+Локальные source/design/whitespace checks PASS; это не замена runtime тестов.
+Android CI https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42398404892
+на `60a1d16e72204b9868ceaf3df7490faac7c57730`: последнее наблюдение до STOP —
+build/lint завершены, запуск Android35 emulator. **ИТОГ НЕ ПРОВЕРЕН**.
+До получения результата PASS не заявляется. Ожидается11 instrumentation tests
+(прежние9 + social2), JVM8, build/lint, cold session restore и sensor check.
 
-## Осталось и известные риски
+## Исправленные проблемы и история приёмки
 
-1. Получить результат уже запущенного Android CI, разобрать ошибки; P6 UI пока не принят.
-2. Проверить direct-entry SocialApp при Activity recreation: LaunchedEffect(initialCheckin)
-   повторно вызывает open и может сбросить ввод комментария. Runtime не проверен,
-   исправление до STOP не выполнено.
-3. Проверить финальное WIP состояние необходимыми backend/Android checks, включая
-   миграцию/container/restore и UI двух аккаунтов; visual review/screenshots ещё не приняты.
-4. Завершить обновление REQUIREMENTS_MATRIX/QA/ROADMAP/PLATFORM_PARITY/README после
-   фактической приёмки. Их прежние P6 PLANNED/NOT RUN сейчас не означают PASS.
-5. Physical phone/TalkBack и российский VPS NOT RUN. FR-068 расширенные reports/blocking
-   SHOULD отложены; FR-090 moderation/admin по утверждённой матрице P7/P8 не начинался.
+- Первый Android CI42371748373: build/lint PASS, runtime7/10. Native permission
+  dialog click произошёл до стабилизации; новый comment был за пределами lazy
+  viewport; verify CTA перекрывался IME. Добавлены native idle/targeted retry,
+  lazy scroll и явное закрытие клавиатуры без системного Back.
+- Direct-entry effect сбрасывал comment draft при recreation. Теперь явный
+  переход имеет token, а recreation повторяет ACL read без сброса ввода.
+- Новый retention test исправлен по действующему API: POST Idempotency-Key,
+  DELETE version. Серверная схема не ослаблялась.
+- CI42398072939 build/lint PASS, затем отменён новым push до UI suite, чтобы
+  проверить исправленный тест. Это не успешная Android-приёмка.
+- Аварийная остановка сохранена коммитом b929b7e [skip ci]; разработка возобновлена
+  только после новой команды владельца. Подробнее: [P6](stages/P6.md).
 
-**Точная следующая задача после команды «Продолжай»: прочитать итог существующего
-CI42371748373 и сопоставить ошибки с сохранённым WIP; затем проверить сохранение
-ввода SocialApp при recreation. До команды не запускать разработку или проверки.**
+## Осталось и точная следующая задача
 
-## Ограничения и сохранность
+**Точная следующая задача после команды «Продолжай»: получить результат уже
+запущенного CI42398404892.** Затем исправить только выявленные дефекты, проверить
+P6 screenshots. После PASS обновить REQUIREMENTS_MATRIX/QA/ROADMAP/PARITY/README,
+сохранить final docs/visual evidence в GitHub, сообщить SHA и **STOP перед P7**.
 
-Новые сборки/тесты после аварийной остановки не запускались; WIP `[skip ci]`.
-Merge/force-push/публичный сервер/публикация APK/платные ресурсы не выполнялись.
-Локальные credentials, npm cache, logs и SQL/SMTP volumes сохранены вне Git;
-`work/backend-p6-tests.log` содержит результат полного20-test прогона.
-Точные остатки квот недоступны, проценты не выдумываются; остановка по сигналу владельца.
-Обязательный iOS P10–P13 **NOT STARTED**; следующий владелец действия — владелец проекта.
-Общая KraPiva2.0 и P6 не объявляются DONE. **STOP — ждать «Продолжай».**
+Physical phone/TalkBack и оптический scanner NOT RUN, RU staging/VPS не подключён.
+FR-068 расширенные блокировки/жалобы SHOULD отложены; обязательная moderation
+FR-090 по матрице P7/P8 не начата. iOS P10–P13 NOT STARTED; общий API совместим.
+Realtime/push revoke не заявляется: доставленные bytes не отзываются, следующие
+HTTP requests всегда проверяют права. Офлайн social content намеренно недоступен.
+
+Платные ресурсы, публичный сервер, APK publish, main merge/force push не выполнялись.
+Точные пятичасовые/недельные остатки недоступны; значения не выдумываются.
+При сигнале владельца о ≤25%/≤50% — сохранение/commit/push/STOP.
 
 
-## Возобновление P6 после сохранённого b929b7e
+## Аварийное сохранение
 
-Получен итог CI42371748373: Android build/lint PASS, runtime 7/10 PASS;
-ошибки native camera permission click, scroll к новому comment и видимость
-verify button при IME. WIP уже содержит scroll к comment; добавлены ожидание
-native dialog и закрытие IME. Проверки не ослаблены.
-Исправлен direct-entry reset комментария при Activity recreation: token явного
-перехода, retained model, повторная проверка доступа без потери ввода.
-SocialRetentionTest проверяет actual recreate и logout/очистку scope.
-Runtime backup drill расширен сохранением friendship/feed/like/comment после
-API+DB restart и isolated pg_restore. P6 screenshots включены в manifest.
-Следующая задача: необходимые CI backend и Android, разбор результатов и visual
-review; затем финальные матрица/QA/roadmap/parity и STOP. P6 пока WIP.
-Предыдущие разделы STOP выше описывают историческую остановку, она снята командой
-владельца «Продолжай разработку»; новых квот от владельца не поступало.
-
-Backend CI42398072924 на7ad1584: SUCCESS. Полный suite21/21 PASS, npm audit0;
-container migration/startup, API+DB+SMTP restart и isolated pg_restore PASS,
-включая новые friendship/feed/like/comment assertions. Android CI42398072939
-ещё выполняется; результат пока не заявляется. При review нового retention test
-исправлены обязательные поля fixture: DELETE version и POST Idempotency-Key.
+Разработка и ожидание CI прекращены по новой прямой команде владельца.
+Код уже отправлен в GitHub: последний code checkpoint60a1d16e72204b9868ceaf3df7490faac7c57730.
+Незакоммичены были только5 документов: README, IMPLEMENTATION_PLAN, PROGRESS,
+ROADMAP и stages/P6. Они сохраняются WIP-коммитом с [skip ci], без новой сборки.
+Итог существующего CI после STOP не запрашивался; новые тесты/сборки/исследования
+не запускались. Подтверждение исправлений Android runtime и visual review ещё
+остаются открытыми. QA/PARITY/финальные статусы матрицы нужно закончить после PASS.
+Локальные ignored logs/artifacts и credentials не удалялись и не включаются в Git.
+**STOP — ждать команды владельца «Продолжай».**
