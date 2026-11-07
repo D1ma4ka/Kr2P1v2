@@ -1,6 +1,7 @@
 import type pg from 'pg';
 import * as d from './queries.js';
 import {notFound} from '../http/errors.js';
+import {position as catalogPosition} from '../catalog/repository.js';
 export async function statistics(pool:pg.Pool,user:string) {
  const row=(await pool.query(`WITH mine AS (SELECT c.*,r.style_id,st.name AS style_name,b.id AS brewery_id,b.name AS brewery_name FROM checkins c ${d.joins} WHERE c.user_id=$1 AND ${d.active}),
  unique_beers AS (SELECT DISTINCT position_id,style_id,style_name,brewery_id,brewery_name FROM mine),
@@ -17,8 +18,8 @@ export async function statistics(pool:pg.Pool,user:string) {
  return row;
 }
 export async function positionStatistics(pool:pg.Pool,user:string,id:string) {
- const bp=(await pool.query('SELECT id,status,merged_into_id FROM beer_positions WHERE id=$1',[id])).rows[0];
- if(!bp)throw notFound();const canonical=bp.status==='merged'?bp.merged_into_id:id;
+ // Share the P4 visibility/alias policy; pending/rejected catalog IDs remain 404.
+ const canonical=(await catalogPosition(pool,id)).id as string;
  const row=(await pool.query(`SELECT count(*)::int AS "totalCheckins",count(DISTINCT c.user_id)::int AS users,count(c.rating_quarters)::int AS "ratedCheckins",(avg(c.rating_quarters)/4)::float8 AS "averageRating",
  count(*) FILTER(WHERE c.user_id=$1)::int AS "personalCheckins",count(c.rating_quarters) FILTER(WHERE c.user_id=$1)::int AS "personalRatedCheckins",(avg(c.rating_quarters) FILTER(WHERE c.user_id=$1)/4)::float8 AS "personalAverageRating"
  FROM checkins c JOIN users u ON u.id=c.user_id JOIN user_profiles p ON p.user_id=u.id ${d.joins}

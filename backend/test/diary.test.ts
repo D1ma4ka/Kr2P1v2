@@ -41,9 +41,11 @@ test('P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media
  await create(f.position,18,extras,f.a.token,key,409);
  const repeated=await create(f.position,19,{venueText:'Дом',occurredAt:'2026-11-07T11:00:00Z'});
  const s3=await call('/v1/me/statistics');assert.equal(s3.totalCheckins,2);assert.equal(s3.uniquePositions,1);
- const secondC=await create(second,null),thirdC=await create(third,17);
+ const secondC=await create(second,null);const aab=await call('/v1/me/statistics');assert.equal(aab.totalCheckins,3);assert.equal(aab.uniquePositions,2);const thirdC=await create(third,17);
  let stats=await call('/v1/me/statistics');assert.equal(stats.totalCheckins,4);assert.equal(stats.uniquePositions,3);assert.equal(stats.ratedCheckins,3);assert.equal(stats.unratedCheckins,1);assert.equal(stats.ratingSumQuarters,'53');assert.ok(Math.abs(stats.averageRating-13.25/3)<1e-12);
  assert.equal(stats.histogram.find((x:any)=>x.ratingQuarters===17).count,2);assert.deepEqual(stats.styles.map((x:any)=>x.count).sort(),[1,2]);
+ await db.pool.query("UPDATE beer_positions SET status='rejected' WHERE id=$1",[third]);await call('/v1/positions/'+third+'/statistics','GET',undefined,f.a.token,404);assert.equal((await call('/v1/me/statistics')).uniquePositions,3);
+ await db.pool.query("UPDATE beer_positions SET status='verified' WHERE id=$1",[third]);
  const drill=await call('/v1/me/unique-positions?styleId='+styles[0].id);assert.equal(drill.items.length,2);
  for(const sort of ['date_desc','date_asc','rating_desc','rating_asc']){
  let cursor:string|null=null;const seen=new Set<string>();do{const page=await call('/v1/checkins?limit=1&sort='+sort+(cursor?'&cursor='+cursor:''));for(const item of page.items){assert.ok(!seen.has(item.id));seen.add(item.id);}cursor=page.nextCursor;}while(cursor);assert.equal(seen.size,4);
