@@ -63,3 +63,10 @@ test registers two real local accounts, uses HTTP/SQL/SMTP and actual Compose UI
 checks shared photos/like/comment/accept/remove, privacy revocation and radio-off.
 P6 screenshots are generated alongside earlier evidence. Physical TalkBack and
 RU VPS acceptance need their respective devices/infrastructure; do not infer PASS.
+
+
+SocialRetentionTest uses the actual Activity/ViewModel scope: a typed unsent comment
+survives recreation and an explicit fresh entry resets it; logout clears the scope.
+The local container drill (`backend/test/runtime-check.mjs`) additionally checks
+social UUIDs/feed/counts after API+PostgreSQL restart and isolated SQL/media restore.
+Do not run acceptance against production or external mail recipients.

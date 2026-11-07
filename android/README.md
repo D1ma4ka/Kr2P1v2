@@ -7,7 +7,7 @@ privacy, session rotation/logout/deletion request и read-only offline cache.
 Каталог P4 подключён к реальному /v1 API: серверный поиск/фильтры/пагинация,
 карточки пива/пивоварен, предложения с фото, камера и ручной GTIN.
 P5: настоящий чекин/дневник/wishlist/charts/home, encrypted editable drafts;
-автоматическая приёмка PASS. Social/venues — P6–P7, бары пока disabled.
+автоматическая приёмка PASS. P6 добавляет друзья/ленту/комментарии/лайки через настоящий API; бары P7 пока disabled.
 
 ## Сборка
 
@@ -128,3 +128,13 @@ create/edit/delete and second API refresh, wishlist UI, charts/drilldown, actual
 MainActivity recreation/unsaved input/logout, radios offline/cache/draft recovery.
 P3 cold start/sensors and P4 camera remain PASS. Physical/TalkBack NOT RUN.
 Commands and semantics: ../docs/diary/OPERATIONS.md; baseline: ../docs/design/p5-review.jpg.
+
+
+P6 social entry: home/profile «Друзья и лента», own checkin «Лайки и комментарии».
+A profile starts private; set it public in existing privacy settings to become
+searchable for a first friend request. Social pages/photos require network, never
+read persisted cache, clear on stop and revalidate on resume. Stable UUIDs protect
+comment retries; account-scoped ViewModel preserves input during Activity recreation.
+SocialIntegrationTest registers two actual test accounts via HTTP/SMTP;
+SocialRetentionTest exercises direct-entry recreation and logout. Acceptance results:
+[docs/stages/P6.md](../docs/stages/P6.md).

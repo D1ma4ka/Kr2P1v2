@@ -99,3 +99,15 @@ aggregates. Routes/semantics/rollback: [P5 operations](../docs/diary/OPERATIONS.
 до19, следующий CI и Android acceptance — docs/stages/P5.md.
 
 Финальный backend P5 `a7910a3e4b38d73e80dbb622d1841a9e68249b5d`:19/19 и runtime/restore SUCCESS, https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42354708687.
+
+
+## P6 social network
+
+Migration008 adds search/feed indexes and immutable comment retry hashes without
+replacing P5 data. Mutual friendship requests, visible feed/profile statistics,
+unique likes and own-comment deletion use PostgreSQL and the existing bearer API.
+Every social/media read and write enforces profile/checkin visibility and active
+user/content state. No client platform owns a separate social graph.
+[Routes, privacy and local acceptance](../docs/social/OPERATIONS.md),
+[stage evidence](../docs/stages/P6.md), [ADR-0007](../docs/decisions/ADR-0007-social.md).
+The runtime restart/restore drill also verifies friendship, feed, likes and comments.

@@ -27,7 +27,7 @@ class SocialRetentionTest {
         compose.runOnIdle { root.login(fixture.getString("email"),fixture.getString("password")) }
         compose.waitUntil(20_000) { root.state.value.profile != null && !root.state.value.busy }
         val user = root.state.value.profile!!.getString("userId")
-        val id = runBlocking { root.api.json("v1/checkins","POST",JSONObject().put("positionId",fixture.getString("positionId")).put("ratingQuarters",17).put("body","P6 recreation fixture").put("occurredAt","2026-11-07T12:00:00Z").put("visibility","private")).getString("id") }
+        val id = runBlocking { root.api.json("v1/checkins","POST",JSONObject().put("positionId",fixture.getString("positionId")).put("ratingQuarters",17).put("body","P6 recreation fixture").put("occurredAt","2026-11-07T12:00:00Z").put("visibility","private"),requestId = java.util.UUID.randomUUID().toString()).getString("id") }
         try {
             compose.runOnIdle { root.openSocial(id) }
             compose.waitUntil(20_000) { compose.onAllNodesWithText("Обсуждение чекина").fetchSemanticsNodes().isNotEmpty() }
@@ -52,6 +52,7 @@ class SocialRetentionTest {
             runBlocking { root.api.json("v1/checkins/$id","DELETE",JSONObject().put("version",1)) }
             compose.runOnIdle { root.logout() }
             compose.waitUntil(20_000) { root.state.value.profile == null && !root.state.value.busy }
+            compose.waitForIdle()
             assertTrue(model.viewModelScope.coroutineContext[Job]!!.isCancelled)
             assertNull(model.state.value.data);assertTrue(model.state.value.items.isEmpty())
         } finally {

@@ -86,7 +86,8 @@ class AccountIntegrationTest {
         val email = "android${UUID.randomUUID().toString().replace("-", "")}@example.invalid"
         val password = "Synthetic Android password!"
         lateinit var model: AccountViewModel
-        compose.setContent { model = viewModel(); KraPivaTheme { AccountApp(model) } }
+        var keyboard: androidx.compose.ui.platform.SoftwareKeyboardController? = null
+        compose.setContent { keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current; model = viewModel(); KraPivaTheme { AccountApp(model) } }
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Создать аккаунт").fetchSemanticsNodes().isNotEmpty() }
         screenshot("p3-welcome.png")
         compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
@@ -106,7 +107,7 @@ class AccountIntegrationTest {
         // Wait for token-driven enabled semantics and native IME layout before the physical click.
         compose.waitUntil(15_000) { compose.onAllNodes(hasText("Подтвердить") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
         // Close IME before measuring visibility: insets settle independently of Compose.
-        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).pressBack()
+        compose.runOnIdle { keyboard?.hide() }
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).waitForIdle()
         compose.waitForIdle()
         compose.onNodeWithText("Подтвердить").performScrollTo()

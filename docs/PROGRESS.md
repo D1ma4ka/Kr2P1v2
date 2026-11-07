@@ -92,3 +92,9 @@ API+DB restart и isolated pg_restore. P6 screenshots включены в manife
 review; затем финальные матрица/QA/roadmap/parity и STOP. P6 пока WIP.
 Предыдущие разделы STOP выше описывают историческую остановку, она снята командой
 владельца «Продолжай разработку»; новых квот от владельца не поступало.
+
+Backend CI42398072924 на7ad1584: SUCCESS. Полный suite21/21 PASS, npm audit0;
+container migration/startup, API+DB+SMTP restart и isolated pg_restore PASS,
+включая новые friendship/feed/like/comment assertions. Android CI42398072939
+ещё выполняется; результат пока не заявляется. При review нового retention test
+исправлены обязательные поля fixture: DELETE version и POST Idempotency-Key.
