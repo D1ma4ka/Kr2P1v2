@@ -69,7 +69,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
             }
         }
     }
-    if(leave) AlertDialog(onDismissRequest = { leave = false },title = { Text("Выйти из редактора?") },text = { Text("Сохраните черновик кнопкой в форме, чтобы продолжить позже. На сервер изменения отправляются отдельно.") },confirmButton = { TextButton({ leave = false;model.open(DiaryPage.HOME) }) { Text("Выйти") } },dismissButton = { TextButton({ leave = false }) { Text("Остаться") } })
+    if(leave) AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { leave = false },title = { Text("Выйти из редактора?") },text = { Text("Сохраните черновик кнопкой в форме, чтобы продолжить позже. На сервер изменения отправляются отдельно.") },confirmButton = { TextButton({ leave = false;model.open(DiaryPage.HOME) }) { Text("Выйти") } },dismissButton = { TextButton({ leave = false }) { Text("Остаться") } })
 }
 @Composable internal fun DiaryTitle(value: String) { Text(value,style = MaterialTheme.typography.headlineMedium,modifier = Modifier.semantics { heading() }) }
 @Composable internal fun DiaryButton(text: String,enabled: Boolean = true,action: () -> Unit) { Button(action,Modifier.fillMaxWidth().heightIn(min = 52.dp),enabled = enabled) { Text(text) } }
@@ -159,8 +159,8 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
         TextButton({ confirm = true },enabled = !state.busy && !state.offline) { Text("Удалить чекин") }
         TextButton({ model.refresh() },enabled = !state.busy) { Text("Обновить запись") }
     }
-    if(confirm) AlertDialog(onDismissRequest = { confirm = false },title = { Text("Удалить чекин?") },text = { Text("Дневник и статистика будут пересчитаны. Повторы этой позиции сохранятся.") },confirmButton = { TextButton({ confirm = false;model.delete() }) { Text("Удалить") } },dismissButton = { TextButton({ confirm = false }) { Text("Отмена") } })
-    if(venue) AlertDialog(onDismissRequest = { venue = false },title = { Text(data.optString("venueName")) },text = { Text(listOfNotNull(data.text("venueCity"),data.text("venueAddress"),data.text("venueSource")?.let { "Источник: $it" }).joinToString("\n")) },confirmButton = { TextButton({ venue = false }) { Text("Закрыть") } })
+    if(confirm) AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { confirm = false },title = { Text("Удалить чекин?") },text = { Text("Дневник и статистика будут пересчитаны. Повторы этой позиции сохранятся.") },confirmButton = { TextButton({ confirm = false;model.delete() }) { Text("Удалить") } },dismissButton = { TextButton({ confirm = false }) { Text("Отмена") } })
+    if(venue) AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { venue = false },title = { Text(data.optString("venueName")) },text = { Text(listOfNotNull(data.text("venueCity"),data.text("venueAddress"),data.text("venueSource")?.let { "Источник: $it" }).joinToString("\n")) },confirmButton = { TextButton({ venue = false }) { Text("Закрыть") } })
 }
 @Composable internal fun DiaryPhoto(id: String,api: AccountApi,offline: Boolean) {
     var bitmap by remember(id,offline) { mutableStateOf<android.graphics.Bitmap?>(null) };var error by remember(id) { mutableStateOf(false) };var retry by remember(id) { mutableIntStateOf(0) }
@@ -172,7 +172,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
             ?: if(error)TextButton({ retry++ }) { Text("Фото недоступно · повторить") }
             else Text("Загружаем фото…",color = KraPivaColors.Muted)
     }
-    if(full)AlertDialog(onDismissRequest = { full = false },title = { Text("Фото чекина") },text = { bitmap?.let { Image(it.asImageBitmap(),"Просмотр фото",Modifier.fillMaxWidth()) } },confirmButton = { TextButton({ full = false }) { Text("Закрыть") } })
+    if(full)AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { full = false },title = { Text("Фото чекина") },text = { bitmap?.let { Image(it.asImageBitmap(),"Просмотр фото",Modifier.fillMaxWidth().height(240.dp)) } },confirmButton = { TextButton({ full = false }) { Text("Закрыть") } })
 }
 @Composable private fun StatisticsScreen(state: DiaryState,model: DiaryViewModel) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -235,7 +235,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
         }catch(e: Exception) { if(e is kotlinx.coroutines.CancellationException)throw e;message = "Стили недоступны. Повторите запрос." }finally { busy = false } }
     }
     TextButton({ dialog = true;load() },enabled = !disabled) { Text("Выбрать стиль") }
-    if(dialog)AlertDialog(onDismissRequest = { dialog = false },title = { Text("Стиль пива") },text = {
+    if(dialog)AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { dialog = false },title = { Text("Стиль пива") },text = {
         Column {
             OutlinedTextField(query,{ query = it.take(120) },label = { Text("Найти стиль") },modifier = Modifier.fillMaxWidth());TextButton({ load() },enabled = !busy) { Text("Найти") }
             if(busy)LinearProgressIndicator(Modifier.fillMaxWidth());message?.let { Text(it,color = KraPivaColors.Muted) }
