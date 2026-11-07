@@ -44,6 +44,21 @@ class DiaryRetentionTest {
         compose.waitUntil(15_000) { !diary.state.value.busy }
         val store = AccountStore(instrumentation.targetContext)
         assertEquals(1,store.drafts(user).length());TestEvidence.screenshot("p5-recreated-editor.png")
+        // Actual diary → catalog deep link consumes the request once, including initial loading.
+        compose.runOnIdle { root.openPosition(fixture.getString("positionId")) }
+        compose.waitUntil(20_000) { compose.onAllNodesWithText("Сделать чекин").fetchSemanticsNodes().isNotEmpty() }
+        compose.runOnIdle { assertNull(root.catalogPosition) }
+        compose.waitUntil(20_000) { compose.onAllNodes(hasText("Хочу попробовать") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Хочу попробовать").performScrollTo().performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Убрать из wishlist").fetchSemanticsNodes().isNotEmpty() }
+        runBlocking {
+            val client = ru.krapiva.app.account.AccountApi(AccountStore(instrumentation.targetContext));assertTrue(client.restore())
+            assertTrue(client.json("v1/me/wishlist/${fixture.getString("positionId")}").getBoolean("wished"))
+        }
+        compose.onNodeWithText("Убрать из wishlist").performScrollTo().performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Хочу попробовать").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Сделать чекин").performScrollTo().performClick()
+        compose.waitUntil(20_000) { compose.onAllNodesWithText("Заметка о пиве").fetchSemanticsNodes().isNotEmpty() }
         compose.runOnIdle { root.logout() }
         compose.waitUntil(20_000) { root.state.value.profile == null && !root.state.value.busy }
         assertTrue(diary.viewModelScope.coroutineContext[Job]!!.isCancelled)

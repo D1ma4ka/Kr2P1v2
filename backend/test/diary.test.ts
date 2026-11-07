@@ -48,6 +48,8 @@ test('P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media
  for(const sort of ['date_desc','date_asc','rating_desc','rating_asc']){
  let cursor:string|null=null;const seen=new Set<string>();do{const page=await call('/v1/checkins?limit=1&sort='+sort+(cursor?'&cursor='+cursor:''));for(const item of page.items){assert.ok(!seen.has(item.id));seen.add(item.id);}cursor=page.nextCursor;}while(cursor);assert.equal(seen.size,4);
  }
+ const ratingPage=await call('/v1/checkins?limit=1&sort=rating_desc');
+ for(const [badKey,badId]of [[1.5,first.id],[1e100,first.id],[17,'a'.repeat(36)]]){const c=JSON.parse(Buffer.from(ratingPage.nextCursor,'base64url').toString());c[1]=badKey;c[2]=badId;await call('/v1/checkins?limit=1&sort=rating_desc&cursor='+Buffer.from(JSON.stringify(c)).toString('base64url'),'GET',undefined,f.a.token,400);}
  const page=await call('/v1/checkins?limit=1');await call('/v1/checkins?limit=1&q=changed&cursor='+page.nextCursor,'GET',undefined,f.a.token,400);
  assert.equal((await call('/v1/checkins?q=%D0%B5%D0%B6&hasPhoto=true')).items.length,1);
  assert.equal((await call('/v1/checkins?unrated=true')).items[0].id,secondC.id);
@@ -69,8 +71,15 @@ test('P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media
  await create(f.position,1,{},f.b.token);let visible=await call('/v1/positions/'+f.position+'/statistics');assert.equal(visible.totalCheckins,2);assert.equal(visible.personalCheckins,2);
  await db.pool.query("UPDATE user_profiles SET profile_visibility='public' WHERE user_id=$1",[f.a.id]);
  await call('/v1/checkins/'+first.id,'PATCH',{ratingQuarters:17,body:first.body,occurredAt:first.occurredAt,visibility:'public',version:1});
+ // Profile and checkin friends gates are independent, and direct media follows them.
+ await db.pool.query("UPDATE user_profiles SET profile_visibility='friends' WHERE user_id=$1",[f.a.id]);
+ await call('/v1/media/'+photo.id,'GET',undefined,f.b.token,404);
+ await db.pool.query('INSERT INTO friendships(user_low,user_high)VALUES(least($1::uuid,$2::uuid),greatest($1::uuid,$2::uuid))',[f.a.id,f.b.id]);
+ await db.pool.query("UPDATE checkins SET visibility='friends' WHERE id=$1",[first.id]);
  const imageResponse=await fetch(url+'/v1/media/'+photo.id,{headers:{authorization:'Bearer '+f.b.token}});assert.equal(imageResponse.status,200);assert.ok((await imageResponse.arrayBuffer()).byteLength>0);
  visible=await call('/v1/positions/'+f.position+'/statistics','GET',undefined,f.b.token);assert.equal(visible.totalCheckins,2);assert.equal(visible.users,2);
+ await db.pool.query("UPDATE users SET status='suspended' WHERE id=$1",[f.a.id]);await call('/v1/media/'+photo.id,'GET',undefined,f.b.token,404);
+ await db.pool.query("UPDATE users SET status='active' WHERE id=$1",[f.a.id]);
  await db.pool.query('UPDATE checkins SET hidden_at=now() WHERE id=$1',[first.id]);
  await call('/v1/media/'+photo.id,'GET',undefined,f.b.token,404);
  assert.equal((await call('/v1/me/statistics')).totalCheckins,3);await db.pool.query('UPDATE checkins SET hidden_at=NULL WHERE id=$1',[first.id]);

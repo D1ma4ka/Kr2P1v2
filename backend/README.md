@@ -88,3 +88,12 @@ keyset cursor/limit≤50. Ранее применённые migrations не из
 расширения pg_trgm ставит migration owner; runtime role остаётся без DDL.
 SQL005 меняет triggers на statement-level с transition tables для bulk imports;
 canonical UUID/checkin/wishlist references сохраняются.
+
+
+## P5 — дневник и статистика
+
+Migrations001–007, backward-compatible extended checkins + taste labels, real
+PostgreSQL diary/filter/keyset, unique positions, wishlist and personal/visible
+aggregates. Routes/semantics/rollback: [P5 operations](../docs/diary/OPERATIONS.md).
+Первый серверный P5 CI42350134181 SUCCESS18/18; recovery/upgrade дополняют suite
+до19, следующий CI и Android acceptance — docs/stages/P5.md.

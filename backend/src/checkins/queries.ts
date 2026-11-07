@@ -39,11 +39,11 @@ export function where(user:string,q:DiaryQuery) {
  return {args,sql:parts.join(' AND ')};
 }
 export function fingerprint(q:DiaryQuery,scope:string) {const {limit:_,cursor:__,...rest}=q;return createHash('sha256').update(JSON.stringify([scope,Object.entries(rest).sort()])).digest('hex');}
-export function cursor(value:string|undefined,hash:string,type:'date'|'number'|'text'):[string|number,string]|null {
+export function cursor(value:string|undefined,hash:string,type:'date'|'number'|'text',integer=false):[string|number,string]|null {
  if(!value)return null;
  try {const c=JSON.parse(Buffer.from(value,'base64url').toString('utf8'));
- if(!Array.isArray(c)||c.length!==3||c[0]!==hash||typeof c[2]!=='string'||!/^[a-f0-9-]{36}$/i.test(c[2])||
- (type==='date'?(typeof c[1]!=='string'||!validCursorTimestamp(c[1])):type==='number'?(typeof c[1]!=='number'||!Number.isFinite(c[1])):typeof c[1]!=='string'))throw Error();return[c[1],c[2]];
+ if(!Array.isArray(c)||c.length!==3||c[0]!==hash||typeof c[2]!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(c[2])||
+ (type==='date'?(typeof c[1]!=='string'||!validCursorTimestamp(c[1])):type==='number'?(typeof c[1]!=='number'||!Number.isFinite(c[1])||c[1]<-1||c[1]>20||(integer&&!Number.isInteger(c[1]))):typeof c[1]!=='string'))throw Error();return[c[1],c[2]];
  }catch{throw new ApiError(400,'INVALID_CURSOR','Курсор не соответствует фильтрам');}
 }
 export const encode=(hash:string,key:unknown,id:string)=>Buffer.from(JSON.stringify([hash,key,id])).toString('base64url');

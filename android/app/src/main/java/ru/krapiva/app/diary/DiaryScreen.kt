@@ -118,7 +118,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
     Card(Modifier.fillMaxWidth().clickable(enabled = enabled,onClick = action),colors = CardDefaults.cardColors(containerColor = KraPivaColors.Surface)) {
         Column(Modifier.padding(16.dp),verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(data.getString("positionName"),style = MaterialTheme.typography.titleLarge);Text(data.getString("breweryName"),color = KraPivaColors.Muted)
-            Text(data.getString("occurredAt"));Text(if(data.isNull("ratingQuarters")) "Без оценки" else "Оценка: ${DiaryNumbers.rating(data.getInt("ratingQuarters"))}",color = KraPivaColors.Amber)
+            Text(DiaryDates.display(data.getString("occurredAt")));Text(if(data.isNull("ratingQuarters")) "Без оценки" else "Оценка: ${DiaryNumbers.rating(data.getInt("ratingQuarters"))}",color = KraPivaColors.Amber)
             if(data.optString("body").isNotBlank()) Text(data.getString("body"))
             val tags = data.optJSONArray("tagLabels")?.strings().orEmpty();if(tags.isNotEmpty()) Text(tags.joinToString(" · "),color = KraPivaColors.Muted)
             data.text("servingFormat")?.let { Text("Подача: $it") };(data.text("venueName") ?: data.text("venueText"))?.let { Text("Место: $it") }
@@ -132,7 +132,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
     TextButton({ expanded = !expanded }) { Text(if(expanded)"Скрыть фильтры" else "Фильтры") }
     if(expanded) {
         if(state.page == DiaryPage.DIARY) {
-            for((value,label,change) in listOf(Triple(state.filters.from,"От (ISO, UTC)",{v: String -> model.filters(state.filters.copy(from = v))}),Triple(state.filters.to,"До (ISO, UTC)",{v: String -> model.filters(state.filters.copy(to = v))}),Triple(state.filters.ratingMin,"Оценка от",{v: String -> model.filters(state.filters.copy(ratingMin = v))}),Triple(state.filters.ratingMax,"Оценка до",{v: String -> model.filters(state.filters.copy(ratingMax = v))}),Triple(state.filters.venue,"Название места",{v: String -> model.filters(state.filters.copy(venue = v))}))) OutlinedTextField(value,change,label = { Text(label) },modifier = Modifier.fillMaxWidth())
+            for((value,label,change) in listOf(Triple(state.filters.from,"От (ГГГГ-ММ-ДД)",{v: String -> model.filters(state.filters.copy(from = v))}),Triple(state.filters.to,"До (ГГГГ-ММ-ДД)",{v: String -> model.filters(state.filters.copy(to = v))}),Triple(state.filters.ratingMin,"Оценка от",{v: String -> model.filters(state.filters.copy(ratingMin = v))}),Triple(state.filters.ratingMax,"Оценка до",{v: String -> model.filters(state.filters.copy(ratingMax = v))}),Triple(state.filters.venue,"Название места",{v: String -> model.filters(state.filters.copy(venue = v))}))) OutlinedTextField(value,change,label = { Text(label) },modifier = Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(state.filters.unrated,{ model.filters(state.filters.copy(unrated = it)) });Text("Без оценки") }
             Row { TextButton({ model.filters(state.filters.copy(photo = "true")) }) { Text("С фото") };TextButton({ model.filters(state.filters.copy(photo = "false")) }) { Text("Без фото") };TextButton({ model.filters(state.filters.copy(photo = "")) }) { Text("Любые фото") } }
         }
@@ -210,9 +210,9 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
     Row { TextButton({ open("UNIQUE") }) { Text("Уникальные") };TextButton({ open("WISHLIST") }) { Text("Wishlist") } }
 }
 @Composable fun PositionDiaryActions(api: AccountApi,id: String,newCheckin: () -> Unit) {
-    var stats by remember(id) { mutableStateOf<JSONObject?>(null) };var wished by remember(id) { mutableStateOf(false) };var busy by remember { mutableStateOf(false) };var error by remember(id) { mutableStateOf<String?>(null) };var offline by remember(id) { mutableStateOf(false) }
+    var stats by remember(id) { mutableStateOf<JSONObject?>(null) };var wished by remember(id) { mutableStateOf(false) };var busy by remember(id) { mutableStateOf(true) };var error by remember(id) { mutableStateOf<String?>(null) };var offline by remember(id) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(id) { try { val s = api.catalogGet("v1/positions/$id/statistics");stats = s.first;offline = s.second;wished = api.catalogGet("v1/me/wishlist/$id").first.getBoolean("wished") }catch(e: Exception) { if(e is kotlinx.coroutines.CancellationException)throw e;error = "Агрегаты или wishlist недоступны. Обновите карточку." } }
+    LaunchedEffect(id) { try { val s = api.catalogGet("v1/positions/$id/statistics");stats = s.first;offline = s.second;wished = api.catalogGet("v1/me/wishlist/$id").first.getBoolean("wished") }catch(e: Exception) { if(e is kotlinx.coroutines.CancellationException)throw e;error = "Агрегаты или wishlist недоступны. Обновите карточку." }finally { busy = false } }
     DiaryButton("Сделать чекин",!busy,newCheckin)
     stats?.let { s -> DiaryCard { Text("Доступные вам чекины: ${s.getInt("totalCheckins")} · пользователей: ${s.getInt("users")}");Text("Оценок: ${s.getInt("ratedCheckins")} · средняя: ${DiaryNumbers.average(s.text("averageRating"))}");Text("Лично: ${s.getInt("personalCheckins")} чекинов · средняя ${DiaryNumbers.average(s.text("personalAverageRating"))}",color = KraPivaColors.Muted);if(offline)Text("Сохранённые агрегаты",color = KraPivaColors.Muted) } }
     error?.let { Text(it,color = KraPivaColors.Error) }

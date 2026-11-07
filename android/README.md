@@ -1,4 +1,4 @@
-# Android — P4
+# Android — P5 IN PROGRESS
 
 Kotlin/Compose/Material 3, Android 8.0+ (minSdk 26), SDK35. P1/P2 сохранены.
 Реальные регистрация/подтверждение/вход/сброс, profile editor, avatar/cover,
@@ -6,7 +6,8 @@ privacy, session rotation/logout/deletion request и read-only offline cache.
 Все операции идут в общий backend, фиктивных ответов в приложении нет.
 Каталог P4 подключён к реальному /v1 API: серверный поиск/фильтры/пагинация,
 карточки пива/пивоварен, предложения с фото, камера и ручной GTIN.
-Checkin/social/venues — P5–P7; будущие нижние назначения пока disabled.
+P5: настоящий чекин/дневник/wishlist/charts/home, encrypted editable drafts;
+приёмка в процессе. Social/venues — P6–P7, бары пока disabled.
 
 ## Сборка
 
@@ -19,7 +20,7 @@ JVM standard properties, TLS verification не отключается.
 ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest lintDebug testDebugUnitTest
 ```
 
-Package `ru.krapiva.app.debug`, version `0.1.0-p4`. APK и debug signing keys
+Package `ru.krapiva.app.debug`, version `0.1.0-p5`. APK и debug signing keys
 только локально/ignored, публикации и production signing нет. Lint ошибки
 блокируют сборку, baseline/suppressions не добавлялись. Актуальные результаты:
 [отчёт P3](../docs/stages/P3.md), [план QA](../docs/QA_TEST_PLAN.md).

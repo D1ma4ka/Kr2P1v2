@@ -18,7 +18,7 @@ enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, 
 data class AccountState(
     val screen: AccountScreen = AccountScreen.RESTORING, val busy: Boolean = false,
     val error: String? = null, val notice: String? = null, val profile: JSONObject? = null,
-    val avatar: Bitmap? = null, val cover: Bitmap? = null, val offline: Boolean = false, val fullPhoto: Bitmap? = null,
+    val avatar: Bitmap? = null, val cover: Bitmap? = null, val offline: Boolean = false, val fullPhoto: Bitmap? = null, val catalogPosition: String? = null,
 )
 class AccountViewModel(application: Application) : AndroidViewModel(application) {
     private val store = AccountStore(application)
@@ -30,14 +30,14 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     var diaryRequest = 0; private set
     var diaryEntry = "HOME"; private set
     var diaryPosition: JSONObject? = null; private set
-    var catalogPosition: String? = null; private set
+    val catalogPosition: String? get() = mutable.value.catalogPosition
     fun openDiary(entry: String = "HOME",position: JSONObject? = null) {
         if (mutable.value.busy) return
         diaryRequest++; diaryEntry = entry; diaryPosition = position; navigate(AccountScreen.DIARY)
     }
-    fun openPosition(id: String) { catalogPosition = id; navigate(AccountScreen.CATALOG) }
-    fun consumeCatalogPosition() { catalogPosition = null }
-    private suspend fun clearSession() { catalogOwner.viewModelStore.clear(); diaryPosition = null; catalogPosition = null; api.clear() }
+    fun openPosition(id: String) { if (!mutable.value.busy) mutable.value = mutable.value.copy(screen = AccountScreen.CATALOG,catalogPosition = id,error = null,notice = null) }
+    fun consumeCatalogPosition() { mutable.value = mutable.value.copy(catalogPosition = null) }
+    private suspend fun clearSession() { catalogOwner.viewModelStore.clear(); diaryPosition = null; consumeCatalogPosition(); api.clear() }
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
     init { restore() }

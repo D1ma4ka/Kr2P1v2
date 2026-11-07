@@ -14,10 +14,11 @@ try {
  const gtin='2900000000018';
  const proposal=await propose(db,owner,randomUUID(),{name:'Synthetic Android Тёмный Ёж',breweryName:'Synthetic Android Brewery',styleName:'Synthetic Android Stout',source:'Synthetic Android acceptance fixture',gtin,abv:6.5,packaging:'can',volumeMl:500});
  const accepted=await decide(db,mod,proposal.id,{version:1,action:'accept',reason:'Synthetic Android acceptance fixture'});
+ const breweryId=(await db.query('SELECT r.brewery_id FROM beer_positions p JOIN beer_releases r ON r.id=p.release_id WHERE p.id=$1',[accepted.positionId])).rows[0].brewery_id as string;
  const additional:string[]=[];
  for(const [name,styleName] of [['Synthetic Android Второе','Synthetic Android Stout'],['Synthetic Android Третье','Synthetic Android Pale']]) {
   const proposal=await propose(db,owner,randomUUID(),{name:name!,styleName:styleName!,breweryName:'Synthetic Android Brewery',source:'Synthetic Android acceptance fixture',packaging:'can',volumeMl:330});
-  const result=await decide(db,mod,proposal.id,{version:1,action:'accept',reason:'Synthetic Android acceptance fixture',allowDuplicate:true});additional.push(result.positionId!);
+  const result=await decide(db,mod,proposal.id,{version:1,action:'accept',reason:'Synthetic Android acceptance fixture',allowDuplicate:true,breweryId});additional.push(result.positionId!);
  }
  await mkdir('../work',{recursive:true});
  await writeFile('../work/p4-android.json',JSON.stringify({email,password,gtin,positionId:accepted.positionId,secondPositionId:additional[0],thirdPositionId:additional[1]}),{flag:'wx',mode:0o600});

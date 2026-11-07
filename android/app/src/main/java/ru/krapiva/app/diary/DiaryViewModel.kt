@@ -1,6 +1,7 @@
 package ru.krapiva.app.diary
 
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
@@ -21,7 +22,7 @@ enum class DiaryPage { HOME, DIARY, UNIQUE, WISHLIST, STATISTICS, DETAIL, EDITOR
 data class DiaryFilters(val q: String = "", val styleId: String = "",val breweryId: String = "",val from: String = "",val to: String = "",val ratingMin: String = "",val ratingMax: String = "",val unrated: Boolean = false,val photo: String = "",val venueId: String = "",val venue: String = "",val sort: String = "date_desc") {
     fun query(page: DiaryPage,cursor: String? = null): String {
         val params = linkedMapOf("limit" to "20", "q" to q, "styleId" to styleId,"breweryId" to breweryId)
-        if (page == DiaryPage.DIARY) params.putAll(mapOf("from" to from,"to" to to,"ratingMin" to (DiaryNumbers.quarters(ratingMin)?.toString() ?: ""),"ratingMax" to (DiaryNumbers.quarters(ratingMax)?.toString() ?: ""),"unrated" to if(unrated) "true" else "","hasPhoto" to photo,"venueId" to venueId,"venue" to venue,"sort" to sort))
+        if (page == DiaryPage.DIARY) params.putAll(mapOf("from" to DiaryDates.boundary(from,false),"to" to DiaryDates.boundary(to,true),"ratingMin" to (DiaryNumbers.quarters(ratingMin)?.toString() ?: ""),"ratingMax" to (DiaryNumbers.quarters(ratingMax)?.toString() ?: ""),"unrated" to if(unrated) "true" else "","hasPhoto" to photo,"venueId" to venueId,"venue" to venue,"sort" to sort))
         else params["sort"] = if (sort in setOf("name","latest","rating")) sort else "name"
         cursor?.let { params["cursor"] = it }
         return params.filterValues { it.isNotBlank() }.entries.joinToString("&") { "${it.key}=${Uri.encode(it.value)}" }
@@ -119,7 +120,7 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
         }
         val photos = data.optJSONArray("localPhotos") ?: JSONArray()
         val media = data.optJSONArray("mediaIds")?.strings()?.toMutableList() ?: mutableListOf()
-        for(uri in photos.strings()) media.add(uploads[uri] ?: upload(Uri.parse(uri)).also { uploads[uri] = it })
+        for(uri in photos.strings()) media.add(uploads[uri] ?: upload(uri.toUri()).also { uploads[uri] = it })
         require(media.size <= 4) { "Не более четырёх фото" }
         val body = JSONObject()
         for(key in listOf("ratingQuarters","body","occurredAt","visibility","servingFormat","venueId","venueText","tagIds")) if(data.has(key)) body.put(key,data.get(key))

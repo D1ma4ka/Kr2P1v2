@@ -11,7 +11,7 @@ export async function getCheckin(client:pg.Pool|pg.PoolClient,userId:string,id:s
 }
 export async function listCheckins(pool:pg.Pool,user:string,limit:number,oldCursor?:string,query:d.DiaryQuery={}) {
  const q:d.DiaryQuery={...query,...(query.cursor??oldCursor?{cursor:query.cursor??oldCursor!}:{})},filter=d.where(user,q),sort=q.sort??'date_desc',asc=sort.endsWith('_asc'),rating=sort.startsWith('rating');
- const key=rating?'coalesce(c.rating_quarters,-1)':'c.occurred_at',hash=d.fingerprint(q,`diary:${user}`),after=d.cursor(q.cursor,hash,rating?'number':'date');
+ const key=rating?'coalesce(c.rating_quarters,-1)':'c.occurred_at',hash=d.fingerprint(q,`diary:${user}`),after=d.cursor(q.cursor,hash,rating?'number':'date',rating);
  let boundary='';if(after){filter.args.push(...after);boundary=`AND (${key},c.id)${asc?'>':'<'}($${filter.args.length-1}::${rating?'int':'timestamptz'},$${filter.args.length}::uuid)`;}
  filter.args.push(limit+1);
  const rows=(await pool.query<Checkin>(`SELECT ${d.cols} FROM checkins c ${d.joins} WHERE ${filter.sql} ${boundary} ORDER BY ${key} ${asc?'ASC':'DESC'},c.id ${asc?'ASC':'DESC'} LIMIT $${filter.args.length}`,filter.args)).rows;
