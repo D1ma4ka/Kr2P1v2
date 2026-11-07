@@ -1,0 +1,30 @@
+import type {FastifyInstance} from 'fastify';
+import type pg from 'pg';
+import * as s from '../http/schemas.js';
+import {checkin as diaryCheckin} from '../checkins/routes.js';
+import * as r from './repository.js';
+const count={type:'integer',minimum:0};
+const person={userId:s.uuid,displayName:{type:'string'},createdAt:s.timestamp};
+const request={id:s.uuid,fromUserId:s.uuid,toUserId:s.uuid,status:{type:'string',enum:['pending','accepted','rejected','cancelled']},createdAt:s.timestamp};
+const query={limit:{type:'string',pattern:'^(?:[1-9]|[1-4][0-9]|50)$'},cursor:{type:'string',maxLength:2048,pattern:'^[A-Za-z0-9_-]+$'}};
+const socialCheckin=s.object({...diaryCheckin.properties,displayName:{type:'string'},likeCount:count,commentCount:count,liked:{type:'boolean'}});
+const comment=s.object({id:s.uuid,userId:s.uuid,displayName:{type:'string'},checkinId:s.uuid,body:{type:'string'},createdAt:s.timestamp});
+const nullableUuid={anyOf:[s.uuid,{type:'null'}]};
+export async function socialRoutes(app:FastifyInstance,pool:pg.Pool){
+ const secure={security:[{bearerAuth:[]}],response:s.errors};
+ app.get<{Querystring:r.PageQuery}>('/v1/users',{schema:{...secure,querystring:s.object({...query,q:{type:'string',minLength:2,maxLength:80}},['q']),response:{...s.errors,200:s.page(s.object(person))}}},req=>r.search(pool,req.userId,req.query));
+ app.get<{Params:{id:string}}>('/v1/users/:id/relationship',{schema:{...secure,params:s.idParams,response:{...s.errors,200:s.object({friends:{type:'boolean'},incomingId:nullableUuid,outgoingId:nullableUuid})}}},req=>r.relationship(pool,req.userId,req.params.id));
+ app.put<{Params:{id:string};Body:{userId:string}}>('/v1/friend-requests/:id',{schema:{...secure,params:s.idParams,body:s.object({userId:s.uuid}),response:{...s.errors,200:s.object(request)}}},req=>r.requestFriend(pool,req.userId,req.params.id,req.body.userId));
+ app.put<{Params:{id:string};Body:{status:'accepted'|'rejected'|'cancelled'}}>('/v1/friend-requests/:id/decision',{schema:{...secure,params:s.idParams,body:s.object({status:{type:'string',enum:['accepted','rejected','cancelled']}}),response:{...s.errors,200:s.object(request)}}},req=>r.decide(pool,req.userId,req.params.id,req.body.status));
+ app.delete<{Params:{id:string}}>('/v1/friends/:id',{schema:{...secure,params:s.idParams,response:{...s.errors,204:{type:'null'}}}},async(req,reply)=>{await r.removeFriend(pool,req.userId,req.params.id);return reply.code(204).send();});
+ for(const requests of [false,true])app.get<{Querystring:r.PageQuery}>(requests?'/v1/friend-requests':'/v1/friends',{schema:{...secure,querystring:s.object(query,[]),response:{...s.errors,200:s.page(s.object(requests?{...person,...request}:person))}}},req=>r.connections(pool,req.userId,req.query,requests));
+ app.get<{Querystring:r.PageQuery}>('/v1/feed',{schema:{...secure,querystring:s.object(query,[]),response:{...s.errors,200:s.page(socialCheckin)}}},req=>r.feed(pool,req.userId,req.query));
+ app.get<{Params:{id:string};Querystring:r.PageQuery}>('/v1/users/:id/checkins',{schema:{...secure,params:s.idParams,querystring:s.object(query,[]),response:{...s.errors,200:s.page(socialCheckin)}}},req=>r.feed(pool,req.userId,req.query,req.params.id));
+ app.get<{Params:{id:string}}>('/v1/users/:id/statistics',{schema:{...secure,params:s.idParams,response:{...s.errors,200:s.object({scope:{type:'string',const:'visible_to_viewer'},totalCheckins:count,uniquePositions:count,ratedCheckins:count,averageRating:{anyOf:[{type:'number'},{type:'null'}]}})}}},req=>r.publicStats(pool,req.userId,req.params.id));
+ app.get<{Params:{id:string}}>('/v1/social/checkins/:id',{schema:{...secure,params:s.idParams,response:{...s.errors,200:socialCheckin}}},req=>r.checkin(pool,req.userId,req.params.id));
+ for(const method of ['PUT','DELETE'] as const)app.route<{Params:{id:string}}>({method,url:'/v1/social/checkins/:id/like',schema:{...secure,params:s.idParams,response:{...s.errors,200:socialCheckin}},handler:req=>r.like(pool,req.userId,req.params.id,method==='PUT')});
+ app.get<{Params:{id:string};Querystring:r.PageQuery}>('/v1/social/checkins/:id/comments',{schema:{...secure,params:s.idParams,querystring:s.object(query,[]),response:{...s.errors,200:s.page(comment)}}},req=>r.comments(pool,req.userId,req.params.id,req.query));
+ const params=s.object({id:s.uuid,commentId:s.uuid});
+ app.put<{Params:{id:string;commentId:string};Body:{body:string}}>('/v1/social/checkins/:id/comments/:commentId',{schema:{...secure,params,body:s.object({body:{type:'string',minLength:1,maxLength:2000}}),response:{...s.errors,200:comment}}},req=>r.addComment(pool,req.userId,req.params.id,req.params.commentId,req.body.body));
+ app.delete<{Params:{id:string;commentId:string}}>('/v1/social/checkins/:id/comments/:commentId',{schema:{...secure,params,response:{...s.errors,204:{type:'null'}}}},async(req,reply)=>{await r.deleteComment(pool,req.userId,req.params.id,req.params.commentId);return reply.code(204).send();});
+}

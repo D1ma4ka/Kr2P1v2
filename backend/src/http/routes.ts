@@ -1,3 +1,4 @@
+import {socialRoutes} from '../social/routes.js';
 import {catalogRoutes} from '../catalog/routes.js';
 import { mediaRoutes } from "../media/routes.js";
 import type { MediaService } from "../media/service.js";
@@ -38,4 +39,5 @@ export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media
   });
   await catalogRoutes(app,pool);
   await diaryRoutes(app,pool);
+  await socialRoutes(app,pool);
 }

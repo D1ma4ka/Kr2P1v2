@@ -8,7 +8,7 @@ export const nullableUuid={anyOf:[s.uuid,{type:'null'}]};
 const ids={type:'array',items:s.uuid,uniqueItems:true};
 export const extended={servingFormat:s.nullableText(80),venueId:nullableUuid,venueText:s.nullableText(300),tagIds:{...ids,maxItems:12},mediaIds:{...ids,maxItems:4}};
 const labels={type:'array',items:{type:'string'}};
-const checkin=s.object({...s.checkinSchema.properties,...extended,positionName:{type:'string'},breweryId:s.uuid,breweryName:{type:'string'},styleId:nullableUuid,styleName:s.nullableText(200),positionStatus:{type:'string'},venueName:s.nullableText(300),venueCity:s.nullableText(300),venueAddress:s.nullableText(1000),venueSource:s.nullableText(2000),tagLabels:labels});
+export const checkin=s.object({...s.checkinSchema.properties,...extended,positionName:{type:'string'},breweryId:s.uuid,breweryName:{type:'string'},styleId:nullableUuid,styleName:s.nullableText(200),positionStatus:{type:'string'},venueName:s.nullableText(300),venueCity:s.nullableText(300),venueAddress:s.nullableText(1000),venueSource:s.nullableText(2000),tagLabels:labels});
 const count={type:'integer',minimum:0},average={anyOf:[{type:'number',minimum:0.25,maximum:5},{type:'null'}]};
 const breakdown=s.object({id:nullableUuid,name:s.nullableText(200),count});
 const stat=s.object({totalCheckins:count,uniquePositions:count,ratedCheckins:count,unratedCheckins:count,ratingSumQuarters:{type:'string',pattern:'^[0-9]+$'},averageRating:average,earnedBadges:count,
