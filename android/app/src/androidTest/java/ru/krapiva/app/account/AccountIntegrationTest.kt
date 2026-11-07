@@ -103,8 +103,14 @@ class AccountIntegrationTest {
             Regex("Код: ([A-Za-z0-9_-]{43})").find(message.getString("Text"))!!.groupValues[1]
         }
         compose.onNodeWithText("Одноразовый код из письма").performTextInput(code)
-        compose.onNodeWithText("Подтвердить").performScrollTo().performClick()
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() }
+        // Wait for token-driven enabled semantics and native IME layout before the physical click.
+        compose.waitUntil(15_000) { compose.onAllNodes(hasText("Подтвердить") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Подтвердить").performScrollTo()
+        compose.waitForIdle()
+        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).waitForIdle()
+        compose.onNodeWithText("Подтвердить").assertIsEnabled().performClick()
+        try { compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() } }
+        catch(error: Throwable) { throw AssertionError("P3_VERIFY_STATE=${model.state.value.screen},busy=${model.state.value.busy},error=${model.state.value.error}",error) }
         compose.onNodeWithText("E-mail").performTextInput(email)
         compose.onNodeWithText("Пароль · 12–128 символов").performTextInput(password)
         compose.onNodeWithText("Войти").performScrollTo().performClick()

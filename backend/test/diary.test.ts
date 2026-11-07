@@ -85,11 +85,11 @@ test('P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media
  await db.pool.query('UPDATE checkins SET hidden_at=now() WHERE id=$1',[first.id]);
  await call('/v1/media/'+photo.id,'GET',undefined,f.b.token,404);
  assert.equal((await call('/v1/me/statistics')).totalCheckins,3);await db.pool.query('UPDATE checkins SET hidden_at=NULL WHERE id=$1',[first.id]);
- for(let i=0;i<2;i++)await call('/v1/me/wishlist/'+second,'PUT');assert.equal((await call('/v1/me/wishlist')).items.length,1);assert.equal((await call('/v1/me/wishlist','GET',undefined,f.b.token)).items.length,0);
+ for(let i=0;i<2;i++)await call('/v1/me/wishlist/'+second,'PUT');assert.equal((await call('/v1/me/wishlist')).items.length,1);assert.equal((await call('/v1/me/wishlist')).items[0].checkins,1);assert.equal((await call('/v1/me/wishlist','GET',undefined,f.b.token)).items.length,0);
  // Real moderator merge: positions collapse but checkin identities/history remain.
  await db.pool.query("UPDATE users SET role='moderator' WHERE id=$1",[f.b.id]);await call('/v1/moderation/positions/'+second+'/merge','POST',{targetId:f.position,reason:'Synthetic duplicate resolution'},f.b.token);
  stats=await call('/v1/me/statistics');assert.equal(stats.totalCheckins,4);assert.equal(stats.uniquePositions,2);assert.equal(stats.styles.find((x:any)=>x.id===styles[0].id).count,1);
- assert.equal((await call('/v1/me/wishlist')).items[0].id,f.position);
+ assert.equal((await call('/v1/me/wishlist')).items[0].id,f.position);assert.equal((await call('/v1/me/wishlist')).items[0].checkins,3);
  const mergedCheckin=await call('/v1/checkins/'+secondC.id);assert.equal(mergedCheckin.positionId,f.position);
  await call('/v1/checkins/'+thirdC.id,'DELETE',{version:1},f.a.token,204);assert.equal((await call('/v1/me/statistics')).uniquePositions,1);
  await call('/v1/checkins/'+repeated.id,'DELETE',{version:2},f.a.token,204);assert.equal((await call('/v1/me/statistics')).uniquePositions,1);

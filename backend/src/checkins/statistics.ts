@@ -36,7 +36,7 @@ export async function uniquePositions(pool:pg.Pool,user:string,q:d.DiaryQuery, w
  if(q.breweryId)add('brewery_id=?::uuid',q.breweryId);
  if(after){args.push(...after);conditions.push(`(${key},id)${text?'>':'<'}($${args.length-1}::${text?'text':sort==='latest'?'timestamptz':'float8'},$${args.length}::uuid)`);}
  args.push(limit+1);
- const base=wishlist?`SELECT w.position_id,max(w.created_at) AS last_seen,0::int AS checkins,NULL::float8 AS average_rating FROM wishlist_items w WHERE w.user_id=$1 GROUP BY w.position_id`:
+ const base=wishlist?`SELECT w.position_id,w.created_at AS last_seen,count(c.id)::int AS checkins,(avg(c.rating_quarters)/4)::float8 AS average_rating FROM wishlist_items w LEFT JOIN checkins c ON c.user_id=w.user_id AND c.position_id=w.position_id AND c.deleted_at IS NULL AND c.hidden_at IS NULL WHERE w.user_id=$1 GROUP BY w.position_id,w.created_at`:
  `SELECT c.position_id,max(c.occurred_at) AS last_seen,count(*)::int AS checkins,(avg(c.rating_quarters)/4)::float8 AS average_rating FROM checkins c WHERE c.user_id=$1 AND ${d.active} GROUP BY c.position_id`;
  const rows=(await pool.query(`WITH base AS (${base}),items AS (SELECT bp.id,r.name,b.id AS brewery_id,b.name AS brewery_name,r.style_id,st.name AS style_name,bp.status,base.checkins,base.average_rating,base.last_seen,catalog_normalize(r.name) AS sort_name
  FROM base JOIN beer_positions bp ON bp.id=base.position_id JOIN beer_releases r ON r.id=bp.release_id JOIN breweries b ON b.id=r.brewery_id LEFT JOIN styles st ON st.id=r.style_id)
