@@ -49,13 +49,13 @@ class SocialRetentionTest {
             // A new explicit entry to the same checkin must start a new comment draft.
             compose.runOnIdle { root.openSocial(id) }
             compose.waitUntil(20_000) { !model.state.value.busy && model.state.value.comment.isEmpty() }
-            runBlocking { root.api.json("v1/checkins/$id","DELETE") }
+            runBlocking { root.api.json("v1/checkins/$id","DELETE",JSONObject().put("version",1)) }
             compose.runOnIdle { root.logout() }
             compose.waitUntil(20_000) { root.state.value.profile == null && !root.state.value.busy }
             assertTrue(model.viewModelScope.coroutineContext[Job]!!.isCancelled)
             assertNull(model.state.value.data);assertTrue(model.state.value.items.isEmpty())
         } finally {
-            if(root.state.value.profile != null) runBlocking { root.api.json("v1/checkins/$id","DELETE") }
+            if(root.state.value.profile != null) runBlocking { root.api.json("v1/checkins/$id","DELETE",JSONObject().put("version",1)) }
         }
     }
 }
