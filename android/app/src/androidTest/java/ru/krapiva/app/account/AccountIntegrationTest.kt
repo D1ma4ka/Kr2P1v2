@@ -108,7 +108,8 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Подтвердить").performScrollTo()
         compose.waitForIdle()
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).waitForIdle()
-        compose.onNodeWithText("Подтвердить").assertIsEnabled().performClick()
+        compose.onNodeWithText("Подтвердить").assertIsDisplayed().assertIsEnabled()
+            .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { click -> assertTrue(click()) }
         try { compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() } }
         catch(error: Throwable) { throw AssertionError("P3_VERIFY_STATE=${model.state.value.screen},busy=${model.state.value.busy},error=${model.state.value.error}",error) }
         compose.onNodeWithText("E-mail").performTextInput(email)
