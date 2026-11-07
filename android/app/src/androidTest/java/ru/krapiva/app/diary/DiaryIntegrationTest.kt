@@ -67,7 +67,9 @@ class DiaryIntegrationTest {
             compose.onNodeWithText("Фото: 1 из 4").assertExists()
             compose.onNodeWithText("Сохранить чекин на сервере").performScrollTo().performClick();ready(model)
             compose.waitUntil(20_000) { model.state.value.page == DiaryPage.DETAIL && !model.state.value.busy }
-            val first = model.state.value.data!!;assertEquals(17,first.getInt("ratingQuarters"));assertEquals(1,first.getJSONArray("mediaIds").length());shot("p5-checkin-photo.png")
+            val first = model.state.value.data!!;assertEquals(17,first.getInt("ratingQuarters"));assertEquals(1,first.getJSONArray("mediaIds").length());compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Фото чекина").fetchSemanticsNodes().isNotEmpty() }
+            shot("p5-checkin-photo.png")
+            compose.onNodeWithContentDescription("Фото чекина").performScrollTo().performClick();compose.onNodeWithText("Фото чекина").assertExists();shot("p5-photo-view.png");compose.onNodeWithText("Закрыть").performClick()
             // A second real client writes A/B/C; refresh on Android must observe the same rows.
             runBlocking {
                 val secondClient = AccountApi(AccountStore(context));assertTrue(secondClient.restore())
@@ -75,6 +77,8 @@ class DiaryIntegrationTest {
             }
             compose.runOnIdle { model.open(DiaryPage.HOME) };ready(model);compose.onNodeWithText("Всего чекинов: 4").assertExists();compose.onNodeWithText("Уникальных позиций: 3").assertExists();shot("p5-home-counts.png")
             compose.runOnIdle { model.open(DiaryPage.STATISTICS) };ready(model);assertEquals("53",model.state.value.statistics!!.getString("ratingSumQuarters"));compose.onNodeWithText("Средняя оценка: 4,42").assertExists();shot("p5-style-statistics.png")
+            compose.onNodeWithText("4,25: 2").performScrollTo();shot("p5-rating-histogram.png");compose.onNodeWithText("4,25: 2").performClick();ready(model);assertEquals(2,model.state.value.items.size)
+            compose.runOnIdle { model.open(DiaryPage.STATISTICS) };ready(model)
             compose.onNodeWithText("Synthetic Android Stout: 2 · 66,67%").performScrollTo().performClick();ready(model);assertEquals(2,model.state.value.items.size);shot("p5-unique-drilldown.png")
             compose.runOnIdle { model.open(DiaryPage.DIARY,DiaryFilters(q = "цитрус",photo = "true")) };ready(model);assertEquals(1,model.state.value.items.size)
             compose.runOnIdle { model.detail(first.getString("id")) };ready(model)
@@ -105,7 +109,7 @@ class DiaryIntegrationTest {
             runBlocking { api.clear() };assertEquals(0,store.drafts(ownerId).length())
         } catch(e: Throwable) {
             runCatching { shot("p5-failure.png") }
-            throw AssertionError("P5_STATE=${model.state.value.page},busy=${model.state.value.busy},error=${model.state.value.error}\n$e",e)
+            throw AssertionError("P5_STATE=${model.state.value.page},busy=${model.state.value.busy},error=${model.state.value.error},apiStatus=${(e as? ru.krapiva.app.account.ApiFailure)?.status}\n$e",e)
         } finally { shell("svc wifi enable");shell("svc data enable");store.close() }
     }
     private suspend fun AccountApi.jsonBytesForTest(bytes: ByteArray): String = JSONObject(String(bytes("v1/media","POST",bytes,"image/png"))).getString("id")

@@ -216,7 +216,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
     DiaryButton("Сделать чекин",!busy,newCheckin)
     stats?.let { s -> DiaryCard { Text("Доступные вам чекины: ${s.getInt("totalCheckins")} · пользователей: ${s.getInt("users")}");Text("Оценок: ${s.getInt("ratedCheckins")} · средняя: ${DiaryNumbers.average(s.text("averageRating"))}");Text("Лично: ${s.getInt("personalCheckins")} чекинов · средняя ${DiaryNumbers.average(s.text("personalAverageRating"))}",color = KraPivaColors.Muted);if(offline)Text("Сохранённые агрегаты",color = KraPivaColors.Muted) } }
     error?.let { Text(it,color = KraPivaColors.Error) }
-    TextButton({ busy = true;scope.launch { try { val result = api.json("v1/me/wishlist/$id",if(wished)"DELETE" else "PUT");wished = result.getBoolean("wished");api.invalidateDiary();error = null }catch(e: Exception) { if(e is kotlinx.coroutines.CancellationException)throw e;error = "Не удалось изменить wishlist. Нужна связь с сервером." }finally { busy = false } } },enabled = !busy && !offline) { Text(if(wished)"Убрать из wishlist" else "Хочу попробовать") }
+    TextButton({ busy = true;scope.launch { try { val result = api.json("v1/me/wishlist/$id",if(wished)"DELETE" else "PUT");wished = result.getBoolean("wished");api.invalidateDiary();error = null }catch(e: Exception) { if(e is kotlinx.coroutines.CancellationException)throw e;error = if(e is ru.krapiva.app.account.ApiFailure)e.message else if(e is java.io.IOException)"Не удалось изменить wishlist. Нужна связь с сервером." else "Не удалось изменить wishlist. Повторите запрос." }finally { busy = false } } },enabled = !busy && !offline) { Text(if(wished)"Убрать из wishlist" else "Хочу попробовать") }
 }
 
 
