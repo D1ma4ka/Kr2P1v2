@@ -82,7 +82,8 @@ class DiaryIntegrationTest {
             compose.onNodeWithText("Synthetic Android Stout: 2 · 66,67%").performScrollTo().performClick();ready(model);assertEquals(2,model.state.value.items.size);shot("p5-unique-drilldown.png")
             compose.runOnIdle { model.open(DiaryPage.DIARY,DiaryFilters(q = "цитрус",photo = "true")) };ready(model);assertEquals(1,model.state.value.items.size)
             compose.runOnIdle { model.detail(first.getString("id")) };ready(model)
-            compose.onNodeWithText("Редактировать чекин").performScrollTo().performClick();ready(model)
+            compose.waitUntil(20_000) { compose.onAllNodes(hasText("Редактировать чекин") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Редактировать чекин").performScrollTo().performClick();compose.waitUntil(20_000) { model.state.value.page == DiaryPage.EDITOR && !model.state.value.busy };ready(model)
             compose.onNodeWithText("Оценка 0,25–5 · пусто = без оценки").performTextReplacement("5")
             compose.onNodeWithText("Убрать фото из чекина").performScrollTo().performClick()
             compose.onNodeWithText("Сохранить чекин на сервере").performScrollTo().performClick();ready(model);assertEquals(20,model.state.value.data!!.getInt("ratingQuarters"));assertEquals(0,model.state.value.data!!.getJSONArray("mediaIds").length())

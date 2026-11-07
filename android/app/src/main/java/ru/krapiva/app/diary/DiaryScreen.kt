@@ -166,8 +166,12 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
     var bitmap by remember(id,offline) { mutableStateOf<android.graphics.Bitmap?>(null) };var error by remember(id) { mutableStateOf(false) };var retry by remember(id) { mutableIntStateOf(0) }
     var full by remember { mutableStateOf(false) }
     LaunchedEffect(id,offline,retry) { try { val bytes = api.photo(id,offline);bitmap = bytes?.let { BitmapFactory.decodeByteArray(it,0,it.size) };error = bitmap == null } catch(e: Exception) { if(e is kotlinx.coroutines.CancellationException)throw e;error = true } }
-    bitmap?.let { Image(it.asImageBitmap(),"Фото чекина",Modifier.fillMaxWidth().height(160.dp).clickable { full = true }) }
-    if(error)TextButton({ retry++ }) { Text("Фото недоступно · повторить") }
+    // Reserve the same viewport while loading, offline or failed: later images must not move actions.
+    Box(Modifier.fillMaxWidth().height(160.dp),contentAlignment = Alignment.Center) {
+        bitmap?.let { Image(it.asImageBitmap(),"Фото чекина",Modifier.fillMaxSize().clickable { full = true }) }
+            ?: if(error)TextButton({ retry++ }) { Text("Фото недоступно · повторить") }
+            else Text("Загружаем фото…",color = KraPivaColors.Muted)
+    }
     if(full)AlertDialog(onDismissRequest = { full = false },title = { Text("Фото чекина") },text = { bitmap?.let { Image(it.asImageBitmap(),"Просмотр фото",Modifier.fillMaxWidth()) } },confirmButton = { TextButton({ full = false }) { Text("Закрыть") } })
 }
 @Composable private fun StatisticsScreen(state: DiaryState,model: DiaryViewModel) {
