@@ -105,6 +105,10 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Одноразовый код из письма").performTextInput(code)
         // Wait for token-driven enabled semantics and native IME layout before the physical click.
         compose.waitUntil(15_000) { compose.onAllNodes(hasText("Подтвердить") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        // Close IME before measuring visibility: insets settle independently of Compose.
+        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).pressBack()
+        UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).waitForIdle()
+        compose.waitForIdle()
         compose.onNodeWithText("Подтвердить").performScrollTo()
         compose.waitForIdle()
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).waitForIdle()

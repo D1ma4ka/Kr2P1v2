@@ -60,7 +60,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     }
     if (state.screen == AccountScreen.SOCIAL && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            ru.krapiva.app.social.SocialApp(model.api,state.profile!!.getString("userId"),{ model.openDiary() },{ model.navigate(AccountScreen.PROFILE) },model::openPosition,model::sessionExpired,model.socialCheckinId)
+            ru.krapiva.app.social.SocialApp(model.api,state.profile!!.getString("userId"),{ model.openDiary() },{ model.navigate(AccountScreen.PROFILE) },model::openPosition,model::sessionExpired,model.socialCheckinId,model.socialRequest)
         }
         return
     }

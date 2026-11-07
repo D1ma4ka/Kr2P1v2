@@ -30,13 +30,13 @@ import ru.krapiva.app.designsystem.KraPivaColors
 import ru.krapiva.app.diary.*
 
 @Composable
-fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,initialCheckin: String? = null,providedModel: SocialViewModel? = null) {
+fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,initialCheckin: String? = null,request: Int = 0,providedModel: SocialViewModel? = null) {
     val model = providedModel ?: viewModel<SocialViewModel>(key = "social-$userId",factory = object: ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T = SocialViewModel(api,expired) as T
     })
     val state by model.state.collectAsStateWithLifecycle()
     val owner = LocalLifecycleOwner.current
-    LaunchedEffect(initialCheckin) { if(initialCheckin != null) model.open(SocialPage.DETAIL,initialCheckin) else model.refresh() }
+    LaunchedEffect(request) { model.entry(request,initialCheckin) }
     DisposableEffect(owner,model) {
         val observer = LifecycleEventObserver { _,event -> if(event == Lifecycle.Event.ON_STOP) model.hide() else if(event == Lifecycle.Event.ON_START) model.refresh() }
         owner.lifecycle.addObserver(observer)

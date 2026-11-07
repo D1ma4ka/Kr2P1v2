@@ -101,14 +101,20 @@ class CatalogIntegrationTest {
         assertNotNull("The native camera permission dialog must be visible",allow)
         if (allow != null) {
             val deny = device.findObject(androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_deny_button")))
-            assertNotNull(deny); deny.click()
+            assertNotNull(deny); device.waitForIdle(); deny.click()
+            // Native permission-window animation can move the button after discovery.
+            // Retry only while that exact dialog remains; still require actual denial.
+            val dialog = androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_deny_button"))
+            if(!device.wait(androidx.test.uiautomator.Until.gone(dialog),3_000)) {
+                device.waitForIdle();device.findObject(dialog)?.click()
+            }
             assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg(instrumentation.targetContext.packageName)),15_000))
             waitForText("Разрешить камеру")
             compose.onNodeWithText("Введите EAN / UPC / GTIN").assertExists()
             screenshot("p4-scanner-denied.png")
             compose.onNodeWithText("Разрешить камеру").performScrollTo().performClick()
             val grant = device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_allow_foreground_only_button"))),10_000)
-            assertNotNull(grant); grant.click()
+            assertNotNull(grant); device.waitForIdle(); grant.click()
             assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg(instrumentation.targetContext.packageName)),15_000))
         }
         waitForText("Камера готова · наведите на штрихкод",20_000)

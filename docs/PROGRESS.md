@@ -1,6 +1,6 @@
-# KraPiva 2.0 — P6 WIP, аварийная остановка
+# KraPiva 2.0 — P6, продолжение приёмки
 
-7 ноября 2026, Europe/Istanbul. **Разработка остановлена по прямой команде владельца.**
+7 ноября 2026, Europe/Istanbul. **Продолжение разрешено владельцем.**
 P6 НЕ ЗАВЕРШЁН и не принят. P0–P5 сохранены; P7 не начат.
 Ветка: `codex/krapiva-2-p3`. Проверенный P5 baseline:
 `b2cc8441d3b9e0f226bf8e552a9010c6f94a46ab`.
@@ -75,3 +75,20 @@ Merge/force-push/публичный сервер/публикация APK/пла
 Точные остатки квот недоступны, проценты не выдумываются; остановка по сигналу владельца.
 Обязательный iOS P10–P13 **NOT STARTED**; следующий владелец действия — владелец проекта.
 Общая KraPiva2.0 и P6 не объявляются DONE. **STOP — ждать «Продолжай».**
+
+
+## Возобновление P6 после сохранённого b929b7e
+
+Получен итог CI42371748373: Android build/lint PASS, runtime 7/10 PASS;
+ошибки native camera permission click, scroll к новому comment и видимость
+verify button при IME. WIP уже содержит scroll к comment; добавлены ожидание
+native dialog и закрытие IME. Проверки не ослаблены.
+Исправлен direct-entry reset комментария при Activity recreation: token явного
+перехода, retained model, повторная проверка доступа без потери ввода.
+SocialRetentionTest проверяет actual recreate и logout/очистку scope.
+Runtime backup drill расширен сохранением friendship/feed/like/comment после
+API+DB restart и isolated pg_restore. P6 screenshots включены в manifest.
+Следующая задача: необходимые CI backend и Android, разбор результатов и visual
+review; затем финальные матрица/QA/roadmap/parity и STOP. P6 пока WIP.
+Предыдущие разделы STOP выше описывают историческую остановку, она снята командой
+владельца «Продолжай разработку»; новых квот от владельца не поступало.

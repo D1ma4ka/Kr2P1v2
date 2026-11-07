@@ -28,6 +28,13 @@ class SocialViewModel(val api: AccountApi, private val expired: () -> Unit): Vie
     val state = mutable.asStateFlow()
     private var job: Job? = null
     private var generation = 0
+    private var lastRequest: Int? = null
+    fun entry(request: Int,checkin: String?) {
+        if(lastRequest == request) { refresh();return }
+        lastRequest = request
+        hide() // An explicit navigation supersedes a lifecycle refresh.
+        open(if(checkin == null) SocialPage.FEED else SocialPage.DETAIL,checkin)
+    }
     private var commentId = UUID.randomUUID().toString()
     private var invitation: Pair<String,String>? = null
     private fun clearContent() { mutable.value = mutable.value.copy(items = emptyList(),next = null,data = null,statistics = null,relationship = null,revision = mutable.value.revision + 1) }

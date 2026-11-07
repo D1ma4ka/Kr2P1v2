@@ -4,6 +4,9 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -27,8 +30,9 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     val catalogOwner = object : androidx.lifecycle.ViewModelStoreOwner {
         override val viewModelStore = androidx.lifecycle.ViewModelStore()
     }
+    var socialRequest by mutableIntStateOf(0); private set
     var socialCheckinId: String? = null; private set
-    fun openSocial(id: String? = null) { if (!mutable.value.busy) { socialCheckinId = id; navigate(AccountScreen.SOCIAL) } }
+    fun openSocial(id: String? = null) { if (!mutable.value.busy) { socialRequest++; socialCheckinId = id; navigate(AccountScreen.SOCIAL) } }
     var diaryRequest = 0; private set
     var diaryEntry = "HOME"; private set
     var diaryPosition: JSONObject? = null; private set

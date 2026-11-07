@@ -45,6 +45,27 @@ async function photoHash(base) {
  assert.equal(response.status,200);return createHash('sha256').update(Buffer.from(await response.arrayBuffer())).digest('hex');
 }
 const hash=await photoHash(api);
+// Keep the private-owner fixture above; add a separate friends-only social record.
+for(const actor of [f.a,f.b]) {
+ const profile=(await call(api,'/v1/me','GET',undefined,actor.token)).body;
+ const patch={version:profile.version,profileVisibility:'public',genderVisibility:'private',firstName:null,lastName:null,country:null,city:null,bio:null,gender:null};
+ assert.equal((await call(api,'/v1/me/profile','PATCH',patch,actor.token)).status,200);
+}
+const requestId=randomUUID(),commentId=randomUUID();
+assert.equal((await call(api,'/v1/friend-requests/'+requestId,'PUT',{userId:f.b.id})).status,200);
+assert.equal((await call(api,'/v1/friend-requests/'+requestId+'/decision','PUT',{status:'accepted'},f.b.token)).status,200);
+const social=await call(api,'/v1/checkins','POST',{...input,visibility:'friends'},f.a.token,randomUUID());assert.equal(social.status,201);
+const socialPath='/v1/social/checkins/'+social.body.id;
+assert.equal((await call(api,socialPath+'/like','PUT',{},f.b.token)).status,200);
+assert.equal((await call(api,socialPath+'/comments/'+commentId,'PUT',{body:'Persistent P6 comment'},f.b.token)).status,200);
+async function socialRestored(base) {
+ assert.equal((await call(base,'/v1/users/'+f.a.id+'/relationship','GET',undefined,f.b.token)).body.friends,true);
+ const detail=await call(base,socialPath,'GET',undefined,f.b.token);
+ assert.equal(detail.status,200);assert.equal(detail.body.likeCount,1);assert.equal(detail.body.commentCount,1);assert.equal(detail.body.liked,true);
+ assert.ok((await call(base,'/v1/feed','GET',undefined,f.b.token)).body.items.some(row=>row.id===social.body.id));
+ assert.equal((await call(base,socialPath+'/comments','GET',undefined,f.b.token)).body.items[0].id,commentId);
+}
+
 const subject=`Persistent mail ${randomUUID()}`;
 const mail=localMailer('127.0.0.1',51025,'development');
 try {await mail.send('tester@example.invalid',subject,'Synthetic persisted mail');} finally {mail.close();}
@@ -62,9 +83,10 @@ try {
 assert.equal((await call(api,'/v1/checkins/'+id)).status,200);
 assert.equal((await call(api,'/v1/checkins/'+id,'GET',undefined,f.b.token)).status,404);
 assert.equal(await photoHash(api),hash);
+await socialRestored(api);
 const inbox=await (await fetch('http://127.0.0.1:58025/api/v1/search?query='+encodeURIComponent(`subject:"${subject}"`))).json();
 assert.equal(inbox.messages[0]?.Subject,subject);
-console.log('PASS: runtime role has no DDL; API+DB+Mailpit restart preserved accounts, sessions, checkin, private photo and mail');
+console.log('PASS: runtime role has no DDL; API+DB+Mailpit restart preserved accounts, sessions, checkin, private photo, mail and P6 social graph/reactions/comments');
 const restored=await testDatabase();
 let app;
 try {
@@ -75,8 +97,9 @@ try {
  assert.equal((await call(address,'/v1/checkins/'+id)).status,200);
  assert.equal((await call(address,'/v1/checkins/'+id,'GET',undefined,f.b.token)).status,404);
  assert.equal(await photoHash(address),hash);
+ await socialRestored(address);
  assert.deepEqual((await call(address,`/v1/checkins/${id}/media`)).body,{mediaIds:[media.id],version:2});
- console.log('PASS: isolated pg_restore + media backup serves identical bytes and enforces original session/owner ACL');
+ console.log('PASS: isolated pg_restore + media backup serves identical bytes and enforces original session/owner ACL and preserves P6 social data');
  await writeFile(join(backup,'RESULT.json'),JSON.stringify({result:'PASS',checkinId:id,mediaId:media.id,sha256:hash},null,2),{mode:0o600});
 } finally {if(app)await app.close();await restored.close();}
 console.log('Synthetic data/backups retained only in ignored work/ and local Docker volumes. No production or capacity claim.');
