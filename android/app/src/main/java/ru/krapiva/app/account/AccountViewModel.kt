@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
 import java.io.IOException
 
-enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG, DIARY }
+enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG, DIARY, SOCIAL }
 data class AccountState(
     val screen: AccountScreen = AccountScreen.RESTORING, val busy: Boolean = false,
     val error: String? = null, val notice: String? = null, val profile: JSONObject? = null,
@@ -27,6 +27,8 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     val catalogOwner = object : androidx.lifecycle.ViewModelStoreOwner {
         override val viewModelStore = androidx.lifecycle.ViewModelStore()
     }
+    var socialCheckinId: String? = null; private set
+    fun openSocial(id: String? = null) { if (!mutable.value.busy) { socialCheckinId = id; navigate(AccountScreen.SOCIAL) } }
     var diaryRequest = 0; private set
     var diaryEntry = "HOME"; private set
     var diaryPosition: JSONObject? = null; private set
@@ -37,7 +39,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     }
     fun openPosition(id: String) { if (!mutable.value.busy) mutable.value = mutable.value.copy(screen = AccountScreen.CATALOG,catalogPosition = id,error = null,notice = null) }
     fun consumeCatalogPosition() { mutable.value = mutable.value.copy(catalogPosition = null) }
-    private suspend fun clearSession() { catalogOwner.viewModelStore.clear(); diaryPosition = null; consumeCatalogPosition(); api.clear() }
+    private suspend fun clearSession() { catalogOwner.viewModelStore.clear(); diaryPosition = null; socialCheckinId = null; consumeCatalogPosition(); api.clear() }
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
     init { restore() }

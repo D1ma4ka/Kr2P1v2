@@ -32,7 +32,7 @@ import ru.krapiva.app.catalog.text
 import ru.krapiva.app.designsystem.KraPivaColors
 
 @Composable
-fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position: JSONObject?,upload: suspend (Uri) -> String,onProfile: () -> Unit,onCatalog: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,providedModel: DiaryViewModel? = null) {
+fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position: JSONObject?,upload: suspend (Uri) -> String,onProfile: () -> Unit,onCatalog: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,providedModel: DiaryViewModel? = null,onSocial: (String?) -> Unit = {}) {
     val model = providedModel ?: viewModel<DiaryViewModel>(key = "diary-$userId",factory = object: ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T = DiaryViewModel(api,upload,expired) as T
     })
@@ -53,9 +53,9 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
             Box(Modifier.weight(1f)) {
                 when(state.page) {
                     DiaryPage.EDITOR -> DiaryEditor(state,model)
-                    DiaryPage.DETAIL -> CheckinDetail(state,model,onPosition)
+                    DiaryPage.DETAIL -> CheckinDetail(state,model,onPosition,onSocial)
                     DiaryPage.STATISTICS -> StatisticsScreen(state,model)
-                    else -> DiaryList(state,model,onPosition)
+                    else -> DiaryList(state,model,onPosition,onSocial)
                 }
             }
             NavigationBar(containerColor = KraPivaColors.Surface) {
@@ -77,12 +77,13 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
 @Composable private fun Summary(stats: JSONObject) {
     DiaryCard { Text("Всего чекинов: ${stats.getInt("totalCheckins")}");Text("Уникальных позиций: ${stats.getInt("uniquePositions")}");Text("Средняя оценка: ${DiaryNumbers.average(stats.text("averageRating"))}");Text("Без оценки: ${stats.getInt("unratedCheckins")}",color = KraPivaColors.Muted) }
 }
-@Composable private fun DiaryList(state: DiaryState,model: DiaryViewModel,onPosition: (String) -> Unit) {
+@Composable private fun DiaryList(state: DiaryState,model: DiaryViewModel,onPosition: (String) -> Unit,onSocial: (String?) -> Unit) {
     LazyColumn(Modifier.fillMaxSize(),contentPadding = PaddingValues(16.dp),verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { DiaryTitle(when(state.page) { DiaryPage.HOME -> "Моё пиво";DiaryPage.DIARY -> "Дневник пива";DiaryPage.UNIQUE -> "Уникальные позиции";DiaryPage.WISHLIST -> "Хочу попробовать";DiaryPage.PICK -> "Выберите позицию для чекина";else -> "Черновики · не отправлено" }) }
         if(state.page == DiaryPage.HOME) {
             state.statistics?.let { stats -> item { Summary(stats);Text("Получено значков: ${stats.getInt("earnedBadges")}",color = KraPivaColors.Muted) } }
             item {
+                DiaryButton("Друзья и лента",!state.busy) { onSocial(null) }
                 DiaryButton("Новый чекин",!state.busy) { model.new() }
                 Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween) {
                     TextButton({ model.open(DiaryPage.DIARY) },enabled = !state.busy) { Text("Дневник") };TextButton({ model.open(DiaryPage.STATISTICS) },enabled = !state.busy) { Text("Статистика") }
@@ -145,7 +146,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
     }
     DiaryButton("Применить поиск",!state.busy) { model.refresh() }
 }
-@Composable private fun CheckinDetail(state: DiaryState,model: DiaryViewModel,onPosition: (String) -> Unit) {
+@Composable private fun CheckinDetail(state: DiaryState,model: DiaryViewModel,onPosition: (String) -> Unit,onSocial: (String?) -> Unit) {
     val data = state.data ?: return
     var confirm by remember(data.getString("id")) { mutableStateOf(false) }
     var venue by remember { mutableStateOf(false) }
@@ -155,6 +156,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
         TextButton({ onPosition(data.getString("positionId")) },enabled = !state.busy) { Text("Открыть позицию") }
         if(data.text("venueId") != null) TextButton({ venue = true }) { Text("Открыть место") }
         Text("Видимость: ${when(data.getString("visibility")) { "public" -> "Все";"friends" -> "Друзья";else -> "Только я" }}",color = KraPivaColors.Muted)
+        DiaryButton("Лайки и комментарии",!state.busy && !state.offline) { onSocial(data.getString("id")) }
         DiaryButton("Редактировать чекин",!state.busy) { model.edit(data) }
         TextButton({ confirm = true },enabled = !state.busy && !state.offline) { Text("Удалить чекин") }
         TextButton({ model.refresh() },enabled = !state.busy) { Text("Обновить запись") }

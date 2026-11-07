@@ -58,10 +58,16 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         }
         return
     }
+    if (state.screen == AccountScreen.SOCIAL && authenticated) {
+        CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
+            ru.krapiva.app.social.SocialApp(model.api,state.profile!!.getString("userId"),{ model.openDiary() },{ model.navigate(AccountScreen.PROFILE) },model::openPosition,model::sessionExpired,model.socialCheckinId)
+        }
+        return
+    }
     if (state.screen == AccountScreen.DIARY && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
             ru.krapiva.app.diary.DiaryApp(model.api,state.profile!!.getString("userId"),model.diaryRequest,model.diaryEntry,model.diaryPosition,model::upload,
-                { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.CATALOG) },model::openPosition,model::sessionExpired)
+                { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.CATALOG) },model::openPosition,model::sessionExpired,onSocial = model::openSocial)
         }
         return
     }
@@ -90,7 +96,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
                         AccountScreen.PROFILE -> Profile(state, model)
                         AccountScreen.EDIT -> ProfileEditor(state, model)
                         AccountScreen.SETTINGS -> Settings(state, model)
-                        AccountScreen.CATALOG, AccountScreen.DIARY -> Unit
+                        AccountScreen.CATALOG, AccountScreen.DIARY, AccountScreen.SOCIAL -> Unit
                     }
                 }
             }
@@ -211,6 +217,7 @@ private fun JSONObject.text(key: String): String = if (isNull(key)) "" else optS
     Action("Обновить", !state.busy, model::refresh)
     Action("Редактировать профиль", !state.busy && !state.offline) { model.navigate(AccountScreen.EDIT) }
     ru.krapiva.app.diary.ProfileDiarySummary(model.api) { model.openDiary(it) }
+    Action("Друзья и лента", !state.busy && !state.offline) { model.openSocial() }
     Link("Настройки аккаунта", !state.busy) { model.navigate(AccountScreen.SETTINGS) }
 }
 private fun visibilityLabel(value: String) = when(value) { "public" -> "Все пользователи"; "friends" -> "Друзья"; else -> "Только я" }
