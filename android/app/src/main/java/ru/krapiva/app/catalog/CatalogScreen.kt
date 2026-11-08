@@ -33,7 +33,7 @@ import ru.krapiva.app.account.NavigationMark
 import ru.krapiva.app.designsystem.KraPivaColors
 
 @Composable
-fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String, onProfile: () -> Unit, expired: () -> Unit, providedModel: CatalogViewModel? = null, onHome: (() -> Unit)? = null, onCheckin: ((JSONObject?) -> Unit)? = null, requestedPosition: String? = null, consumePosition: () -> Unit = {}) {
+fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String, onProfile: () -> Unit, expired: () -> Unit, providedModel: CatalogViewModel? = null, onHome: (() -> Unit)? = null, onCheckin: ((JSONObject?) -> Unit)? = null, requestedPosition: String? = null, consumePosition: () -> Unit = {}, bottomBar: @Composable () -> Unit = {}) {
     val model: CatalogViewModel = providedModel ?: viewModel(key = "catalog-$userId", factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T = CatalogViewModel(CatalogRepository(api), upload, expired) as T
     })
@@ -58,18 +58,7 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
                     CatalogPage.SCANNER -> ScannerScreen(state, model)
                 }
             }
-            NavigationBar(containerColor = KraPivaColors.Surface) {
-                for (label in listOf("Главная", "Каталог", "Чекин", "Бары", "Профиль")) NavigationBarItem(
-                    colors = NavigationBarItemDefaults.colors(indicatorColor = KraPivaColors.Amber.copy(alpha = .12f), selectedTextColor = KraPivaColors.Amber, unselectedTextColor = KraPivaColors.Muted),
-                    selected = label == "Каталог", enabled = (label in setOf("Каталог", "Профиль") || label == "Главная" && onHome != null || label == "Чекин" && onCheckin != null) && !state.busy,
-                    onClick = { when(label) { "Профиль" -> onProfile();"Главная" -> onHome?.invoke();"Чекин" -> onCheckin?.invoke(null) } },
-                    icon = {
-                        if (label == "Чекин") Surface(color = KraPivaColors.Amber, shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)) {
-                            Box(Modifier.size(40.dp),contentAlignment = Alignment.Center) { NavigationMark(label,KraPivaColors.Ink) }
-                        } else NavigationMark(label, if (label == "Каталог") KraPivaColors.Amber else KraPivaColors.Muted)
-                    },
-                    label = { Text(label, maxLines = 1, style = MaterialTheme.typography.labelSmall) })
-            }
+            bottomBar()
         }
     }
 }

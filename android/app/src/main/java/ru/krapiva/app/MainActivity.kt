@@ -2,6 +2,9 @@ package ru.krapiva.app
 
 import android.graphics.Color
 import android.os.Bundle
+import androidx.compose.runtime.SideEffect
+import ru.krapiva.app.designsystem.ThemePreference
+import ru.krapiva.app.designsystem.ThemeMode
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -18,6 +21,15 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
-        setContent { KraPivaTheme { AccountApp() } }
+        val appearance = ThemePreference(this)
+        setContent {
+            val mode = appearance.mode
+            SideEffect {
+                val style = if (mode == ThemeMode.DARK) SystemBarStyle.dark(Color.TRANSPARENT)
+                    else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+            }
+            KraPivaTheme(mode, appearance::select) { AccountApp() }
+        }
     }
 }

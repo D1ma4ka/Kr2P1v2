@@ -29,11 +29,11 @@ class SocialViewModel(val api: AccountApi, private val expired: () -> Unit): Vie
     private var job: Job? = null
     private var generation = 0
     private var lastRequest: Int? = null
-    fun entry(request: Int,checkin: String?) {
+    fun entry(request: Int,checkin: String?,initialPage: SocialPage = SocialPage.FEED) {
         if(lastRequest == request) { refresh();return }
         lastRequest = request
         hide() // An explicit navigation supersedes a lifecycle refresh.
-        open(if(checkin == null) SocialPage.FEED else SocialPage.DETAIL,checkin)
+        open(if(checkin == null) initialPage else SocialPage.DETAIL,checkin)
     }
     private var commentId = UUID.randomUUID().toString()
     private var invitation: Pair<String,String>? = null

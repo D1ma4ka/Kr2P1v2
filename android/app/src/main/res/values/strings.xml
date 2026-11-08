@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">KraPiva</string>
-    <string name="brand_eyebrow">ДНЕВНИК КРАФТА</string>
+    <string name="brand_eyebrow">ТВОЯ ПИВНАЯ ИСТОРИЯ</string>
     <string name="welcome_title">У каждого вкуса
 своя история.</string>
     <string name="welcome_body">Пивные открытия, личные впечатления и люди, с которыми их хочется разделить.</string>
@@ -10,7 +10,7 @@
     <string name="responsible_note">Для совершеннолетних. Цените впечатления, а не количество.</string>
     <string name="about_action">О KraPiva</string>
     <string name="about_title">Культура вкуса</string>
-    <string name="about_body">KraPiva — дневник крафтового пива и общения.
+    <string name="about_body">KraPiva — коллекция пивных впечатлений и крафтовое сообщество.
 
 Это предварительная версия нового приложения. Аккаунты, каталог и общение появятся по мере разработки. Сейчас здесь можно познакомиться с новым оформлением.</string>
     <string name="close_action">Понятно</string>

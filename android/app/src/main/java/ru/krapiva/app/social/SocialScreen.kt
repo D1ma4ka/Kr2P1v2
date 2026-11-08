@@ -30,13 +30,13 @@ import ru.krapiva.app.designsystem.KraPivaColors
 import ru.krapiva.app.diary.*
 
 @Composable
-fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,initialCheckin: String? = null,request: Int = 0,providedModel: SocialViewModel? = null) {
+fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,initialCheckin: String? = null,request: Int = 0,providedModel: SocialViewModel? = null, initialPage: SocialPage = SocialPage.FEED, bottomBar: @Composable () -> Unit = {}) {
     val model = providedModel ?: viewModel<SocialViewModel>(key = "social-$userId",factory = object: ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T = SocialViewModel(api,expired) as T
     })
     val state by model.state.collectAsStateWithLifecycle()
     val owner = LocalLifecycleOwner.current
-    LaunchedEffect(request) { model.entry(request,initialCheckin) }
+    LaunchedEffect(request) { model.entry(request,initialCheckin,initialPage) }
     DisposableEffect(owner,model) {
         val observer = LifecycleEventObserver { _,event -> if(event == Lifecycle.Event.ON_STOP) model.hide() else if(event == Lifecycle.Event.ON_START) model.refresh() }
         owner.lifecycle.addObserver(observer)
@@ -121,6 +121,7 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
                 }
                 if(state.next != null) item { DiaryButton("Следующая страница",!state.busy) { model.refresh(true) } }
             }
+            bottomBar()
         }
     }
     remove?.let { (id,friend) -> AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { remove = null },title = { Text(if(friend)"Удалить из друзей?" else "Удалить комментарий?") },text = { Text(if(friend)"Доступ к записям для друзей прекратится. Для новой дружбы потребуется заявка." else "Комментарий исчезнет из обсуждения.") },confirmButton = { TextButton({ remove = null;if(friend)model.removeFriend(id)else model.removeComment(id) }) { Text("Удалить") } },dismissButton = { TextButton({ remove = null }) { Text("Отмена") } }) }

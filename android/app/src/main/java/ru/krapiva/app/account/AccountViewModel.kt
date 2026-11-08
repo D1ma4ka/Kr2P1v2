@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
 import java.io.IOException
 
-enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG, DIARY, SOCIAL }
+enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG, DIARY, SOCIAL, HOME }
 data class AccountState(
     val screen: AccountScreen = AccountScreen.RESTORING, val busy: Boolean = false,
     val error: String? = null, val notice: String? = null, val profile: JSONObject? = null,
@@ -32,7 +32,11 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     }
     var socialRequest by mutableIntStateOf(0); private set
     var socialCheckinId: String? = null; private set
-    fun openSocial(id: String? = null) { if (!mutable.value.busy) { socialRequest++; socialCheckinId = id; navigate(AccountScreen.SOCIAL) } }
+    var socialPage = ru.krapiva.app.social.SocialPage.FEED; private set
+    fun openFriends() { if (!mutable.value.busy) { socialRequest++; socialCheckinId = null; socialPage = ru.krapiva.app.social.SocialPage.FRIENDS; navigate(AccountScreen.SOCIAL) } }
+    fun openHome() = navigate(AccountScreen.HOME)
+    fun openOwnCheckin(id: String) = openDiary("detail:$id")
+    fun openSocial(id: String? = null) { if (!mutable.value.busy) { socialRequest++; socialCheckinId = id; socialPage = ru.krapiva.app.social.SocialPage.FEED; navigate(AccountScreen.SOCIAL) } }
     var diaryRequest = 0; private set
     var diaryEntry = "HOME"; private set
     var diaryPosition: JSONObject? = null; private set
@@ -68,22 +72,22 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     }
     fun restore() = task {
         try {
-            if (api.restore()) loadProfile() else mutable.value = AccountState(screen = AccountScreen.WELCOME)
+            if (api.restore()) loadProfile(AccountScreen.HOME) else mutable.value = AccountState(screen = AccountScreen.WELCOME)
         } catch (error: ApiFailure) {
             if (error.status == 401) { clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN) } else throw error
         }
     }
-    private suspend fun loadProfile() {
+    private suspend fun loadProfile(destination: AccountScreen = AccountScreen.PROFILE) {
         val profile = try { api.json("v1/me") } catch (error: Exception) {
             if (error !is IOException && !(error is ApiFailure && error.status >= 500)) throw error
             val cached = api.cached() ?: throw error
-            mutable.value = AccountState(screen = AccountScreen.PROFILE, profile = cached, offline = true,
+            mutable.value = AccountState(screen = destination, profile = cached, offline = true,
                 error = "Нет связи. Показана сохранённая копия профиля.")
             loadPhotos(cached)
             return
         }
         api.cache(profile)
-        mutable.value = AccountState(screen = AccountScreen.PROFILE, profile = profile, busy = true)
+        mutable.value = AccountState(screen = destination, profile = profile, busy = true)
         loadPhotos(profile)
     }
     private suspend fun loadPhotos(profile: JSONObject) {
@@ -109,7 +113,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     }
     fun login(email: String, password: String) = task {
         val session = api.json("v1/auth/login", "POST", JSONObject().put("email", email.trim()).put("password", password), false)
-        catalogOwner.viewModelStore.clear(); api.accept(session); loadProfile()
+        catalogOwner.viewModelStore.clear(); api.accept(session); loadProfile(AccountScreen.HOME)
     }
     fun verify(token: String) = task {
         api.json("v1/auth/verify", "POST", JSONObject().put("token", token.trim()), false)

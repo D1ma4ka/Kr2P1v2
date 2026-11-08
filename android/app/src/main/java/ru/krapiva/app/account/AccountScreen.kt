@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -41,33 +42,63 @@ import org.json.JSONObject
 import ru.krapiva.app.BuildConfig
 import ru.krapiva.app.R
 import ru.krapiva.app.designsystem.BeerHero
-import ru.krapiva.app.designsystem.KraPivaColors
+import ru.krapiva.app.designsystem.*
 
 @Composable
 fun AccountApp(model: AccountViewModel = viewModel()) {
     val state by model.state.collectAsStateWithLifecycle()
+    val savedScreens = rememberSaveableStateHolder()
     val scroll = rememberScrollState()
     LaunchedEffect(state.screen) { scroll.scrollTo(0) }
     val authenticated = state.profile != null
-    BackHandler(enabled = state.screen !in setOf(AccountScreen.WELCOME, AccountScreen.PROFILE, AccountScreen.RESTORING)) {
-        model.navigate(if (authenticated) AccountScreen.PROFILE else AccountScreen.WELCOME)
+    BackHandler(enabled = state.screen !in setOf(AccountScreen.WELCOME, AccountScreen.HOME, AccountScreen.RESTORING)) {
+        model.navigate(if (authenticated) AccountScreen.HOME else AccountScreen.WELCOME)
+    }
+    val selected = when(state.screen) {
+        AccountScreen.HOME -> ClubDestination.HOME
+        AccountScreen.CATALOG -> ClubDestination.CATALOG
+        AccountScreen.DIARY -> ClubDestination.COLLECTION
+        AccountScreen.SOCIAL -> ClubDestination.FEED
+        else -> ClubDestination.PROFILE
+    }
+    val navigation: @Composable ((() -> Unit) -> Unit) -> Unit = { guard ->
+        ClubNavigation(selected,!state.busy) { destination -> guard {
+            when(destination) {
+                ClubDestination.HOME -> model.openHome()
+                ClubDestination.CATALOG -> model.navigate(AccountScreen.CATALOG)
+                ClubDestination.COLLECTION -> model.openDiary()
+                ClubDestination.FEED -> model.openSocial()
+                ClubDestination.PROFILE -> model.navigate(AccountScreen.PROFILE)
+            }
+        } }
+    }
+    if (state.screen == AccountScreen.HOME && authenticated) {
+        CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
+            savedScreens.SaveableStateProvider("home-${state.profile!!.getString("userId")}") {
+            ru.krapiva.app.home.HomeApp(model.api,state.profile!!,state.avatar,
+                { model.openDiary("new") },{ model.openDiary() },model::openOwnCheckin,model::openSocial,model::openFriends,
+                { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.SETTINGS) },model::sessionExpired,
+                bottomBar = { navigation { it() } })
+            }
+        }
+        return
     }
     if (state.screen == AccountScreen.CATALOG && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload, { model.navigate(AccountScreen.PROFILE) }, model::sessionExpired, onHome = { model.openDiary() }, onCheckin = { model.openDiary("new",it) }, requestedPosition = model.catalogPosition, consumePosition = model::consumeCatalogPosition)
+            ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload, { model.navigate(AccountScreen.PROFILE) }, model::sessionExpired, onHome = model::openHome, onCheckin = { model.openDiary("new",it) }, requestedPosition = model.catalogPosition, consumePosition = model::consumeCatalogPosition, bottomBar = { navigation { it() } })
         }
         return
     }
     if (state.screen == AccountScreen.SOCIAL && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            ru.krapiva.app.social.SocialApp(model.api,state.profile!!.getString("userId"),{ model.openDiary() },{ model.navigate(AccountScreen.PROFILE) },model::openPosition,model::sessionExpired,model.socialCheckinId,model.socialRequest)
+            ru.krapiva.app.social.SocialApp(model.api,state.profile!!.getString("userId"),model::openHome,{ model.navigate(AccountScreen.PROFILE) },model::openPosition,model::sessionExpired,model.socialCheckinId,model.socialRequest,initialPage = model.socialPage,bottomBar = { navigation { it() } })
         }
         return
     }
     if (state.screen == AccountScreen.DIARY && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
             ru.krapiva.app.diary.DiaryApp(model.api,state.profile!!.getString("userId"),model.diaryRequest,model.diaryEntry,model.diaryPosition,model::upload,
-                { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.CATALOG) },model::openPosition,model::sessionExpired,onSocial = model::openSocial)
+                { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.CATALOG) },model::openPosition,model::sessionExpired,onSocial = model::openSocial,onHome = model::openHome,bottomBar = navigation)
         }
         return
     }
@@ -96,21 +127,11 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
                         AccountScreen.PROFILE -> Profile(state, model)
                         AccountScreen.EDIT -> ProfileEditor(state, model)
                         AccountScreen.SETTINGS -> Settings(state, model)
-                        AccountScreen.CATALOG, AccountScreen.DIARY, AccountScreen.SOCIAL -> Unit
+                        AccountScreen.CATALOG, AccountScreen.DIARY, AccountScreen.SOCIAL, AccountScreen.HOME -> Unit
                     }
                 }
             }
-            if (authenticated) NavigationBar {
-                // Destinations become enabled with their real features in P4–P7.
-                for (label in listOf("Главная", "Каталог", "Чекин", "Бары", "Профиль")) NavigationBarItem(
-                    selected = label == "Профиль", enabled = label in setOf("Профиль", "Каталог", "Главная", "Чекин") && !state.busy,
-                    onClick = { when(label) { "Главная" -> model.openDiary(); "Чекин" -> model.openDiary("new"); else -> model.navigate(if (label == "Каталог") AccountScreen.CATALOG else AccountScreen.PROFILE) } }, icon = {
-                        if (label == "Чекин") Surface(color = KraPivaColors.Amber, shape = RoundedCornerShape(12.dp)) {
-                            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { NavigationMark(label, KraPivaColors.Ink) }
-                        } else NavigationMark(label, if (label == "Профиль") KraPivaColors.Cream else KraPivaColors.Muted)
-                    },
-                    label = { Text(label, maxLines = 1, style = MaterialTheme.typography.labelSmall) })
-            }
+            if (authenticated) navigation { it() }
         }
     }
     state.fullPhoto?.let { photo -> AlertDialog(onDismissRequest = model::closePhoto,
@@ -275,6 +296,15 @@ private fun visibilityLabel(value: String) = when(value) { "public" -> "Все �
 }
 @Composable private fun Settings(state: AccountState, model: AccountViewModel) {
     var deleteDialog by remember { mutableStateOf(false) }
+    Title("Оформление")
+    val theme = LocalThemeMode.current
+    val selectTheme = LocalThemeSelection.current
+    Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        for ((mode,label) in listOf(ThemeMode.DARK to "Тёмная",ThemeMode.LIGHT to "Светлая")) {
+            FilterChip(selected = theme == mode,onClick = { selectTheme(mode) },label = { Text(label) },modifier = Modifier.heightIn(min = 48.dp))
+        }
+    }
+    Text("Тема сохраняется на этом устройстве",color = KraPivaColors.Muted)
     Title("Аккаунт и приватность")
     Text("Публичность полей и фото проверяется на сервере. Настройте её при редактировании профиля.")
     Link("Редактировать приватность", !state.busy && !state.offline) { model.navigate(AccountScreen.EDIT) }

@@ -74,8 +74,8 @@ internal fun ScannerScreen(state: CatalogState, model: CatalogViewModel) {
     Canvas(Modifier.fillMaxSize().padding(28.dp)) {
         val length = 28.dp.toPx(); val stroke = 3.dp.toPx()
         for ((x,y,dx,dy) in listOf(listOf(0f,0f,1f,1f),listOf(size.width,0f,-1f,1f),listOf(0f,size.height,1f,-1f),listOf(size.width,size.height,-1f,-1f))) {
-            drawLine(KraPivaColors.Cream,Offset(x,y),Offset(x+dx*length,y),stroke)
-            drawLine(KraPivaColors.Cream,Offset(x,y),Offset(x,y+dy*length),stroke)
+            drawLine(androidx.compose.ui.graphics.Color.White,Offset(x,y),Offset(x+dx*length,y),stroke)
+            drawLine(androidx.compose.ui.graphics.Color.White,Offset(x,y),Offset(x,y+dy*length),stroke)
         }
     }
 }

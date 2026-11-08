@@ -120,7 +120,8 @@ class AccountIntegrationTest {
         compose.onNodeWithText("E-mail").performTextInput(email)
         compose.onNodeWithText("Пароль · 12–128 символов").performTextInput(password)
         compose.onNodeWithText("Войти").performScrollTo().performClick()
-        compose.waitUntil(20_000) { compose.onAllNodesWithText("Synthetic Android").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
+        compose.onNodeWithTag("nav-PROFILE").performClick()
         compose.onNodeWithText("Редактировать профиль").performScrollTo().performClick()
         compose.onNodeWithText("Город").performScrollTo().performTextReplacement("Тестовый город")
         compose.onNodeWithText("Сохранить").performScrollTo().performClick()
@@ -177,7 +178,8 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Редактировать профиль").performScrollTo().performClick()
         compose.onNodeWithText("Удалить обложку").performScrollTo().performClick()
         compose.onNodeWithText("Сохранить").performScrollTo().performClick()
-        compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.PROFILE && !model.state.value.busy }
+        compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
+        compose.onNodeWithTag("nav-PROFILE").performClick()
         compose.onNodeWithContentDescription("Аватар профиля").assertExists()
         compose.onNodeWithContentDescription("Обложка профиля").assertDoesNotExist()
         runBlocking {

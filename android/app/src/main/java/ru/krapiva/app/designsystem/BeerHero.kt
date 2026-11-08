@@ -85,6 +85,9 @@ fun BeerHero(modifier: Modifier = Modifier, previewAngle: Float? = null, forceRe
             delay(33)
         }
     }
+    val amber = ClubTokens.Amber
+    val cream = androidx.compose.ui.graphics.Color(0xFFF4EEE4)
+    val ink = ClubTokens.OnAmber
     Canvas(modifier.size(112.dp).semantics { contentDescription = "Фирменный бокал KraPiva с пеной и хмелем" }) {
         val w = size.width; val h = size.height
         val glass = Path().apply {
@@ -97,23 +100,23 @@ fun BeerHero(modifier: Modifier = Modifier, previewAngle: Float? = null, forceRe
             lineTo(w, h); lineTo(0f, h); close()
         }
         clipPath(glass) {
-            drawPath(liquid, KraPivaColors.Amber)
+            drawPath(liquid, amber)
             val foam = Path().apply { moveTo(0f, h * .4f - delta / 2); cubicTo(w * .3f, h * .37f, w * .7f, h * .43f, w, h * .4f + delta / 2) }
-            drawPath(foam, KraPivaColors.Cream, style = Stroke(h * .075f))
+            drawPath(foam, cream, style = Stroke(h * .075f))
         }
-        drawPath(glass, KraPivaColors.Cream, style = Stroke(w * .025f))
+        drawPath(glass, cream, style = Stroke(w * .025f))
         // Original hop cone with overlapping scales, shared with static brand artwork.
         withTransform({ scale(w / 108f, h / 108f, pivot = Offset.Zero) }) {
             drawPath(hop, KraPivaColors.Hop)
-            drawPath(scales, KraPivaColors.Ink, style = Stroke(2f))
+            drawPath(scales, ink, style = Stroke(2f))
         }
         for (side in listOf(0, 1)) for (vertical in listOf(0, 1)) {
             val x = if (side == 0) w * .06f else w * .94f
             val y = if (vertical == 0) h * .08f else h * .96f
             val dx = if (side == 0) w * .13f else -w * .13f
             val dy = if (vertical == 0) h * .12f else -h * .12f
-            drawLine(KraPivaColors.Cream, Offset(x, y), Offset(x + dx, y), w * .025f)
-            drawLine(KraPivaColors.Cream, Offset(x, y), Offset(x, y + dy), w * .025f)
+            drawLine(cream, Offset(x, y), Offset(x + dx, y), w * .025f)
+            drawLine(cream, Offset(x, y), Offset(x, y + dy), w * .025f)
         }
     }
 }

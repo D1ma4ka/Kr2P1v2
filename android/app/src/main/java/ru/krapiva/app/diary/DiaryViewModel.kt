@@ -52,7 +52,7 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
     fun entry(token: Int,page: String,position: JSONObject?) {
         if(token == lastRequest) return
         lastRequest = token
-        if(page == "new") new(position) else open(runCatching { DiaryPage.valueOf(page) }.getOrDefault(DiaryPage.HOME))
+        if(page.startsWith("detail:")) detail(page.removePrefix("detail:")) else if(page == "new") new(position) else open(runCatching { DiaryPage.valueOf(page) }.getOrDefault(DiaryPage.HOME))
     }
     fun filters(value: DiaryFilters) { if(!mutable.value.busy) mutable.value = mutable.value.copy(filters = value) }
     fun pickerQuery(value: String) { mutable.value = mutable.value.copy(pickerQuery = value.take(120)) }
