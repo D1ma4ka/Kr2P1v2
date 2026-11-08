@@ -112,8 +112,8 @@ class CatalogIntegrationTest {
         assertNotNull("The native camera permission dialog must be visible",allow)
         if (allow != null) {
             val deny = device.findObject(androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_deny_button")))
-            assertNotNull(deny); clickPermissionButton(deny.resourceName)
-            assertTrue(device.wait(androidx.test.uiautomator.Until.gone(androidx.test.uiautomator.By.res(deny.resourceName)),15_000))
+            assertNotNull(deny); val denyResource = deny.resourceName; clickPermissionButton(denyResource)
+            assertTrue(device.wait(androidx.test.uiautomator.Until.gone(androidx.test.uiautomator.By.res(denyResource)),15_000))
             assertEquals(android.content.pm.PackageManager.PERMISSION_DENIED,instrumentation.targetContext.checkSelfPermission(android.Manifest.permission.CAMERA))
             waitForText("Разрешить камеру")
             compose.onNodeWithText("Введите EAN / UPC / GTIN").assertExists()
