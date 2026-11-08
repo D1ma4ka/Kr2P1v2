@@ -87,3 +87,18 @@ ROADMAP и stages/P6. Они сохраняются WIP-коммитом с [ski
 остаются открытыми. QA/PARITY/финальные статусы матрицы нужно закончить после PASS.
 Локальные ignored logs/artifacts и credentials не удалялись и не включаются в Git.
 **STOP — ждать команды владельца «Продолжай».**
+
+
+## Возобновление 8 ноября 2026
+
+Продолжение разрешено владельцем. Ветка чистая, remote97d4153 совпал с local.
+Получен итог существующего CI42398404892: Android10/11 PASS, оба новых social
+теста PASS, включая реальный HTTP/SMTP двух аккаунтов и Activity recreation/logout.
+Единственный failure — CatalogIntegrationTest: coordinate click native permission
+попал в underlying manual barcode form (снимок p4-scanner-denied уже содержит
+invalid error; permission grant в logcat успешен). Исправляется только test input:
+реальный accessibility ACTION_CLICK кнопки native dialog вместо координат.
+Добавлены explicit denied permission и отсутствие случайной barcode error assertions.
+Backend21/21 и restore остаются проверенными, backend code не меняется.
+Следующая задача: CI исправленного теста, visual review и окончательная документация.
+Предыдущий STOP снят новой командой; P7 не начат.

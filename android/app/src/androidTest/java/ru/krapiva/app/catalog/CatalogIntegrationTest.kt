@@ -37,6 +37,17 @@ class CatalogIntegrationTest {
         UiDevice.getInstance(instrumentation).waitForIdle()
         TestEvidence.screenshot(name)
     }
+    private fun clickPermissionButton(resource: String) {
+        // Use the real native button's accessibility action. Coordinate injection can
+        // hit the underlying manual form while the permission window is animating.
+        var button: android.view.accessibility.AccessibilityNodeInfo? = null
+        compose.waitUntil(10_000) {
+            button = instrumentation.uiAutomation.rootInActiveWindow
+                ?.findAccessibilityNodeInfosByViewId(resource)?.firstOrNull { it.isClickable && it.isVisibleToUser }
+            button != null
+        }
+        assertTrue("Native permission button must handle click",button!!.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
+    }
     private var activeModel: CatalogViewModel? = null
     @Test fun catalogSearchBreweryScannerProposalAndEncryptedCache() {
         try { catalogFlow() } catch (error: Throwable) {
@@ -101,22 +112,18 @@ class CatalogIntegrationTest {
         assertNotNull("The native camera permission dialog must be visible",allow)
         if (allow != null) {
             val deny = device.findObject(androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_deny_button")))
-            assertNotNull(deny); device.waitForIdle(); deny.click()
-            // Native permission-window animation can move the button after discovery.
-            // Retry only while that exact dialog remains; still require actual denial.
-            val dialog = androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_deny_button"))
-            if(!device.wait(androidx.test.uiautomator.Until.gone(dialog),3_000)) {
-                device.waitForIdle();device.findObject(dialog)?.click()
-            }
-            assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg(instrumentation.targetContext.packageName)),15_000))
+            assertNotNull(deny); clickPermissionButton(deny.resourceName)
+            assertTrue(device.wait(androidx.test.uiautomator.Until.gone(androidx.test.uiautomator.By.res(deny.resourceName)),15_000))
+            assertEquals(android.content.pm.PackageManager.PERMISSION_DENIED,instrumentation.targetContext.checkSelfPermission(android.Manifest.permission.CAMERA))
             waitForText("Разрешить камеру")
             compose.onNodeWithText("Введите EAN / UPC / GTIN").assertExists()
             screenshot("p4-scanner-denied.png")
             compose.onNodeWithText("Разрешить камеру").performScrollTo().performClick()
             val grant = device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.res(java.util.regex.Pattern.compile(".*:id/permission_allow_foreground_only_button"))),10_000)
-            assertNotNull(grant); device.waitForIdle(); grant.click()
+            assertNotNull(grant); clickPermissionButton(grant.resourceName)
             assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg(instrumentation.targetContext.packageName)),15_000))
         }
+        assertNull("Permission actions must not submit the manual barcode form",model.state.value.error)
         waitForText("Камера готова · наведите на штрихкод",20_000)
         val cameraManager = instrumentation.targetContext.getSystemService(android.hardware.camera2.CameraManager::class.java)
         val cameraId = cameraManager.cameraIdList.first { cameraManager.getCameraCharacteristics(it).get(android.hardware.camera2.CameraCharacteristics.LENS_FACING) == android.hardware.camera2.CameraCharacteristics.LENS_FACING_BACK }
