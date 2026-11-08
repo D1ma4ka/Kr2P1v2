@@ -1,0 +1,97 @@
+{
+  "reviewedAt": "2026-11-07 Europe/Istanbul",
+  "sourceCommit": "0f06c9dedb92c93255aa513c9ab3beb1a081c2f0",
+  "workflowRun": "https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42355943975",
+  "jobId": 128353976873,
+  "derivative": "p5-review.jpg: P5 cells extracted from CI JPEG; original PNG hashes below",
+  "screenshots": [
+    {
+      "path": "KraPivaP3/p5-checkin-photo.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "e79c23eeea6d51c048a0bdfeb162535f34dec2f92de1abbf8d6095c0343d4786"
+    },
+    {
+      "path": "KraPivaP3/p5-diary-offline.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "fbe62ab7ed3afe2ca628be75b7f6a1e4cc778dbdbe670c2c1043dec75157fa77"
+    },
+    {
+      "path": "KraPivaP3/p5-home-counts.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "f8ba1649b63aae650f13aa449725c919bfa0003aeaaa5f6dae33f3738be1e326"
+    },
+    {
+      "path": "KraPivaP3/p5-home-empty.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "514b428069af7b96dabf277702804c7f15f46dd3105e861e250d23584f896283"
+    },
+    {
+      "path": "KraPivaP3/p5-photo-view.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "d44645996b2711a7ef9437d5a2e356dfcc8af3cd49a9ecff4af8d4d465c7a86f"
+    },
+    {
+      "path": "KraPivaP3/p5-rating-histogram.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "41cabe4e982b363fe595c3c969ab22850c37ea16a0d1b8dd422b0d1123cb2b5f"
+    },
+    {
+      "path": "KraPivaP3/p5-recreated-editor.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "6cb62bf5f397b5e655fa0fc82c1f8d37416a32822304ec6e7e5f4e474450bb1d"
+    },
+    {
+      "path": "KraPivaP3/p5-style-statistics.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "244b5012c32de55abffd65acdf0e33ac15ba7fb3091b8ed00730abf898dbb8d1"
+    },
+    {
+      "path": "KraPivaP3/p5-unique-drilldown.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "0dccd26a61ce333f9e2acbf21c07cd843d6df819abc5249a6a78213ae063cf5a"
+    },
+    {
+      "path": "KraPivaP3/p5-unsent-draft.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "bb71e94456393718b5b471e5654ab07bdd91c36376e1da8fd3d519d268a4041f"
+    },
+    {
+      "path": "KraPivaP3/p5-wishlist.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "a5af979aa3e8a8d50328a98b051e13646f5a45ae5bb1fbfd1efc635f4a375874"
+    }
+  ]
+}

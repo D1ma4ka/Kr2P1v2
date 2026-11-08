@@ -13,7 +13,12 @@ export const profileFields = {
   firstName: nullableText(80), lastName: nullableText(80), city: nullableText(120), country: nullableText(100),
   bio: nullableText(2000), gender: nullableText(80), genderVisibility: visibility, profileVisibility: visibility,
 };
-export const profileSchema = object({ userId: uuid, displayName: { type: "string" }, ...profileFields, version, updatedAt: timestamp });
+export const extraProfileFields = {
+ displayName:{type:'string',minLength:1,maxLength:80,pattern:'\\S'},
+ avatarAssetId:{anyOf:[uuid,{type:'null'}]},coverAssetId:{anyOf:[uuid,{type:'null'}]},
+ links:{type:'array',maxItems:10,uniqueItems:true,items:object({url:{type:'string',maxLength:2048,pattern:'^https://'},visibility})},
+};
+export const profileSchema = object({ userId: uuid, ...profileFields, ...extraProfileFields, version, updatedAt: timestamp });
 export const checkinFields = {
   positionId: uuid, ratingQuarters: { anyOf: [{ type: "integer", minimum: 1, maximum: 20 }, { type: "null" }] },
   body: { type: "string", maxLength: 5000 }, occurredAt: timestamp, visibility,

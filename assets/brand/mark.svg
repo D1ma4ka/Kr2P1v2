@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" role="img" aria-label="KraPiva — пинта с пеной"><path fill="#E9AF61" d="M29,43 L79,43 L72,86 Q54,98 36,86 Z"/><path fill="#F6EFE3" d="M29,43 C20,33 30,23 40,27 C43,15 61,14 66,26 C80,20 91,34 79,43 Z"/><path fill="#171512" d="M47,52 L53,52 L50,80 L44,80 Z M59,52 L65,52 L62,80 L56,80 Z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><path d="M12 27V13H26 M82 13H96V27 M96 81V95H82 M26 95H12V81" fill="none" stroke="#F5EBD8" stroke-width="3" stroke-linecap="round"/>
+<path d="M28 33H80L73 87Q54 93 35 87Z" fill="#F5A623"/>
+<path d="M28 33Q24 21 36 23Q40 13 50 21Q58 12 66 22Q81 18 80 33Z" fill="#F5EBD8"/>
+<path d="M28 33H80L73 87Q54 93 35 87Z" fill="none" stroke="#F5EBD8" stroke-width="3" stroke-linejoin="round"/>
+<path d="M54 45C37 47 35 61 42 75Q47 84 54 88Q61 84 66 75C73 61 71 47 54 45Z" fill="#78B936"/>
+<path d="M54 45V40 M54 48Q48 59 40 60 M54 48Q60 59 68 60 M40 59Q43 70 54 72Q65 70 68 59 M44 70Q47 80 54 85Q61 80 64 70 M54 62Q49 67 47 74 M54 62Q59 67 61 74" fill="none" stroke="#0B0D0F" stroke-width="2" stroke-linecap="round"/></svg>

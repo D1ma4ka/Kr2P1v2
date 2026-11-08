@@ -9,7 +9,32 @@ concurrency:
   group: backend-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  changed-components:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: changes
+        env:
+          BASE_SHA: ${{ github.event.before || github.event.pull_request.base.sha || 'HEAD^' }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            echo 'backend=true' >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- backend/ infra/ compose.yaml .env.example scripts/init_dev.py .github/workflows/backend.yml ':(exclude,glob)backend/**/*.md'; then
+            echo 'backend=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'backend=true' >> "$GITHUB_OUTPUT"
+          fi
   integration:
+    needs: changed-components
+    if: needs.changed-components.outputs.backend == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     defaults:
@@ -35,7 +60,7 @@ jobs:
       - run: npm ci --ignore-scripts --no-fund --no-audit
       - run: npm run build
       - name: Unit, HTTP, SQL, media, SMTP and OpenAPI
-        run: node --env-file=../.env --test dist/test/*.test.js
+        run: node --env-file=../.env --test --test-concurrency=1 dist/test/*.test.js
       - run: npm audit --audit-level=high
       - name: Build non-root API and migrate
         working-directory: .

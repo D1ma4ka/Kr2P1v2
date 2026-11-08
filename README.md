@@ -8,10 +8,19 @@ A modern social platform for craft beer enthusiasts and bars
 совершеннолетних пользователей: каталог пивных позиций, дневник и социальная сеть
 с настоящим сервером и постоянной БД.
 
-**P0/P1/P2 завершены; остановка перед P3.** Есть Android стартовый
-экран и серверный фундамент: PostgreSQL, migrations, owner API, сессии,
-private media, local SMTP и OpenAPI. Полные account workflows и социальные
-сценарии ещё предстоят; это не готовый публичный сервис.
+**P0–P5 сохранены; P6 завершён, автоматическая приёмка PASS. STOP перед P7.**
+Android auth/profile связан с настоящим сервером: PostgreSQL, migrations, owner API, сессии,
+private media, local SMTP и OpenAPI. Account workflows P3 и социальные
+функции P6 работают через общий HTTP/SQL/SMTP backend. Ручная проверка physical phone/TalkBack ещё NOT RUN.
+P4 добавил настоящий каталог/search/brewery/proposals/moderation/GTIN scanner;
+камера/разрешения/освобождение и offline переходы проверены на эмуляторе;
+оптический захват физической этикетки ещё NOT RUN. Это не публичный production сервис.
+
+P5 добавляет настоящие чекины/дневник, wishlist, unique positions, оценки,
+диаграммы/home и encrypted editable drafts. [Операции P5](docs/diary/OPERATIONS.md).
+
+P6 добавляет взаимных друзей, ленту с фото, лайки, комментарии и серверную приватность.
+[Операции P6](docs/social/OPERATIONS.md), [проверки P6](docs/stages/P6.md).
 
 Текущая точка продолжения и результаты — [прогресс](docs/PROGRESS.md).
 Команды запуска и восстановления — [локальный backend](docs/DEPLOYMENT_RU.md),
@@ -42,11 +51,11 @@ git diff --check
 
 Изменения ведутся в рабочей ветке. Правила репозитория: [AGENTS.md](AGENTS.md).
 После каждого этапа — проверка, commit/push, отчёт и остановка до сообщения
-владельца «Продолжай». Следующий этап P3 требует отдельного разрешения владельца.
+владельца «Продолжай». P6 завершён; ждать новой команды владельца, P7 самостоятельно не начинать.
 
 ## Актуальные требования v1.3
 
 [Изменения и сравнение](docs/UPDATE_v1.3.md), [roadmap](docs/ROADMAP.md),
 [паритет платформ](docs/PLATFORM_PARITY.md). iOS PLANNED P10–P13, обязательна;
 готовность Android не равна готовности всего продукта. Новый дизайн и motion
-ещё не внедрены, P1 не пересоздаётся. Source checker адаптирован к v1.3 (180 ID) с сохранением обоих архивов.
+внедряются в P3 без пересоздания P1. Source checker адаптирован к v1.3 (180 ID) с сохранением обоих архивов.

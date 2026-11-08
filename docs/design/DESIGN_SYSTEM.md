@@ -1,7 +1,8 @@
 # Дизайн-система — цель v1.3 (Dark v1.2)
 
 Эта документация заменяет прежнее предложенное оформление Craft Mark.
-Исходные код/токены/PNG P1 не изменены и не считаются выполнением новых FR.
+P3 обновляет тему, исходные SVG/PNG/Android icons и добавляет sensor liquid.
+Исторические результаты P1 сохранены в Git; реальные P3 проверки — stages/P3.md.
 Референс reference/krapiva-dark-concept.png — обязательный стилевой ориентир,
 не готовый asset, не данные и не разрешение копировать чужие картинки.
 
@@ -41,9 +42,33 @@ welcome/registration hero не закрывает форму. Gravity/accelerome
 ±6–8°/около30Hz не жёсткие параметры. Нет фоновых sensors/логов/отправки на сервер.
 ADR-MOTION и unit/UI/physical tests — P3/P8, iOS эквивалент — P12/P13.
 
-## Подтверждённое состояние P1
+## Реализованное состояние P3
 
-Theme.kt: ink #171512, surface #24201B, amber #E9AF61, cream #F6EFE3,
-muted #C3B6A4, serif заголовок. Mark — пинта без обязательных хмеля/углов.
-Это работающие прежние ресурсы P1; их прежний contrast PASS не доказывает
-контраст и соответствие новой темы. Заменять только в согласованном P1.1 UI-блоке.
+Theme.kt и tokens.json используют палитру выше; system sans-serif.
+Error #FFB4AB, focus/warning amber, success hop-light; disabled muted с
+платформенной disabled opacity. Оригинальный знак: бокал/пена/хмелевая шишка/
+рамка сканера, горизонтальный KraPiva. Конкретные результаты — ASSET_INVENTORY.
+Доступные auth/profile/settings экраны используют тему; остальные появляются
+только с реальными функциями P4–P7. Нижняя композиция пяти пунктов зафиксирована,
+доступен профиль; будущие назначения disabled, никаких имитаций server flows.
+
+## Реализованное состояние P4
+
+CatalogScreen использует KraPiva Dark/общие typography и radii, общий
+BeerPositionCard, original mark вместо отсутствующего фото, источники/статусы,
+пятиэлементную нижнюю навигацию с активным каталогом. Server empty/error и offline
+состояния видимы; нет демонстрационных рейтингов/чекинов. Scanner cream corners,
+permission/manual fallback; proposal form использует native picker. SVG/иконки
+P3 сохранены. Actual API35 baseline: [P4 JPEG](p4-review.jpg),
+[original PNG hashes](p4-screenshot-manifest.json), CI42292450630 SUCCESS.
+PreviewView220dp ограничен native bounds и Compose clip; manual controls читаемы.
+
+
+## Реализованное состояние P5
+
+DiaryCard/BeerPositionCard/Profile используют общие KraPiva graphite/amber/cream
+tokens. Интерактивные style/brewery bars и20 rating bins имеют текстовые counts,
+подписанный denominator, unknown/unrated/empty состояния; цвет не единственный
+канал. Editor/photo picker/local dates, unsent drafts/offline notices и real home
+имеют baseline p5-review.jpg + original PNG hash manifest. Полная physical
+TalkBack/font-scale regression всех новых экранов остаётся P8/NOT RUN.

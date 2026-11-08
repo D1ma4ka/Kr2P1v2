@@ -1,0 +1,81 @@
+{
+  "reviewedAt": "2026-11-07 Europe/Istanbul",
+  "sourceCommit": "a89d4946e8579cadaa02cb84d6fc19459d550258",
+  "workflowRun": "https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42292450630",
+  "jobId": 128149126854,
+  "derivative": "p4-review.jpg: P4 cells extracted from CI JPEG; original PNG hashes below",
+  "screenshots": [
+    {
+      "path": "KraPivaP3/p4-brewery.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "071c29e34539c09d61e07525605726bfe06e6fd265640fad51389f7b1b09e00a"
+    },
+    {
+      "path": "KraPivaP3/p4-catalog.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "ac53caf06f8b7c3aaa20eceac126e078b527a37fc02b10fa6f2a5a3d98154857"
+    },
+    {
+      "path": "KraPivaP3/p4-offline-position.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "47c47d37a43ee952350b11bc970ba37c4293716af9d036da6075acfef481f0c2"
+    },
+    {
+      "path": "KraPivaP3/p4-position.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "a36037041f397dd95308d2e63d2bffbf8cd2dd6cfc9fda23181ba7c08582710a"
+    },
+    {
+      "path": "KraPivaP3/p4-proposals.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "dd53b0b2307b725b8fa082c63b5521a17271f1dbf6dc7ba270319eb2f83c57bc"
+    },
+    {
+      "path": "KraPivaP3/p4-recreated-position.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "7066774a4eb4c7be2c0c72000813a0fd9930ba1dd2473d85c0a7aa2b4d5a3689"
+    },
+    {
+      "path": "KraPivaP3/p4-scanner-camera.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "528de6e6a5e365bb75064122c3cea4e442a5181d4abdca8d73a21dc91593f79f"
+    },
+    {
+      "path": "KraPivaP3/p4-scanner-denied.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "b5e08aa7089e4848818fc0e640d34ad52ae319c3e606fa76be91bcb4678b4915"
+    },
+    {
+      "path": "KraPivaP3/p4-scanner-unknown.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "ed6e30423fc60bcab53f9bab198448bc33eaa5551e4e52eddb944130515ef2fa"
+    }
+  ]
+}

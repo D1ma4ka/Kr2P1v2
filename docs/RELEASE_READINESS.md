@@ -1,36 +1,29 @@
-# Готовность KraPiva 2.0 — после P2
+# Готовность KraPiva 2.0 — P5 реализован, автоматическая приёмка PASS
 
-**P0/P1/P2 DONE. Двухплатформенный продукт и production не готовы.**
-ТЗ v1.3, iOS P10–P13 MUST/PLANNED. Следующий этап P3 только по новой команде.
-Текущий Git/лимиты/команды продолжения: PROGRESS.md.
+P0–P3 сохранены; P4 реализован: Android7/7, unit6, backend17/17 PASS; physical scan/TalkBack NOT RUN.
+P5 backend19 PASS, Android8 unit/build/lint +9 instrumented PASS; physical/TalkBack NOT RUN.
+Двухплатформенный продукт и production не готовы. P6 требует новой команды.
+Актуальная точка Git/лимиты/доказательства: [PROGRESS](PROGRESS.md), [P5](stages/P5.md), [P4 baseline](stages/P4.md).
 
 | Область | Статус | Доказательство / оставшееся |
 |---|---|---|
-| Provenance v1.0/v1.3 | PASS | 12 исходников по SHA, AGENTS unchanged,180 требований/29 экранов/43 сценария |
-| Android foundation/config | PASS | f81e10a assembleDebug/lintDebug,0 errors/4 warnings; API env и policy проверены |
-| SQL/migrations/API/OpenAPI | PASS P2 | 11 real-service tests, transactions/checksums/concurrency/owner ACL |
-| Media и SMTP | PASS P2 | sanitized private files, EXIF/limits/thumbnail/delete failures; реальный Mailpit |
-| Restart/backup/restore | PASS local | SQL+media isolated restore, session/ACL/photo hash/mail persistence |
-| Backend CI | SUCCESS | [run42047987386](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42047987386), code2d11942 |
-| Android/source CI | SUCCESS | [run42047237008](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42047237008), Android f81e10a |
-| Source after CI fix | SUCCESS | [run42047987563](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42047987563), Android skipped без изменений |
-| Полные account/profile workflows | INCOMPLETE | P3, не заменять dev session provisioning публичным login |
-| Catalog/social/stats/map/badges | INCOMPLETE | SQL schema не означает готовые P4–P7 endpoints/UI |
-| Offline/device/accessibility/security/load | INCOMPLETE | P3–P8, реальной capacity500k+ нет |
-| RU staging/production | BLOCKED | Размещение/DNS/TLS/SMTP/legal/budget ещё не согласованы и не развёрнуты |
-| iOS/MUST parity/публикация | INCOMPLETE | P10–P13, Mac/Xcode/iPhone/Apple доступы и разрешения позже |
+| Provenance v1.0/v1.3 | PASS | исходные SHA, AGENTS unchanged,180 ID/29 screens/43 scenarios |
+| Auth/profile/privacy/media/motion P3 | PASS automated | stages/P3.md; реальный API35/SQL/SMTP/cold start; physical/TalkBack NOT RUN |
+| Catalog/search/moderation P4 | PASS server | 17 real tests; фото/source/ACL, merge/alias/concurrency, upgrade migrations |
+| Android P4 | PASS automated | build/lint/unit6 + instrumented7 PASS, camera deny/grant/open/release, recreation и offline→online; physical optical scan NOT RUN |
+| Catalog scale smoke | PASS bounded | 50000 synthetic positions/3000000 GTIN, EXPLAIN/plans/timings; catalog/SCALING.md |
+| Restart/backup/restore | PASS local | CI SQL+media isolated restore, session/ACL/photo hashes; P2/P3/P4/P5 server foundation |
+| Diary/wishlist/stats/home P5 | PASS automated | real SQL/API19 + Android8 unit/build/lint/device9 PASS; stages/P5.md |
+| Social/map/badges | INCOMPLETE | P6–P7; SQL foundation не подменяет функции |
+| Device/accessibility/security/load | INCOMPLETE | P8 regression/physical/production load/retention и release R8 ещё нужны |
+| RU staging/production | BLOCKED | размещение/DNS/TLS/SMTP/legal/budget не согласованы и не развёрнуты |
+| iOS/MUST parity/publication | INCOMPLETE | P10–P13, обязательный второй клиент; Mac/Xcode/iPhone/Apple доступы позже |
 
-LOCAL_BACKEND_VERIFIED = проверенная P2 foundation. STAGING_VERIFIED и
-PRODUCTION_DEPLOYED не заявляются. A19 server persistence PASS; A20 BLOCKED;
-остальные полные продуктовые A1–A43 NOT RUN. В матрице 7 требований DONE
-(NFR001,FR114,FR118,NFR018,NFR019,NFR021,NFR033);173 INCOMPLETE, из них167 MUST.
-Более широкие FR/NFR с клиентом/соцсетью/эксплуатацией остаются незавершёнными.
+LOCAL_BACKEND_VERIFIED относится только к проверенному локальному окружению.
+STAGING_VERIFIED/PRODUCTION_DEPLOYED не заявляются. Synthetic data не переносить
+в production. Конкретные A-сценарии отражены в QA_TEST_PLAN, не все43 PASS.
 
-До релиза проверить targetSdk/AndroidX (4 lint warnings), обновление pinned
-GitHub actions с deprecated Node20 runtime и совместимость. Нужны production
-SMTP, storage/backup monitoring/retention, legal/signing, load tests. P1 UI и
-бренд не перерабатывались: v1.3 UI refinement/motion относится к P3.
-
-Draft PR5 в рабочую P1 ветку, без merge. APK этой сессии — локальный debug
-артефакт проверки конфигурации, не новый опубликованный релиз для пользователей.
-Нет покупки, production deployment, App Store upload или изменений main.
+До релиза: измерения нагрузки/доступности на разрешённом RU staging, production
+SMTP/storage/backup/retention/legal/signing, dependency/license review и устранение
+зафиксированных lint advisories. Публичный релиз/покупки/production/main merge
+не выполнялись. Draft PR6 содержит накопленные P3–P5 поверх рабочей P2 ветки.

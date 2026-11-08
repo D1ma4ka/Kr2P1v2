@@ -38,7 +38,7 @@ jobs:
         run: |
           if [ "$EVENT_NAME" = workflow_dispatch ]; then
             echo 'android=true' >> "$GITHUB_OUTPUT"
-          elif git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- android/ assets/; then
+          elif git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- android/ assets/ .github/workflows/ci.yml scripts/check_android_motion.py scripts/check_android_cold_start.py scripts/prepare_android_emulator.py scripts/preview_android_evidence.py ':(exclude,glob)android/**/*.md' ':(exclude,glob)assets/**/*.md'; then
             echo 'android=false' >> "$GITHUB_OUTPUT"
           else
             echo 'android=true' >> "$GITHUB_OUTPUT"
@@ -63,7 +63,7 @@ jobs:
     needs: changed-components
     if: needs.changed-components.outputs.android == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -74,6 +74,14 @@ jobs:
           java-version: '21'
       - name: Verify wrapper
         run: echo '2db75c40782f5e8ba1fc278a5574bab070adccb2d21ca5a6e5ed840888448046  android/gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
+      - uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        id: gradle-cache
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: android-gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: android-gradle-${{ runner.os }}-
       - name: Set up Android command-line tools
         uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
         with:
@@ -86,9 +94,117 @@ jobs:
         working-directory: android
         run: |
           build_status=0
-          ./gradlew --no-daemon assembleDebug lintDebug || build_status=$?
+          ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest lintDebug testDebugUnitTest || build_status=$?
           lint_report=app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
           if [ -f "$lint_report" ]; then
             cat "$lint_report"
           fi
           exit "$build_status"
+      - uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        if: steps.gradle-cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ steps.gradle-cache.outputs.cache-primary-key }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Start real local API, database and test mailbox for Android
+        run: |
+          python scripts/init_dev.py
+          docker compose up -d --wait db mailpit
+          cd backend
+          npm ci --ignore-scripts --no-fund --no-audit
+          npm run build
+          node --env-file=../.env dist/src/db/migrate.js
+          node --env-file=../.env dist/src/operations/catalog-device-fixtures.js
+          mkdir -p ../work
+          PORT=53000 node --env-file=../.env dist/src/main.js > ../work/android-api.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:53000/health/ready; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Boot isolated Android 35 emulator
+        id: emulator
+        timeout-minutes: 6
+        run: |
+          if [ ! -e /dev/kvm ]; then
+            echo 'BLOCKED: runner does not provide usable KVM; no device PASS claimed'
+            exit 1
+          fi
+          sdkmanager 'emulator' 'system-images;android-35;default;x86_64'
+          export ANDROID_AVD_HOME="$PWD/work/android-avd"
+          export ANDROID_USER_HOME="$PWD/work/android-user"
+          export ANDROID_EMULATOR_HOME="$PWD/work/android-emulator"
+          mkdir -p "$ANDROID_AVD_HOME" "$ANDROID_USER_HOME" "$ANDROID_EMULATOR_HOME"
+          echo no | avdmanager create avd --force --name krapiva --path "$ANDROID_AVD_HOME/krapiva.avd" --package 'system-images;android-35;default;x86_64' --device pixel_2
+          if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
+            "$ANDROID_HOME/emulator/emulator" -avd krapiva -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -camera-back emulated -camera-front emulated -accel on > work/android-emulator.log 2>&1 &
+          else
+            # Use the existing device group for this non-root process only.
+            # No chmod, udev rules, user modification or security configuration.
+            # Hosted sudo permits its default root target, not an arbitrary Runas group.
+            # setpriv immediately drops UID/capabilities before executing any emulator code.
+            emulator_test_groups="$(id -G | tr ' ' ','),$(stat -c %g /dev/kvm)"
+            sudo -n -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --groups="$emulator_test_groups" --no-new-privs --reset-env \
+              env ANDROID_HOME="$ANDROID_HOME" ANDROID_AVD_HOME="$ANDROID_AVD_HOME" ANDROID_USER_HOME="$ANDROID_USER_HOME" ANDROID_EMULATOR_HOME="$ANDROID_EMULATOR_HOME" \
+              "$ANDROID_HOME/emulator/emulator" -avd krapiva -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -camera-back emulated -camera-front emulated -accel on > work/android-emulator.log 2>&1 &
+          fi
+          emulator_test_pid=$!
+          for attempt in $(seq 1 90); do
+            if ! kill -0 "$emulator_test_pid" 2>/dev/null; then
+              tail -n 80 work/android-emulator.log
+              exit 1
+            fi
+            if [ "$(timeout 5 adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; then
+              adb shell input keyevent 82
+              python scripts/prepare_android_emulator.py
+              exit 0
+            fi
+            sleep 2
+          done
+          tail -n 80 work/android-emulator.log
+          exit 1
+      - name: Transfer protected synthetic catalog fixture to the isolated emulator
+        run: adb push work/p4-android.json /data/local/tmp/p4-android.json
+      - name: Real Android HTTP SQL SMTP catalog camera and motion UI acceptance
+        id: ui
+        working-directory: android
+        run: ./gradlew --no-daemon -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true connectedDebugAndroidTest
+      - name: Cold process restores real authenticated profile
+        if: ${{ !cancelled() && steps.ui.outcome == 'success' }}
+        run: python scripts/check_android_cold_start.py
+      - name: Real emulator tilt changes the rendered liquid surface
+        if: ${{ !cancelled() && steps.emulator.outcome == 'success' }}
+        run: |
+          # Same APK; clear only the isolated synthetic account after cold-start check.
+          adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+          adb shell pm clear ru.krapiva.app.debug
+          python -m pip install Pillow==11.3.0
+          python scripts/check_android_motion.py
+      - name: Retain synthetic UI evidence (no APK or credentials)
+        if: always()
+        run: |
+          mkdir -p work/screenshots
+          if [ -f work/android-emulator.log ]; then tail -n 30 work/android-emulator.log; fi
+          adb pull /sdcard/Download/KraPivaP3/ work/screenshots/ || true
+          python -m pip install Pillow==11.3.0
+          python scripts/preview_android_evidence.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: p3-android-test-evidence
+          path: |
+            android/app/build/reports/androidTests/
+            android/app/build/outputs/androidTest-results/
+            work/screenshots/
+          retention-days: 7
+      - name: Stop isolated test services
+        if: always()
+        run: |
+          adb emu kill || true
+          docker compose stop db mailpit

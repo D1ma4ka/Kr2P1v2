@@ -1,0 +1,67 @@
+{
+  "reviewedAt": "2026-11-08 Europe/Istanbul",
+  "sourceCommit": "60a1d16e72204b9868ceaf3df7490faac7c57730",
+  "workflowRun": "https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42398404892",
+  "jobId": 128480874419,
+  "artifactId": 13584563686,
+  "result": "Both social tests PASS; whole suite10/11 due to unrelated scanner permission test. Later commits only change test/documentation, not production social UI.",
+  "derivative": "p6-review.jpg: contact sheet of actual synthetic-only P6 PNGs; originals in CI artifact",
+  "screenshots": [
+    {
+      "path": "KraPivaP3/p6-comments.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "4973c08f30c5b3f27e7be1b4fe9ed804dff5582f3b68eb2f36edcb8cb6221ab3"
+    },
+    {
+      "path": "KraPivaP3/p6-feed-photo.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "e4bf8b8434a7ab54cbc6fe30623df7afebbd0b3983d0bdeff2818e64e771b2e3"
+    },
+    {
+      "path": "KraPivaP3/p6-friend-profile.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "996a60fc2c122ce5799da0a5b0910aee4762522588f2c916fd1bb49834a9722a"
+    },
+    {
+      "path": "KraPivaP3/p6-incoming-request.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "e54208cd5bf816a6abc82ac324d0a12d56a8526a4139094cbf25adbd435ad842"
+    },
+    {
+      "path": "KraPivaP3/p6-offline.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "9572432ba025514c16627c817b3beae140d18755514a476f1ed90294427c0965"
+    },
+    {
+      "path": "KraPivaP3/p6-private-unavailable.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "d1b82d8bd15c374ee3ef3599cd294df52a5374b4ee28373dd22ef7755dc0ac62"
+    },
+    {
+      "path": "KraPivaP3/p6-recreated-comment.png",
+      "dimensions": [
+        1080,
+        1920
+      ],
+      "sha256": "f580fc36c4ac4b39e7368a03bb9d807c3dec420e1808497c18b5413a5a0bdaa6"
+    }
+  ]
+}

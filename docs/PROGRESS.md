@@ -1,76 +1,81 @@
-# KraPiva 2.0 — P2 DONE, STOP
+# KraPiva 2.0 — P6 завершён, STOP перед P7
 
-Дата: 5 ноября 2026. ТЗ v1.3. **P0/P1/P2 DONE; P3 NOT STARTED.**
-Ветка `codex/krapiva-2-p2`. Последний проверенный код/config — `2d11942`;
-Android проверен на `f81e10a` (после него Android не менялся).
-Финальный коммит отчёта содержит только docs, его SHA — `git log -1`/отчёт
-владельцу. Работу продолжать только после новой команды. Следующий этап P3,
-включая согласованный v1.3 UI refinement; не запускать его автоматически.
+8 ноября 2026, Europe/Istanbul. **Обязательные функции P6 реализованы,
+автоматическая приёмка PASS. P0–P5 сохранены. P7 НЕ НАЧАТ.**
+Ветка: `codex/krapiva-2-p3`. P5 baseline: `b2cc8441d3b9e0f226bf8e552a9010c6f94a46ab`.
+Draft PR: https://github.com/D1ma4ka/Kr2P1v2/pull/6 — без merge.
+Последний проверенный code/test commit: `299558e530177a100275c08d15e59f5b2f3c303e`.
+Финальный docs/visual-only commit с [skip ci] — HEAD; SHA сообщается владельцу.
 
-## Лимиты
+## Что реализовано
 
-Последняя инструкция владельца: **недельный остаток <25% или пятичасовой <50%**
-→ прекращение новых задач/сборок/тестов, безопасные commit/push/отчёт/остановка.
-API текущих квот нет. Ручные сообщения этой сессии: «100 63», «66 58», «30 53».
-Последние два числа без подписей сохранены буквально; автоматического контроля
-нет. При последнем сообщении проверки уже завершились; дальше только сохранение.
-Не переходить на платные кредиты, не создавать агентов и не начинать P3.
+- Настоящие PostgreSQL поиск видимых пользователей, взаимные заявки/accept/reject/
+  cancel/remove, лента друзей с фото, чужие профили и доступная зрителю статистика.
+- Уникальный лайк PUT/DELETE, комментарии с UUID и безопасным повтором, удаление
+  только своего; cursor pagination, terminal request и comment tombstone без дублей.
+- Profile AND checkin privacy, hidden/deleted/suspended, права прямого доступа к
+  записям/комментариям/медиа. SQL locks для конкурентных privacy/unfriend и записей.
+- Android home/profile/own-checkin entry, поиск/друзья/заявки/лента/профиль/обсуждение;
+  KraPiva Dark, loading/empty/error/offline/retry, подтверждение удаления.
+- Social data/photos не сохраняются в disk cache; очистка stop/dispose/failure,
+  revalidation на resume/refresh. Comment draft/retry UUID переживают Activity
+  recreation; явный новый переход сбрасывает ввод, logout очищает account scope.
+- Additive migration008, общий Android/iOS-neutral OpenAPI, ADR-0007.
+  Нет заглушек, production fixtures, платных ресурсов или отдельной БД для платформ.
 
-## Реализованная foundation
+## Пройденные проверки
 
-- PostgreSQL17, SQL entities §6/15, FK/check/unique/indexes, private media metadata;
-  ordered/checksummed migrations с транзакциями/lock; runtime role без DDL.
-- `/v1` OpenAPI, owner profile/checkin/media API, persistent hash-only bearer
-  sessions и revoke/TTL, cursor limits, DB rate budget, idempotency/version conflicts.
-- Photo normalization/EXIF removal/thumbnail, size/pixel limits, owner access,
-  attachments/max4, deletion/tombstone/retry; files вне SQL.
-- Mailpit: реальный локальный SMTP и persistent mail volume. Dev-only explicit
-  synthetic accounts/mail tools; нет production seed или login imitation.
-- Non-root Docker/Compose, переносимый env, проверенный restart/isolated restore,
-  readiness по schema hashes/table access/media, generic errors и безопасные логи.
-- Android только API_BASE_URL/окружения/debug-local network policy. UI P1 не
-  переделывался. Реальный клиентский sign-up/login/API wiring — P3.
+Backend: https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42398072924
+`7ad1584379af9604d691e1b64c31a0277b200a3f`: **21/21 PASS**,20.54s, audit0.
+Build/OpenAPI, migrations, non-root container, PostgreSQL/SMTP/media restart и
+isolated pg_restore PASS. Backend code после этого прогона не менялся.
+Два аккаунта social test зарегистрированы через HTTP→SMTP→verification→login;
+проверены graph/feed/like/comment/restart, IDOR/privacy/direct media, concurrent
+retries и actual PostgreSQL lock wait→privacy/unfriend denial без вставки записи.
+Restore сохраняет social UUID/feed/counts/comment, private photo bytes и session ACL.
 
-## Доказательства
+Android: https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42463380380
+`299558e530177a100275c08d15e59f5b2f3c303e`: **SUCCESS,11/11 device tests PASS**,
+0 skipped/failed,4m55s. Build/lint/unit8/source/assets PASS. Прежние9 tests сохранены.
+SocialIntegrationTest: реальные signup/SMTP/API двух аккаунтов, UI invite/accept/
+remove/feed/photo/like/comment/delete, второй клиент проверяет изменения и отзывает
+видимость; первый после refresh теряет доступ. Radio-off→error, чужого disk cache нет.
+SocialRetentionTest: actual recreation сохраняет ввод/model, новый entry сбрасывает,
+logout очищает scope. Cold process→Keystore→API profile/editing PASS. Actual sensor
+motion PASS (+10/−4px). Новые тесты после успешной приёмки не запускались.
 
-- Local TypeScript build + **11/11 tests PASS**, включая новые negative DB/TLS/
-  storage cases, настоящий SQL/HTTP/SMTP, IDOR/concurrency/idempotency/contract.
-- GitHub backend **SUCCESS** (2d11942):
-  https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42047987386
-  11 tests, audit0 vulnerabilities, Docker build, migrations, startup,
-  restart API/DB/Mailpit, isolated pg_restore+media copy и session/ACL/photo hashes.
-- GitHub Android+source **SUCCESS** (f81e10a):
-  https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42047237008
-  assembleDebug/lintDebug: 0 errors, 4 version warnings; исходники/ресурсы PASS.
-- После CI-only fix source **SUCCESS**, Android корректно не повторён:
-  https://github.com/D1ma4ka/Kr2P1v2/actions/runs/42047987563
-- Local Android assembleDebug/lintDebug PASS, staging/release constants generation
-  PASS, missing production URL и HTTP production configuration отвергаются.
-- Source checker PASS: v1.0/v1.3 hashes, 180 requirements,29 screens,43 scenarios.
-- Draft PR (без merge): https://github.com/D1ma4ka/Kr2P1v2/pull/5, base P1 branch.
+Семь P6 screenshots проверены; [baseline](design/p6-review.jpg) и
+[hash manifest](design/p6-screenshot-manifest.json). Источник42398404892, social2/2
+PASS; production social UI после него не менялся. Полный финальный прогон — выше.
+Финальные verify_p0.py / check_foundation.py / git diff --check: PASS.
 
-## Оставшееся / ограничения
+## Исправленные ошибки и сохранность
 
-Открытых ошибок выполненных проверок нет. Локальный Foundation не равен продукту
-или production. 500k+ registered/1M/3M — цели, capacity/load не измерялись.
-P3: signup/verification/reset/rotation, полная field ACL/avatar/cover/links, клиент,
-secure cache; P4–P7: полноценные catalog/social/map/badges/stats workflows.
-A19 local backend PASS; A20 staging BLOCKED (нет разрешённого сервера/клиентского
-E2E), остальные полные product scenarios NOT RUN. iOS P10–P13 PLANNED/MUST.
-До релиза: обновление targetSdk/AndroidX и deprecated Node20 actions, совместимость,
-device/TalkBack, production hardening/monitoring/retention/S3 и нагрузка P8/P9.
-Исходные AGENTS/spec/assets сохранены. Ни production/merge/покупок/публикации нет.
+Direct-entry effect сбрасывал comment при recreation — исправлен navigation token.
+UI tests: lazy comment scroll и закрытие IME; native permission coordinate click
+попадал в ручную форму сканера — заменён реальным accessibility action конкретной
+системной кнопки. Actual denied/granted permission и готовая камера проверяются.
+Test fixture соблюдает исходный контракт POST Idempotency-Key / DELETE version.
+API/ACL/assertions не ослаблялись. Все11 device tests после исправлений PASS.
 
-## Продолжение без потери времени
+Аварийные STOP сохранены b929b7e и97d4153 [skip ci]; работа продолжалась только
+после новых команд владельца. Checkpoints b30de95/bb0f898/7ad1584/08386c0/60a1d16/
+90f65ca/299558e отправлены в эту же ветку. Полный перечень файлов и доказательств:
+[отчёт P6](stages/P6.md), [операции](social/OPERATIONS.md).
 
-Прочитать AGENTS, этот файл, stages/P2.md, IMPLEMENTATION_PLAN и актуальное ТЗ.
-Проверить branch/HEAD/remote. **Не повторять P0–P2**; ждать разрешения на P3.
-Backend README/DEPLOYMENT_RU описывают запуск и restore. Для нового задания
-при необходимости пересобрать local image: он может быть старше проверенного
-в GitHub кода. Не выдавать старый image за результат текущего source commit.
+## Осталось за пределами обязательного P6
 
-Local .env и закрытые synthetic token files/backups только в ignored work/;
-не печатать их и не коммитить. Runtime drill создаёт новую synthetic batch на
-каждый явный запуск, не зависит от вчерашней сессии. Volumes сохранены, dev
-контейнеры остановлены. Не применять down -v для обычной остановки.
-Подробная история предыдущих остановок: stages/P2_HISTORY.md.
+Известных незакрытых функциональных ошибок P6 в проверенных сценариях нет.
+Physical phone/TalkBack/physical optical scan NOT RUN; RU VPS/staging не подключён.
+FR-068 extended blocking/reports SHOULD отложены; mandatory moderation FR-090
+по утверждённой матрице P7/P8. iOS P10–P13 NOT STARTED; A38 parity ещё NOT RUN.
+Realtime/push revoke не заявляется: bytes уже доставленного ответа не отзываются,
+каждый следующий HTTP проверяет актуальные права. Social offline намеренно закрыт.
+Это не production launch и не завершение всего KraPiva2.0.
+
+**Точная следующая задача: ждать команды владельца.** После отдельного разрешения
+определить следующий этап по ТЗ/ROADMAP; P7 и VPS самостоятельно не начинать.
+Публичный сервер, APK release, main merge/force push и платные сервисы не выполнялись.
+Credentials, DB volumes, временные screenshots/logs/backups остаются вне Git.
+Точные остатки лимитов недоступны; при сигнале ≤25%/≤50% — safe save/STOP.
+**STOP — ожидание следующей команды владельца.**
