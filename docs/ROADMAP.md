@@ -3,7 +3,7 @@
 Полный план: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 P0 DONE → P1 DONE → P2 DONE → P3/P1.1 automated PASS → P4 automated PASS →
-P5 implemented/automated PASS → **P6 WIP, STOP владельца; acceptance pending (7 ноября 2026)** → P7 → P8 → P9.
+P5 implemented/automated PASS → **P6 implemented/automated PASS (8 ноября 2026), STOP перед P7** → P7 → P8 → P9.
 Ручные P3/P4 physical scan/TalkBack NOT RUN, RU staging BLOCKED.
 Затем обязательный iOS-трек: **P10 → P11 → P12 → P13**.
 Между всеми этапами обязательная остановка и разрешение.
