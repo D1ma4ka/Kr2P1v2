@@ -1,0 +1,2 @@
+68510ee4b06f9c99b8f911f24646f4088b03d0f7bbb2c0cd1c6aa5bfd2ccca15  work/p61-resume/krapiva-p61-stage1-debug.apk
+a95af0195069bb77e67e164f04f715026eb1f897d32a758ccc3c01c33b2a763e  work/p61-resume/krapiva-p61-stage1-tests.apk
