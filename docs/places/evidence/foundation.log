@@ -1,0 +1,9 @@
+PASS contrast cream/ink: 16.46:1
+PASS contrast muted/ink: 8.03:1
+PASS contrast amber/ink: 9.61:1
+PASS contrast cream/surface: 13.70:1
+PASS contrast muted/surface: 6.68:1
+PASS contrast error/surface: 9.54:1
+PASS SVG, PNG dimensions and Android XML
+PASS Gradle wrapper JAR matches official 8.11.1 SHA-256
+PASS baseline credential/artifact guard (not a complete security audit)

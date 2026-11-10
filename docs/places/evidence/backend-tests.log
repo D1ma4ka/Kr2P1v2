@@ -1,0 +1,47 @@
+✔ P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, session rotation, profile/media ACL and deletion request (4300.316659ms)
+✔ account failure paths: SMTP rollback, expired tokens and independent token rate budgets (1108.753452ms)
+✔ real HTTP+SQL: two accounts, ACL, durable idempotency, cursor and concurrency, revocation and DB outage (2421.720224ms)
+✔ GTIN checksum, EAN8/UPC/EAN13/GTIN14 padding and QR separation (0.99212ms)
+✔ P4 real HTTP/PostgreSQL: empty catalog, proposals, ACL, search, GTIN, duplicates, merge, media and rollback (2775.192282ms)
+✔ P3 → P4 additive migration retains stable catalog IDs and rebuilds searchable projection (501.534226ms)
+✔ cursor calendar validation rejects normalized invalid dates before SQL (1.023447ms)
+✔ OpenAPI is valid and exactly matches registered HTTP schemas (1231.856112ms)
+✔ P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media/tags, wishlist, ACL, versions and merge (3788.264271ms)
+✔ P4 → P5 migration preserves historical checkins and legacy idempotency acknowledgements (718.493037ms)
+✔ database config bounds and TLS cannot be bypassed through URL parameters (1.432846ms)
+✔ readiness rejects missing schema, drift and inaccessible storage; media failures preserve recoverability (1315.008888ms)
+✔ configuration rejects malformed port, host and environment (3.813404ms)
+✔ real HTTP liveness, 404, response headers and socket shutdown (168.00907ms)
+✔ invalid JSON and oversized bodies fail without reflecting content (17.860685ms)
+✔ private media: real image normalization/EXIF removal, attachment ACL, limits, restart and deletion (2189.950223ms)
+✔ real SMTP delivers only synthetic messages into local Mailpit (45.669487ms)
+✔ real PostgreSQL: concurrent/repeated migrations, checksums, rollback, relational invariants (520.39527ms)
+✔ P7 real directory API: provenance, roles, bbox, antimeridian, filters/cursor, bounded map and production test exclusion (1732.353768ms)
+✔ P7 venue photo provenance/rights, shared approved edits, actual aggregates and hide/restore ACL (811.346436ms)
+▶ P7 ten data-driven badges: actual history, idempotent recalculation, ordered three pins, revocation and peer ACL
+  ✔ checkins reaches 1 from SQL facts (0.451512ms)
+  ✔ positions reaches 3 from SQL facts (0.110246ms)
+  ✔ positions reaches 10 from SQL facts (0.115464ms)
+  ✔ styles reaches 3 from SQL facts (0.124358ms)
+  ✔ styles reaches 5 from SQL facts (0.084627ms)
+  ✔ breweries reaches 3 from SQL facts (0.269558ms)
+  ✔ breweries reaches 5 from SQL facts (0.153301ms)
+  ✔ notes reaches 3 from SQL facts (0.206803ms)
+  ✔ photos reaches 3 from SQL facts (0.116937ms)
+  ✔ venues reaches 2 from SQL facts (0.073701ms)
+✔ P7 ten data-driven badges: actual history, idempotent recalculation, ordered three pins, revocation and peer ACL (1181.369555ms)
+✔ P7 reports cover comment, venue, position and user holds; dismissal and deleted content cannot be restored (869.835478ms)
+✔ P7 additive upgrade from 009 preserves existing IDs and never certifies old coordinates without provenance (409.87749ms)
+✔ P7 real reporting/moderation: public-only IDOR, idempotency, hide/restore media ACL, audit and admin roles (862.530167ms)
+✔ entrypoint serves HTTP, omits sensitive input from logs and exits on SIGTERM (685.251949ms)
+✔ P6 real HTTP/PostgreSQL/SMTP: two registered accounts, friendship state machine, feed, comments, reactions, privacy and restart (2816.025941ms)
+✔ P6 concurrent privacy/unfriend serializes against social writes; comment cursors and suspension (639.575566ms)
+✔ P6.1 email-bound numeric verification: single use, expiry, atomic guess limit and resend invalidation (2913.276025ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 37658.419596

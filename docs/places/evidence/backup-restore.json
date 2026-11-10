@@ -1,0 +1,10 @@
+{
+  "backupSchema": 9,
+  "preserved": {
+    "users": 4,
+    "checkins": 2,
+    "media_assets": 2,
+    "venues": 0
+  },
+  "status": "PASS"
+}

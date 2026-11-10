@@ -1,0 +1,75 @@
+{
+  "dateUtc": "2026-11-10",
+  "repository": "D1ma4ka/Kr2P1v2",
+  "branch": "codex/krapiva-p7",
+  "implementationCommit": "c1c51cfea4a1e99d829e983dd5aba0e5a6fe41bd",
+  "baseP61Candidate": "e8f4ba68fffcbd7ad0bb1346b54d01cb3d8b0ac8",
+  "status": "IMPLEMENTED_CANDIDATE_DEVICE_ACCEPTANCE_PENDING",
+  "backend": {
+    "tests": 38,
+    "passed": 38,
+    "failed": 0,
+    "skipped": 0,
+    "build": "PASS",
+    "openapi": "PASS",
+    "log": "evidence/backend-tests.log"
+  },
+  "android": {
+    "unit": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "debugBuild": "PASS",
+    "androidTestCompilation": "PASS",
+    "lint": {
+      "Error": 0,
+      "Fatal": 0,
+      "Warning": 7
+    },
+    "apiBaseUrl": "http://127.0.0.1:53000/",
+    "artifacts": [
+      {
+        "path": "work/p7/krapiva-p7-phone-debug.apk",
+        "bytes": 63409454,
+        "sha256": "b98596002899e14a3f3fbd641dd8f27745c72588479d2cf5c6c24c618b622ff2"
+      },
+      {
+        "path": "work/p7/krapiva-p7-phone-androidTest.apk",
+        "bytes": 1298600,
+        "sha256": "a573c2e1097ef8690c1c732d16f600a55c241f03aabd4af95f1949b9fad883e0"
+      }
+    ],
+    "log": "evidence/android-build.log",
+    "nativeDeviceTests": "NOT RUN",
+    "testClass": "ru.krapiva.app.places.P7IntegrationTest",
+    "reason": "No /dev/kvm or connected adb device; no runtime screenshots"
+  },
+  "dataSafety": {
+    "localMigration": "010 applied after backup",
+    "isolatedBackupRestore": "PASS",
+    "evidence": "evidence/backup-restore.json",
+    "existingUserDataDeleted": false
+  },
+  "guards": {
+    "foundation": "PASS",
+    "p0Traceability": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "provider": {
+    "sdk": "MapLibre Native Android 11.13.5",
+    "license": "BSD-2-Clause",
+    "developmentTiles": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "tileCheck": "BLOCKED by cloud CONNECT proxy403",
+    "russiaAccess": "NOT VERIFIED",
+    "productionProvider": "NOT CONFIGURED",
+    "paidApiAdded": false,
+    "prefetchZoomDelta": 0,
+    "cacheBytes": 33554432,
+    "noticesBundled": true
+  },
+  "realVenues": "No unverified real-world seed; explicit testOnly fixture only, Craft Republic has no coordinates/photo",
+  "p8Started": false,
+  "productionChanged": false
+}
