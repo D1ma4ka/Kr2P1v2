@@ -16,7 +16,7 @@ P0 и P1 завершены; их код и результаты не перес
 | P5 | Чекины/вкусовые теги/фото, фильтры, editable offline drafts, unique list, wishlist, style pie/rating histogram/unrated/drilldown, реальные агрегаты; данные home | A3/A4/A7/A13/A14/A24, изменение/удаление/merge, sync | DONE implementation/automated; physical/TalkBack NOT RUN — stages/P5.md |
 | P6 | Взаимные друзья, feed/comments/reactions, публичные агрегаты с ACL; доступ из home | A5/A6, два аккаунта, cursor/retry/privacy/media | DONE implementation/automated: Android11/backend21; stages/P6.md |
 | P6.1 — переработка Android UI | Реализовать 14 утверждённых дизайн-референсов (проверить наличие/карта экранов), обе темы Light/Dark, общие Compose tokens/components, сохранить все действия П0–П6 | Реальные screenshot-сравнения обеих тем, build/lint/unit/instrumented regression, документация; без переписывания backend и без П7 | IMPLEMENTED CANDIDATE — 333085b / 7a16b0a, 14 макетов, 10 JVM / 22 backend PASS; общая device/visual acceptance PENDING; design/P61_COMPLETE_CANDIDATE.md |
-| P7 | Badge rule engine/10 правил/3 pins; бары и магазины, интерактивная внутренняя карта, clusters, bbox/map-list, reports/admin | A8/A10/A11/A16–A18; реальная карта/лицензия, Craft Republic только после проверки | PLANNED |
+| P7 | Badge rule engine/10 правил/3 pins; бары и магазины, интерактивная внутренняя карта, clusters, bbox/map-list, reports/admin | A8/A10/A11/A16–A18; реальная карта/лицензия, Craft Republic только после проверки | IMPLEMENTED CANDIDATE — backend38/JVM12/build/lint PASS, native/device/visual acceptance PENDING; stages/P7.md; STOP перед П8 |
 | P8 | Android/server regression, cache/security/licenses/accessibility, full visual baseline, motion lifecycle/CPU, backup+restore, load/capacity plan | A1–A30; измерения в описанной среде, не утверждать 500k concurrent | PLANNED |
 | P9 | Android RC, APK/hash, CI/runbooks, RU staging/production readiness отдельно | Android DoD §10.3; разрешение на выпуск отдельно; весь проект ещё INCOMPLETE | PLANNED |
 | P10 | ADR KMP/Compose MP vs SwiftUI; iOS target/project/adapters/tokens/auth API client | Чистая Mac/Xcode сборка и настоящий HTTP, A31 | PLANNED — обязательный iOS |
@@ -28,7 +28,7 @@ P1.1 — будущая точечная адаптация, а не повто�
 появляются с реальными API P4–P7: пустой mock home не считается приёмкой.
 P6 завершён в обязательном объёме, автоматическая приёмка PASS. P0–P5 сохранены.
 П6.1 — UI-этап ДО П7. По последней команде владельца реализован весь объём до общей проверки; промежуточный STOP после главной отменён. Полный кандидат подготовлен в recovery-ветке, визуальная приёмка ещё не выполнена.
-Следующий шаг: общая проверка полного П6.1 на устройстве и визуальная приёмка владельцем. П7 самостоятельно не начинать.
+По новой прямой команде владельца реализован кандидат П7; результаты — stages/P7.md. Общая приёмка П6.1/П7 на устройстве ещё PENDING. Следующий этап П8 самостоятельно не начинать.
 Платформенные границы API проектируются с P2; KMP/iOS код не пишется до P10.
 
 ## Внешние решения и срок

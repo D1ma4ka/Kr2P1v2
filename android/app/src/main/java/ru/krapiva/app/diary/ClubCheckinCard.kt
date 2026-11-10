@@ -23,6 +23,7 @@ import ru.krapiva.app.designsystem.*
                 row.text("styleName")?.let { Text(it,color = KraPivaColors.Muted,style = MaterialTheme.typography.bodySmall) }
                 Text(if(row.isNull("ratingQuarters"))"Без оценки" else "★ ${DiaryNumbers.rating(row.getInt("ratingQuarters"))}",color = KraPivaColors.Amber,style = MaterialTheme.typography.titleMedium)
                 Text(DiaryDates.display(row.getString("occurredAt")),style = MaterialTheme.typography.bodySmall,color = KraPivaColors.Muted)
+                (row.text("venueName")?:row.text("venueText"))?.let {Text("Место: $it"+if(row.text("venueId")==null)" · не подтверждено" else "",style=MaterialTheme.typography.bodySmall,color=KraPivaColors.Muted)}
                 row.text("body")?.let { Text(it,maxLines = 2,overflow = TextOverflow.Ellipsis,fontStyle = FontStyle.Italic,style = MaterialTheme.typography.bodyMedium) }
             }
         }

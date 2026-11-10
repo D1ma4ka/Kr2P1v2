@@ -36,13 +36,13 @@ import androidx.compose.ui.text.font.FontStyle
 import ru.krapiva.app.diary.*
 
 @Composable
-fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,initialCheckin: String? = null,request: Int = 0,providedModel: SocialViewModel? = null, initialPage: SocialPage = SocialPage.FEED, bottomBar: @Composable () -> Unit = {},onCheckin: (() -> Unit)? = null,onSettings: () -> Unit = onProfile) {
+fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,initialCheckin: String? = null,request: Int = 0,providedModel: SocialViewModel? = null, initialPage: SocialPage = SocialPage.FEED, bottomBar: @Composable () -> Unit = {},onCheckin: (() -> Unit)? = null,onSettings: () -> Unit = onProfile,onVenue: (String)->Unit={}) {
     val model = providedModel ?: viewModel<SocialViewModel>(key = "social-$userId",factory = object: ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T = SocialViewModel(api,expired) as T
     })
     val state by model.state.collectAsStateWithLifecycle()
     val owner = LocalLifecycleOwner.current
-    LaunchedEffect(request) { model.entry(request,initialCheckin,initialPage) }
+    LaunchedEffect(request) { model.entry(request,initialCheckin,initialPage);model.refresh() }
     DisposableEffect(owner,model) {
         val observer = LifecycleEventObserver { _,event -> if(event == Lifecycle.Event.ON_STOP) model.hide() else if(event == Lifecycle.Event.ON_START) model.refresh() }
         owner.lifecycle.addObserver(observer)
@@ -71,6 +71,8 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
                         p.text("coverAssetId")?.let { SocialPhoto(api,it,"Обложка пользователя",true) }
                         p.text("avatarAssetId")?.let { SocialPhoto(api,it,"Аватар пользователя") }
                     }
+                    key(state.revision) {ru.krapiva.app.badges.PinnedBadges(api,p.getString("userId"))}
+                    if(p.text("profileVisibility")=="public")ru.krapiva.app.moderation.ReportAction(api,"user",p.getString("userId"),expired)
                     Text(p.getString("displayName"),style = MaterialTheme.typography.headlineSmall)
                     Text(listOfNotNull(p.text("firstName"),p.text("lastName"),p.text("city"),p.text("country")).joinToString(" · "))
                     p.text("bio")?.let { Text(it) };p.text("gender")?.let { Text(it) }
@@ -93,6 +95,8 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
                 } }
                 if(state.page == SocialPage.DETAIL) state.data?.let { row -> item {
                     SocialCheckin(row,api,state.revision,!state.busy,{ model.open(SocialPage.PROFILE,row.getString("userId")) },null)
+                    if(row.text("venueId")!=null)TextButton({onVenue(row.getString("venueId"))}){Text("Открыть место")}
+                    if(row.text("visibility")=="public")ru.krapiva.app.moderation.ReportAction(api,"checkin",row.getString("id"),expired)
                     TextButton({ onPosition(row.getString("positionId")) },enabled = !state.busy) { Text("Открыть позицию") }
                     DiaryButton(if(row.getBoolean("liked"))"Убрать лайк · ${row.getInt("likeCount")}" else "Нравится · ${row.getInt("likeCount")}",!state.busy,model::like)
                     Text("Комментарии: ${row.getInt("commentCount")}",style = MaterialTheme.typography.titleLarge)
@@ -108,6 +112,7 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
                         SocialPage.FEED,SocialPage.PROFILE -> SocialCheckin(item,api,state.revision,!state.busy,{ model.open(SocialPage.PROFILE,item.getString("userId")) },{ model.open(SocialPage.DETAIL,item.getString("id")) },{model.likePost(item.getString("id"),item.getBoolean("liked"))})
                         SocialPage.DETAIL -> DiaryCard {
                             Text(item.getString("displayName"),style = MaterialTheme.typography.titleMedium)
+                            if(state.data?.text("visibility")=="public")ru.krapiva.app.moderation.ReportAction(api,"comment",item.getString("id"),expired)
                             Text(item.getString("body"));Text(DiaryDates.display(item.getString("createdAt")),color = KraPivaColors.Muted)
                             if(item.getString("userId") == userId) TextButton({ remove = item.getString("id") to false },enabled = !state.busy) { Text("Удалить комментарий") }
                         }

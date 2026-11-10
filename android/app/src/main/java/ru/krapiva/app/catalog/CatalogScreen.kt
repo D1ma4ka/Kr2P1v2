@@ -179,7 +179,8 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: Accou
         CatalogTitle(data.getString("name"))
         Text("Проверено по источнику", color = KraPivaColors.HopLight)
         if (state.page == CatalogPage.POSITION) {
-            TextButton({ model.detail(data.getString("breweryId"), true) }, enabled = !state.busy) { Text(data.getString("breweryName")) }
+            ru.krapiva.app.moderation.ReportAction(api,"position",data.getString("id"))
+        TextButton({ model.detail(data.getString("breweryId"), true) }, enabled = !state.busy) { Text(data.getString("breweryName")) }
             for ((field,label) in listOf("brand" to "Бренд", "styleName" to "Стиль", "abv" to "ABV, %", "ibu" to "IBU", "packaging" to "Упаковка", "volumeMl" to "Объём, мл", "edition" to "Выпуск", "variant" to "Вариант"))
                 data.text(field)?.let { Text("$label: $it") }
             if (data.getString("requestedId") != data.getString("canonicalId")) Text("Дубликат объединён. Показана актуальная позиция.", color = KraPivaColors.Muted)

@@ -25,8 +25,8 @@ function normalized(input:CheckinInput) {
  servingFormat:input.servingFormat?.trim()||null,venueId:input.venueId?.toLowerCase()||null,venueText:input.venueText?.trim()||null,
  tagIds:input.tagIds?.map(x=>x.toLowerCase()).sort()??[],mediaIds:input.mediaIds?.map(x=>x.toLowerCase())??[]};
 }
-async function attachments(client:pg.PoolClient,user:string,id:string,input:ReturnType<typeof normalized>,write=true) {
- if(input.venueId&&!(await client.query("SELECT id FROM venues WHERE id=$1 AND status='verified' FOR SHARE",[input.venueId])).rowCount)throw new ApiError(422,'VENUE_UNAVAILABLE','Место недоступно');
+async function attachments(client:pg.PoolClient,user:string,id:string,input:ReturnType<typeof normalized>,write=true,allowTest=false) {
+ if(input.venueId&&!(await client.query("SELECT id FROM venues WHERE id=$1 AND status='verified' AND (NOT is_test OR $2) FOR SHARE",[input.venueId,allowTest])).rowCount)throw new ApiError(422,'VENUE_UNAVAILABLE','Место недоступно');
  const tags=await client.query('SELECT id FROM taste_tags WHERE id=ANY($1::uuid[]) ORDER BY id FOR SHARE',[input.tagIds]);
  if(tags.rowCount!==input.tagIds.length)throw new ApiError(422,'INVALID_TAG','Неизвестный вкусовой тег');
  const media=await client.query("SELECT id FROM media_assets WHERE id=ANY($1::uuid[]) AND owner_id=$2 AND deleted_at IS NULL AND moderation_status<>'hidden' ORDER BY id FOR SHARE",[input.mediaIds,user]);
@@ -37,7 +37,7 @@ async function attachments(client:pg.PoolClient,user:string,id:string,input:Retu
  await client.query('DELETE FROM checkin_media WHERE checkin_id=$1',[id]);
  for(const [i,asset]of input.mediaIds.entries())await client.query('INSERT INTO checkin_media(checkin_id,owner_id,media_id,sort_order)VALUES($1,$2,$3,$4)',[id,user,asset,i+1]);
 }
-export async function createCheckin(pool:pg.Pool,user:string,key:string,input:CheckinInput) {
+export async function createCheckin(pool:pg.Pool,user:string,key:string,input:CheckinInput,allowTest=false) {
  const n=normalized(input);
  // Preserve the P2/P4 request hash for existing persisted create retries without P5 fields.
  const hashInput=!n.servingFormat&&!n.venueId&&!n.venueText&&!n.tagIds.length&&!n.mediaIds.length?{positionId:n.positionId,ratingQuarters:n.ratingQuarters,body:n.body,occurredAt:n.occurredAt,visibility:n.visibility}:n;
@@ -53,19 +53,19 @@ export async function createCheckin(pool:pg.Pool,user:string,key:string,input:Ch
  if(!(await client.query("SELECT id FROM beer_positions WHERE id=$1 AND status='verified' FOR SHARE",[position])).rowCount)throw new ApiError(422,'POSITION_UNAVAILABLE','Позиция недоступна');
  const row=(await client.query<{id:string}>(`INSERT INTO checkins(user_id,position_id,rating_quarters,body,occurred_at,visibility,serving_format,venue_id,venue_text)
  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,[user,position,n.ratingQuarters,n.body,n.occurredAt,n.visibility,n.servingFormat,n.venueId,n.venueText])).rows[0]!;
- await attachments(client,user,row.id,n);
+ await attachments(client,user,row.id,n,true,allowTest);
  await client.query("INSERT INTO idempotency_keys(user_id,key,operation,request_hash,resource_id)VALUES($1,$2,'create-checkin',$3,$4)",[user,key,hash,row.id]);
  return{row:await getCheckin(client,user,row.id),replay:false};
  });
 }
-export async function updateCheckin(pool:pg.Pool,user:string,id:string,input:Omit<CheckinInput,'positionId'>&{version:number}) {
+export async function updateCheckin(pool:pg.Pool,user:string,id:string,input:Omit<CheckinInput,'positionId'>&{version:number},allowTest=false) {
  return transaction(pool,async client=>{
  const old=(await client.query('SELECT position_id,version FROM checkins c WHERE c.user_id=$1 AND c.id=$2 AND '+d.active+' FOR UPDATE',[user,id])).rows[0];
  if(!old)throw notFound();if(old.version!==input.version)throw conflict();
  const current=await getCheckin(client,user,id);
  const n=normalized({...input,positionId:old.position_id,tagIds:input.tagIds??current.tagIds??[],mediaIds:input.mediaIds??current.mediaIds??[],
  servingFormat:input.servingFormat===undefined?current.servingFormat??null:input.servingFormat,venueId:input.venueId===undefined?current.venueId??null:input.venueId,venueText:input.venueText===undefined?current.venueText??null:input.venueText});
- await attachments(client,user,id,n);
+ await attachments(client,user,id,n,true,allowTest);
  await client.query(`UPDATE checkins SET rating_quarters=$3,body=$4,occurred_at=$5,visibility=$6,serving_format=$7,venue_id=$8,venue_text=$9,version=version+1,updated_at=now() WHERE id=$1 AND user_id=$2`,[id,user,n.ratingQuarters,n.body,n.occurredAt,n.visibility,n.servingFormat,n.venueId,n.venueText]);
  return getCheckin(client,user,id);
  });

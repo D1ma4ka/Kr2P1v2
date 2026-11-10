@@ -45,7 +45,7 @@ import ru.krapiva.app.diary.DiaryNumbers
 fun HomeApp(api: AccountApi, profile: JSONObject, avatar: Bitmap?, onCheckin: () -> Unit,
     onCollection: () -> Unit, onOwnCheckin: (String) -> Unit, onSocial: (String?) -> Unit,
     onFriends: () -> Unit, onProfile: () -> Unit, onSettings: () -> Unit, expired: () -> Unit,
-    bottomBar: @Composable () -> Unit, providedModel: HomeViewModel? = null) {
+    bottomBar: @Composable () -> Unit, providedModel: HomeViewModel? = null,onPlaces: ()->Unit={},onBadges: ()->Unit={}) {
     val model = providedModel ?: viewModel<HomeViewModel>(key = "home-${profile.getString("userId")}",factory = object: ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T = HomeViewModel(api,expired) as T
     })
@@ -62,7 +62,7 @@ fun HomeApp(api: AccountApi, profile: JSONObject, avatar: Bitmap?, onCheckin: ()
     }
     Surface(Modifier.fillMaxSize(),color = KraPivaColors.Ink) {
         Column(Modifier.safeDrawingPadding()) {
-            HomeContent(state,profile,avatar,api,onCheckin,onCollection,onOwnCheckin,onSocial,onFriends,onProfile,onSettings,model::refresh,model::like,Modifier.weight(1f))
+            HomeContent(state,profile,avatar,api,onCheckin,onCollection,onOwnCheckin,onSocial,onFriends,onProfile,onSettings,model::refresh,model::like,Modifier.weight(1f),onPlaces,onBadges)
             bottomBar()
         }
     }
@@ -71,7 +71,7 @@ fun HomeApp(api: AccountApi, profile: JSONObject, avatar: Bitmap?, onCheckin: ()
 @Composable
 private fun HomeContent(state: HomeState, profile: JSONObject, avatar: Bitmap?, api: AccountApi,
     onCheckin: () -> Unit,onCollection: () -> Unit,onOwnCheckin: (String) -> Unit,onSocial: (String?) -> Unit,
-    onFriends: () -> Unit,onProfile: () -> Unit,onSettings: () -> Unit,onRefresh: () -> Unit,onLike: () -> Unit,modifier: Modifier) {
+    onFriends: () -> Unit,onProfile: () -> Unit,onSettings: () -> Unit,onRefresh: () -> Unit,onLike: () -> Unit,modifier: Modifier,onPlaces: ()->Unit,onBadges: ()->Unit) {
     val scroll = rememberLazyListState()
     LazyColumn(modifier.fillMaxWidth().testTag("club-home"),state = scroll,contentPadding = PaddingValues(horizontal = 16.dp,vertical = 12.dp),verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
@@ -81,6 +81,9 @@ private fun HomeContent(state: HomeState, profile: JSONObject, avatar: Bitmap?, 
                 IconButton(onSettings,Modifier.testTag("home-settings")) { ClubGlyph(ClubIcon.SETTINGS,description = "Настройки") }
             }
         }
+        item {Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            TextButton(onPlaces){Text("Места и карта")};TextButton(onBadges){Text("Достижения")}
+        }}
         item {
             BoxWithConstraints {
                 val inline = maxWidth >= 360.dp && LocalDensity.current.fontScale <= 1.15f

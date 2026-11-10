@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
 import java.io.IOException
 
-enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG, DIARY, SOCIAL, HOME }
+enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG, DIARY, SOCIAL, HOME, VENUES, BADGES }
 data class AccountState(
     val authEmail: String = "", val screen: AccountScreen = AccountScreen.RESTORING, val busy: Boolean = false,
     val error: String? = null, val notice: String? = null, val profile: JSONObject? = null,
@@ -37,17 +37,23 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     fun openHome() = navigate(AccountScreen.HOME)
     fun openOwnCheckin(id: String) = openDiary("detail:$id")
     fun openSocial(id: String? = null) { if (!mutable.value.busy) { socialRequest++; socialCheckinId = id; socialPage = ru.krapiva.app.social.SocialPage.FEED; navigate(AccountScreen.SOCIAL) } }
+    var placesRequest=0;private set
+    var venueId: String? = null; private set
+    var placesReturn = AccountScreen.HOME; private set
+    var diaryVenue: JSONObject? = null; private set
+    fun openVenues(id: String? = null) { placesRequest++;placesReturn=mutable.value.screen;venueId=id;navigate(AccountScreen.VENUES) }
+    fun checkinAt(venue: JSONObject) { openDiary("new",venue=venue) }
     var diaryRequest = 0; private set
     var diaryEntry = "HOME"; private set
     var diaryPosition: JSONObject? = null; private set
     val catalogPosition: String? get() = mutable.value.catalogPosition
-    fun openDiary(entry: String = "HOME",position: JSONObject? = null) {
+    fun openDiary(entry: String = "HOME",position: JSONObject? = null,venue: JSONObject? = null) {
         if (mutable.value.busy) return
-        diaryRequest++; diaryEntry = entry; diaryPosition = position; navigate(AccountScreen.DIARY)
+        diaryRequest++; diaryEntry = entry; diaryPosition = position; diaryVenue=venue; navigate(AccountScreen.DIARY)
     }
     fun openPosition(id: String) { if (!mutable.value.busy) mutable.value = mutable.value.copy(screen = AccountScreen.CATALOG,catalogPosition = id,error = null,notice = null) }
     fun consumeCatalogPosition() { mutable.value = mutable.value.copy(catalogPosition = null) }
-    private suspend fun clearSession() { catalogOwner.viewModelStore.clear(); diaryPosition = null; socialCheckinId = null; consumeCatalogPosition(); api.clear() }
+    private suspend fun clearSession() { catalogOwner.viewModelStore.clear(); diaryPosition = null; diaryVenue=null;venueId=null;socialCheckinId = null; consumeCatalogPosition(); api.clear() }
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
     init { restore() }

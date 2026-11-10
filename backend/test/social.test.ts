@@ -17,7 +17,7 @@ import {FileStorage} from '../src/media/storage.js';
 test('P6 real HTTP/PostgreSQL/SMTP: two registered accounts, friendship state machine, feed, comments, reactions, privacy and restart',async()=>{
  const db=await testDatabase(),dir=await mkdtemp(join(tmpdir(),'krapiva-social-'));
  // Exercise upgrade from P5, retaining existing rows.
- const migrations=join(dir,'migrations');await cp('migrations',migrations,{recursive:true});await rm(join(migrations,'008_social.sql'));await rm(join(migrations,'009_email_verification_codes.sql'));await migrate(db.pool,migrations);
+ const migrations=join(dir,'migrations');await cp('migrations',migrations,{recursive:true});await rm(join(migrations,'008_social.sql'));await rm(join(migrations,'009_email_verification_codes.sql'));await rm(join(migrations,'010_places_badges_moderation.sql'));await migrate(db.pool,migrations);
  const f=await fixtures(db.pool);await migrate(db.pool);
  assert.ok((await db.pool.query('SELECT id FROM users WHERE id=$1',[f.a.id])).rowCount);
  const media=new MediaService(db.pool,new FileStorage(join(dir,'media')));

@@ -1,3 +1,31 @@
+# П7 — реализация подготовлена · 10 ноября 2026
+
+По прямой команде владельца выполнен П7 поверх `e8f4ba6` (П6.1 candidate).
+Ветка `codex/krapiva-p7`. Нативная MapLibre-карта/кластеры/bbox/список/карточки и
+привязка места к чекину; 10 server-driven badge rules/прогресс/3 ordered pins/отзыв;
+публичные жалобы и защищённые venue/report/role/audit API. Пять вкладок и дизайн П6.1 сохранены.
+
+**Backend 38/38, Android JVM 12/12, debug APK/androidTest APK/build/lint PASS.**
+Миграция010 применена локально после backup; isolated restore PASS, исходные
+аккаунты/чекины/медиа сохранены. Production и платные сервисы не затрагивались.
+MapLibre/OkHttp notices включены в APK; публичные OSM tiles только для limited dev.
+
+**Статус: IMPLEMENTED CANDIDATE, device/visual acceptance PENDING.**
+Нет KVM/подключённого устройства; native gesture/cluster runtime, обе темы,
+TalkBack/320dp/offline/permission/recreate и новая Android регрессия NOT RUN.
+OSM endpoint блокирует CONNECT proxy403 этой среды; доступность из РФ не проверена.
+Реальный справочник не заполнен: только явные dev/testOnly fixtures, Craft Republic
+без внешнего подтверждения не выдаётся за проверенное настоящее место.
+
+[Отчёт П7](stages/P7.md), [операции и устройство](places/OPERATIONS.md),
+[машинное свидетельство проверок](places/VERIFICATION.json),
+[ADR-0010](decisions/ADR-0010-P7-map-badges-moderation.md).
+Полная приёмка П6.1 остаётся PENDING. **STOP: П8 не начинался; ждать команды владельца.**
+Ниже сохранены исторические статусы предыдущих этапов; прежний запрет начала П7
+заменён новой прямой командой, их результаты не являются runtime-проверкой новой карты.
+
+---
+
 # П6.1 — полный кандидат реализации · 10 ноября 2026
 
 Реализован весь согласованный объём П6.1 по новой команде владельца, без промежуточной остановки на главной. Android: `333085b`; backend: `7a16b0a`; ветка `codex/p6-1-recovery`.

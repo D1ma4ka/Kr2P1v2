@@ -3,7 +3,11 @@
 Полный план: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
 
 P0 DONE → P1 DONE → P2 DONE → P3/P1.1 automated PASS → P4 automated PASS →
-P5 implemented/automated PASS → **P6 implemented/automated PASS (8 ноября 2026), STOP перед P7** → P7 → P8 → P9.
+P5 implemented/automated PASS → P6 implemented/automated PASS (8 ноября 2026) →
+П6.1 implemented candidate → **П7 implemented candidate (10 ноября 2026),
+backend38/JVM12/build/lint PASS, device/visual acceptance PENDING; STOP перед П8** → P8 → P9.
+П7 начат по прямой команде владельца; П6.1 visual acceptance не подменяется.
+[П7: результат и ограничения](stages/P7.md).
 Ручные P3/P4 physical scan/TalkBack NOT RUN, RU staging BLOCKED.
 Затем обязательный iOS-трек: **P10 → P11 → P12 → P13**.
 Между всеми этапами обязательная остановка и разрешение.

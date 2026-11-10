@@ -76,6 +76,10 @@ import ru.krapiva.app.diary.*
                         AmberAction("Чекин",{ model.openDiary("new") },enabled=!state.busy)
                     }
                 }
+                item {
+                    Row {TextButton({model.openVenues()}){Text("Места и карта")};TextButton({model.navigate(AccountScreen.BADGES)}){Text("Достижения")}}
+                    ru.krapiva.app.badges.PinnedBadges(model.api,p.getString("userId"))
+                }
                 if(offline || state.offline) item { Text("Сохранённая копия · изменения требуют сети",color=KraPivaColors.Amber) }
                 item { ClubCard {
                     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly) {

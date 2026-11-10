@@ -1,3 +1,6 @@
+import {badgeRoutes} from '../badges/routes.js';
+import {venueRoutes} from '../venues/routes.js';
+import {moderationRoutes} from '../moderation/routes.js';
 import {socialRoutes} from '../social/routes.js';
 import {catalogRoutes} from '../catalog/routes.js';
 import { mediaRoutes } from "../media/routes.js";
@@ -9,7 +12,7 @@ import {diaryRoutes} from "../checkins/routes.js";
 import * as s from "./schemas.js";
 declare module "fastify" { interface FastifyRequest { userId: string; } }
 import {profile,updateProfile,type ProfileUpdate} from '../profiles/repository.js';
-export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media?: MediaService) {
+export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media?: MediaService, environment='production') {
   app.decorateRequest("userId", "");
   app.addHook("onRequest",async request => { request.userId = await authenticate(pool,request.headers.authorization); });
   if(media) app.register(async mediaApi=>mediaRoutes(mediaApi,media));
@@ -38,6 +41,9 @@ export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media
     return reply.code(204).send();
   });
   await catalogRoutes(app,pool);
-  await diaryRoutes(app,pool);
+  await diaryRoutes(app,pool,environment!=='production');
   await socialRoutes(app,pool);
+  await venueRoutes(app,pool,environment!=='production');
+  await badgeRoutes(app,pool);
+  await moderationRoutes(app,pool,environment!=='production');
 }

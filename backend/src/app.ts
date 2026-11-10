@@ -69,7 +69,7 @@ export function buildApp(config: Config, pool?: pg.Pool, media?: MediaService, m
         catch { throw new ApiError(503,"UNAVAILABLE","Зависимости сервера недоступны"); }
         return {status:"ready"};
       });
-      api.register(async secured => foundationRoutes(secured,pool,media));
+      api.register(async secured => foundationRoutes(secured,pool,media,config.environment));
     });
   }
   return app;

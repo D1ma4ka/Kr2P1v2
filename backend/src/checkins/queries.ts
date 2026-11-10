@@ -10,7 +10,7 @@ export const cols=`c.id,c.user_id AS "userId",c.position_id AS "positionId",c.ra
  to_char(c.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "createdAt",
  to_char(c.updated_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "updatedAt",
  c.serving_format AS "servingFormat",c.venue_id AS "venueId",c.venue_text AS "venueText",
- v.name AS "venueName",v.city AS "venueCity",v.address AS "venueAddress",v.source AS "venueSource",
+ CASE WHEN v.status='verified' THEN v.name END AS "venueName",CASE WHEN v.status='verified' THEN v.city END AS "venueCity",CASE WHEN v.status='verified' THEN v.address END AS "venueAddress",CASE WHEN v.status='verified' THEN v.source END AS "venueSource",
  r.name AS "positionName",b.id AS "breweryId",b.name AS "breweryName",r.style_id AS "styleId",st.name AS "styleName",bp.status AS "positionStatus",
  ARRAY(SELECT ct.tag_id FROM checkin_tags ct WHERE ct.checkin_id=c.id ORDER BY ct.tag_id) AS "tagIds",
  ARRAY(SELECT tt.label FROM checkin_tags ct JOIN taste_tags tt ON tt.id=ct.tag_id WHERE ct.checkin_id=c.id ORDER BY ct.tag_id) AS "tagLabels",

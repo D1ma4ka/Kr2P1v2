@@ -1,8 +1,10 @@
+import {reconcile} from '../badges/repository.js';
 import type pg from 'pg';
 import * as d from './queries.js';
 import {notFound} from '../http/errors.js';
 import {position as catalogPosition} from '../catalog/repository.js';
 export async function statistics(pool:pg.Pool,user:string) {
+ await reconcile(pool,user);
  const row=(await pool.query(`WITH mine AS (SELECT c.*,r.style_id,st.name AS style_name,b.id AS brewery_id,b.name AS brewery_name FROM checkins c ${d.joins} WHERE c.user_id=$1 AND ${d.active}),
  unique_beers AS (SELECT DISTINCT position_id,style_id,style_name,brewery_id,brewery_name FROM mine),
  styles AS (SELECT style_id AS id,style_name AS name,count(*)::int AS count FROM unique_beers GROUP BY style_id,style_name),
@@ -13,7 +15,7 @@ export async function statistics(pool:pg.Pool,user:string) {
  (SELECT coalesce(jsonb_agg(jsonb_build_object('ratingQuarters',n,'count',(SELECT count(*)::int FROM mine WHERE rating_quarters=n)) ORDER BY n),'[]') FROM generate_series(1,20)n) AS histogram,
  (SELECT coalesce(jsonb_agg(styles ORDER BY count DESC,name NULLS LAST,id),'[]') FROM styles) AS styles,
  (SELECT coalesce(jsonb_agg(breweries ORDER BY count DESC,name,id),'[]') FROM breweries) AS breweries,
- (SELECT count(*)::int FROM user_badges WHERE user_id=$1 AND earned_at IS NOT NULL) AS "earnedBadges"
+ (SELECT count(*)::int FROM user_badges ub JOIN badge_rules br ON br.id=ub.rule_id WHERE ub.user_id=$1 AND ub.earned_at IS NOT NULL AND br.active) AS "earnedBadges"
  FROM mine`,[user])).rows[0];
  return row;
 }

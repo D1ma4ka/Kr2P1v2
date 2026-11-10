@@ -39,6 +39,9 @@ import java.time.OffsetDateTime
     var serving by rememberSaveable(id) { mutableStateOf(initial.text("servingFormat") ?: "") }
     var venue by rememberSaveable(id) { mutableStateOf(initial.text("venueText") ?: "") }
     var venueId by rememberSaveable(id) { mutableStateOf(initial.text("venueId") ?: "") }
+    var venueName by rememberSaveable(id) {mutableStateOf(initial.text("venueName")?:"")}
+    var venuePicker by rememberSaveable(id) {mutableStateOf(false)}
+    if(venuePicker)ru.krapiva.app.places.VenuePicker(model.api,{row->venueId=row.getString("id");venueName=row.getString("name");venue="";venuePicker=false},{venuePicker=false})
     var visibility by rememberSaveable(id) { mutableStateOf(initial.optString("visibility","private")) }
     var tags by rememberSaveable(id) { mutableStateOf(initial.optJSONArray("tagIds")?.strings()?.toTypedArray() ?: emptyArray<String>()) }
     var media by rememberSaveable(id) { mutableStateOf(initial.optJSONArray("mediaIds")?.strings()?.toTypedArray() ?: emptyArray<String>()) }
@@ -53,7 +56,7 @@ import java.time.OffsetDateTime
     fun data(validate: Boolean): JSONObject {
         val q = if(validate)DiaryNumbers.quarters(rating) else runCatching { DiaryNumbers.quarters(rating) }.getOrNull()
         if(validate) { require(body.length <= 5000) { "Не более 5000 символов" };require(serving.length <= 80 && venue.length <= 300) { "Слишком длинное поле подачи или места" };DiaryDates.instant(occurred) }
-        return JSONObject(initial.toString()).put("body",body).put("ratingQuarters",q ?: JSONObject.NULL).put("ratingInput",rating).put("occurredInput",occurred).put("occurredAt",if(validate) { if(occurred == DiaryDates.display(initial.getString("occurredAt")))initial.getString("occurredAt") else DiaryDates.instant(occurred) } else initial.getString("occurredAt")).put("servingFormat",serving.ifBlank { null } ?: JSONObject.NULL).put("venueId",venueId.ifBlank { null } ?: JSONObject.NULL).put("venueText",if(venueId.isBlank())venue.ifBlank { null } ?: JSONObject.NULL else JSONObject.NULL).put("visibility",visibility).put("tagIds",JSONArray(tags.toList())).put("mediaIds",JSONArray(media.toList())).put("localPhotos",JSONArray(local.toList()))
+        return JSONObject(initial.toString()).put("body",body).put("ratingQuarters",q ?: JSONObject.NULL).put("ratingInput",rating).put("occurredInput",occurred).put("occurredAt",if(validate) { if(occurred == DiaryDates.display(initial.getString("occurredAt")))initial.getString("occurredAt") else DiaryDates.instant(occurred) } else initial.getString("occurredAt")).put("servingFormat",serving.ifBlank { null } ?: JSONObject.NULL).put("venueName",venueName).put("venueId",venueId.ifBlank { null } ?: JSONObject.NULL).put("venueText",if(venueId.isBlank())venue.ifBlank { null } ?: JSONObject.NULL else JSONObject.NULL).put("visibility",visibility).put("tagIds",JSONArray(tags.toList())).put("mediaIds",JSONArray(media.toList())).put("localPhotos",JSONArray(local.toList()))
     }
     var extra by rememberSaveable(id) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -110,13 +113,20 @@ import java.time.OffsetDateTime
             }
         }
         ClubCard {
+            Text("Место",style=MaterialTheme.typography.titleLarge)
+            if(venueId.isNotBlank()) {Text(venueName);TextButton({venueId="";venueName=""}){Text("Убрать известное место")}}
+            TextButton({venuePicker=true},enabled=!state.busy){Text("Выбрать бар или магазин")}
+            if(venueId.isBlank()) {
+                OutlinedTextField(venue,{venue=it.take(300)},enabled=!state.busy,label={Text("Место вручную (необязательно)")},modifier=Modifier.fillMaxWidth())
+                if(venue.isNotBlank())Text("Не подтверждено · текст не создаёт место на карте",color=KraPivaColors.Amber)
+            }
+        }
+        ClubCard {
             TextButton({ extra = !extra }) { Text(if(extra) "Скрыть дополнительные поля" else "Дополнительно · дата, подача, место и вкусы") }
             if(extra) {
                 OutlinedTextField(occurred,{ occurred = it },enabled = !state.busy,label = { Text("Дата и время (ГГГГ-ММ-ДД ЧЧ:ММ)") },modifier = Modifier.fillMaxWidth())
                 Text("Часовой пояс: ${java.time.ZoneId.systemDefault().id}",color = KraPivaColors.Muted)
                 OutlinedTextField(serving,{ serving = it.take(80) },enabled = !state.busy,label = { Text("Подача: кран, бутылка, банка…") },modifier = Modifier.fillMaxWidth())
-                if(venueId.isNotBlank()) { Text("Место: ${initial.optString("venueName",venueId)}");TextButton({ venueId = "" }) { Text("Указать место вручную") } }
-                else OutlinedTextField(venue,{ venue = it.take(300) },enabled = !state.busy,label = { Text("Место (необязательно)") },modifier = Modifier.fillMaxWidth())
                 Text("Вкусовые теги · ваше впечатление",style = MaterialTheme.typography.titleMedium)
                 state.tags.forEach { tag -> val tid = tag.getString("id");Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(tid in tags,{ selected -> tags = if(selected)(tags.toList()+tid).distinct().toTypedArray() else tags.filter { it != tid }.toTypedArray() },enabled = !state.busy);Text(tag.getString("label")) } }
                 if(state.tags.isEmpty()) Text("Справочник тегов недоступен. Можно сохранить без тегов.",color = KraPivaColors.Muted)

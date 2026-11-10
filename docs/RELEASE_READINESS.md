@@ -1,3 +1,15 @@
+# Текущая готовность — П7 candidate, 10 ноября 2026
+
+Backend38/38 и Android JVM12/12/build/lint PASS. Код П7 подготовлен; native SDK
+runtime/visual/device acceptance NOT RUN, так же как общая визуальная приёмка П6.1.
+Реальные verified venues/production provider/RU access ещё не подтверждены.
+**Production и двухплатформенный продукт INCOMPLETE. STOP перед П8.**
+Актуальные доказательства: [П7](stages/P7.md), [PROGRESS](PROGRESS.md),
+[verification manifest](places/VERIFICATION.json). Ниже историческая приёмка П5;
+она не заменяет проверку нового Android UI/MapLibre.
+
+---
+
 # Готовность KraPiva 2.0 — P5 реализован, автоматическая приёмка PASS
 
 P0–P3 сохранены; P4 реализован: Android7/7, unit6, backend17/17 PASS; physical scan/TalkBack NOT RUN.

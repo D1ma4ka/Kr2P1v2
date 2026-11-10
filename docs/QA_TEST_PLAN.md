@@ -82,3 +82,16 @@ PASS только с командой/средой/commit/result или опис
 не повышаются до PASS по одному факту сборки Android или HTTP smoke.
 Старый ACCEPTANCE_CHECKLIST.md сохранён как исторический список v1.0;
 актуальная полная нормативная приёмка — §10/15/16/17 ТЗ и эта таблица.
+
+
+## П7 — 10 ноября 2026
+
+Реальный PostgreSQL/HTTP/SMTP backend38/38, Android JVM12/12, APK/androidTest
+compilation/lint PASS. Матрица деталей — [stages/P7](stages/P7.md).
+Новые `places/P7IntegrationTest` используют настоящие API и MapLibre GL: clustering,
+нажатия, pinch/pan, переход к странице/чекину, подтверждённые pins/четвёртый disabled.
+Они пока только скомпилированы. A8/A10/A11 UI/A16–A18 native runtime, обе темы,
+320dp/large font/TalkBack, deny-location/manual-city/offline/provider recovery,
+background/recreate и полная новая Android регрессия NOT RUN: нет KVM/устройства.
+Подготовка fixtures и адресный запуск — [places/OPERATIONS](places/OPERATIONS.md).
+Нельзя принимать статичный mock карты/внешнюю ссылку/только compile как выполнение A16.

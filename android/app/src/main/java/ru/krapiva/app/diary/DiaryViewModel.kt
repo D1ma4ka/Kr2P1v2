@@ -49,10 +49,10 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
             })
         } finally { mutable.value = mutable.value.copy(busy = false) } }
     }
-    fun entry(token: Int,page: String,position: JSONObject?) {
+    fun entry(token: Int,page: String,position: JSONObject?,venue: JSONObject?=null) {
         if(token == lastRequest) return
         lastRequest = token
-        if(page.startsWith("detail:")) detail(page.removePrefix("detail:")) else if(page == "new") new(position) else open(runCatching { DiaryPage.valueOf(page) }.getOrDefault(DiaryPage.HOME))
+        if(page.startsWith("detail:")) detail(page.removePrefix("detail:")) else if(page == "new") new(position,venue) else open(runCatching { DiaryPage.valueOf(page) }.getOrDefault(DiaryPage.HOME))
     }
     fun filters(value: DiaryFilters) { if(!mutable.value.busy) mutable.value = mutable.value.copy(filters = value) }
     fun pickerQuery(value: String) { mutable.value = mutable.value.copy(pickerQuery = value.take(120)) }
@@ -87,12 +87,14 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
         mutable.value = DiaryState(page = DiaryPage.DETAIL,data = data,offline = offline)
     }
     private fun blank(position: JSONObject? = null) = JSONObject().put("draftId",UUID.randomUUID().toString()).put("requestId",UUID.randomUUID().toString()).put("positionId",position?.optString("canonicalId",position.optString("id"))).put("positionName",position?.optString("name")).put("breweryName",position?.optString("breweryName")).put("styleName",position?.text("styleName")).put("imageAssetId",position?.text("imageAssetId")).put("body","").put("ratingQuarters",JSONObject.NULL).put("occurredAt",Instant.now().toString()).put("visibility","private").put("tagIds",JSONArray()).put("mediaIds",JSONArray()).put("localPhotos",JSONArray())
-    fun new(position: JSONObject? = null) {
+    fun new(position: JSONObject? = null,venue: JSONObject?=null) {
         if(mutable.value.busy) return
-        mutable.value = DiaryState(page = if(position == null)DiaryPage.PICK else DiaryPage.EDITOR,editor = blank(position)); if(position == null) refresh() else tags()
+        mutable.value = DiaryState(page = if(position == null)DiaryPage.PICK else DiaryPage.EDITOR,editor = blank(position).apply {if(venue!=null){put("venueId",venue.getString("id"));put("venueName",venue.getString("name"))}}); if(position == null) refresh() else tags()
     }
     fun select(position: JSONObject) {
-        mutable.value = mutable.value.copy(page = DiaryPage.EDITOR,editor = blank(position),items = emptyList()); tags()
+        mutable.value = mutable.value.copy(page = DiaryPage.EDITOR,editor = blank(position).apply {
+            for(key in listOf("venueId","venueName"))mutable.value.editor?.text(key)?.let {put(key,it)}
+        },items = emptyList()); tags()
     }
     private fun tags() = task {
         val (data,_) = api.catalogGet("v1/taste-tags"); mutable.value = mutable.value.copy(tags = data.getJSONArray("items").objects())

@@ -77,13 +77,20 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
             }
         } }
     }
+    if(state.screen in setOf(AccountScreen.VENUES,AccountScreen.BADGES) && authenticated) {
+        CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
+            if(state.screen==AccountScreen.VENUES) ru.krapiva.app.places.PlacesApp(model.api,state.profile!!.getString("userId"),model.placesRequest,model.venueId,{model.navigate(model.placesReturn)},model::checkinAt,model::sessionExpired) {navigation {it()}}
+            else ru.krapiva.app.badges.BadgesApp(model.api,{model.navigate(AccountScreen.PROFILE)},model::sessionExpired) {navigation {it()}}
+        }
+        return
+    }
     if (state.screen == AccountScreen.HOME && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
             savedScreens.SaveableStateProvider("home-${state.profile!!.getString("userId")}") {
             ru.krapiva.app.home.HomeApp(model.api,state.profile!!,state.avatar,
                 { model.openDiary("new") },{ model.openDiary() },model::openOwnCheckin,model::openSocial,model::openFriends,
                 { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.SETTINGS) },model::sessionExpired,
-                bottomBar = { navigation { it() } })
+                bottomBar = { navigation { it() } },onPlaces={model.openVenues()},onBadges={model.navigate(AccountScreen.BADGES)})
             }
         }
         return
@@ -100,14 +107,14 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     }
     if (state.screen == AccountScreen.SOCIAL && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            ru.krapiva.app.social.SocialApp(model.api,state.profile!!.getString("userId"),model::openHome,{ model.navigate(AccountScreen.PROFILE) },model::openPosition,model::sessionExpired,model.socialCheckinId,model.socialRequest,initialPage = model.socialPage,bottomBar = { navigation { it() } },onCheckin = {model.openDiary("new")},onSettings = {model.navigate(AccountScreen.SETTINGS)})
+            ru.krapiva.app.social.SocialApp(model.api,state.profile!!.getString("userId"),model::openHome,{ model.navigate(AccountScreen.PROFILE) },model::openPosition,model::sessionExpired,model.socialCheckinId,model.socialRequest,initialPage = model.socialPage,bottomBar = { navigation { it() } },onCheckin = {model.openDiary("new")},onSettings = {model.navigate(AccountScreen.SETTINGS)},onVenue={model.openVenues(it)})
         }
         return
     }
     if (state.screen == AccountScreen.DIARY && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
             ru.krapiva.app.diary.DiaryApp(model.api,state.profile!!.getString("userId"),model.diaryRequest,model.diaryEntry,model.diaryPosition,model::upload,
-                { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.CATALOG) },model::openPosition,model::sessionExpired,onSocial = model::openSocial,onHome = model::openHome,bottomBar = navigation)
+                { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.CATALOG) },model::openPosition,model::sessionExpired,onSocial = model::openSocial,onHome = model::openHome,bottomBar = navigation,venue=model.diaryVenue,onVenue={model.openVenues(it)},onBadges={model.navigate(AccountScreen.BADGES)},onPlaces={model.openVenues()})
         }
         return
     }
@@ -136,7 +143,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
                         AccountScreen.PROFILE -> Profile(state, model)
                         AccountScreen.EDIT -> ProfileEditor(state, model)
                         AccountScreen.SETTINGS -> Settings(state, model)
-                        AccountScreen.CATALOG, AccountScreen.DIARY, AccountScreen.SOCIAL, AccountScreen.HOME -> Unit
+                        AccountScreen.CATALOG, AccountScreen.DIARY, AccountScreen.SOCIAL, AccountScreen.HOME, AccountScreen.VENUES, AccountScreen.BADGES -> Unit
                     }
                 }
             }
@@ -311,6 +318,13 @@ private fun visibilityLabel(value: String) = when(value) { "public" -> "Все �
 }
 @Composable private fun Settings(state: AccountState, model: AccountViewModel) {
     var deleteDialog by remember { mutableStateOf(false) }
+    var licenses by remember {mutableStateOf(false)}
+    val licenseContext=androidx.compose.ui.platform.LocalContext.current
+    if(licenses)AlertDialog(onDismissRequest={licenses=false},title={Text("Лицензии карты")},text={
+        val notices=remember {licenseContext.assets.open("map-notices.txt").bufferedReader().use {it.readText()}}
+        Text(notices,modifier=Modifier.heightIn(max=360.dp).verticalScroll(rememberScrollState()))
+    },confirmButton={TextButton({licenses=false}){Text("Закрыть")}})
+    Link("Лицензии карты и атрибуция") {licenses=true}
     Title("Оформление")
     val theme = LocalThemeMode.current
     val selectTheme = LocalThemeSelection.current
