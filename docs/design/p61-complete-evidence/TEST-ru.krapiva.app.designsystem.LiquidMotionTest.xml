@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ru.krapiva.app.designsystem.LiquidMotionTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-10T17:20:31" hostname="b2c273902a9c" time="0.005">
+  <properties/>
+  <testcase name="filterIsSmoothBoundedAndSettles" classname="ru.krapiva.app.designsystem.LiquidMotionTest" time="0.004"/>
+  <testcase name="clampAndOrientation" classname="ru.krapiva.app.designsystem.LiquidMotionTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ru.krapiva.app.catalog.BarcodeDecoderTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-10T17:20:30" hostname="b2c273902a9c" time="0.22">
+  <properties/>
+  <testcase name="generatedEanUpcGtinAndQrThroughActualDecoderAtEveryOrientation" classname="ru.krapiva.app.catalog.BarcodeDecoderTest" time="0.22"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,30 @@
+✔ P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, session rotation, profile/media ACL and deletion request (3199.680267ms)
+✔ account failure paths: SMTP rollback, expired tokens and independent token rate budgets (680.451506ms)
+✔ real HTTP+SQL: two accounts, ACL, durable idempotency, cursor and concurrency, revocation and DB outage (1449.050659ms)
+✔ GTIN checksum, EAN8/UPC/EAN13/GTIN14 padding and QR separation (4.179413ms)
+✔ P4 real HTTP/PostgreSQL: empty catalog, proposals, ACL, search, GTIN, duplicates, merge, media and rollback (2325.640033ms)
+✔ P3 → P4 additive migration retains stable catalog IDs and rebuilds searchable projection (448.302613ms)
+✔ cursor calendar validation rejects normalized invalid dates before SQL (2.714572ms)
+✔ OpenAPI is valid and exactly matches registered HTTP schemas (1428.400914ms)
+✔ P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media/tags, wishlist, ACL, versions and merge (1889.678111ms)
+✔ P4 → P5 migration preserves historical checkins and legacy idempotency acknowledgements (458.996696ms)
+✔ database config bounds and TLS cannot be bypassed through URL parameters (1.510326ms)
+✔ readiness rejects missing schema, drift and inaccessible storage; media failures preserve recoverability (1094.124511ms)
+✔ configuration rejects malformed port, host and environment (3.757244ms)
+✔ real HTTP liveness, 404, response headers and socket shutdown (139.316316ms)
+✔ invalid JSON and oversized bodies fail without reflecting content (18.705827ms)
+✔ private media: real image normalization/EXIF removal, attachment ACL, limits, restart and deletion (1933.570379ms)
+✔ real SMTP delivers only synthetic messages into local Mailpit (37.246704ms)
+✔ real PostgreSQL: concurrent/repeated migrations, checksums, rollback, relational invariants (544.205197ms)
+✔ entrypoint serves HTTP, omits sensitive input from logs and exits on SIGTERM (1026.962942ms)
+✔ P6 real HTTP/PostgreSQL/SMTP: two registered accounts, friendship state machine, feed, comments, reactions, privacy and restart (3621.794301ms)
+✔ P6 concurrent privacy/unfriend serializes against social writes; comment cursors and suspension (1073.488903ms)
+✔ P6.1 email-bound numeric verification: single use, expiry, atomic guess limit and resend invalidation (5242.146158ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 29966.537037

@@ -240,3 +240,10 @@ IMPLEMENTATION_PLAN.md, QA_TEST_PLAN.md и PLATFORM_PARITY.md.
 | S-27 | Пивные магазины | INCOMPLETE; реализация по этапам, runtime NOT RUN |
 | S-28 | Главная / домашний дашборд | P5 implemented; real Android/API automated PASS, CI42355943975; physical TalkBack NOT RUN |
 | S-29 | Welcome / onboarding brand hero | INCOMPLETE; реализация по этапам, runtime NOT RUN |
+
+
+## П6.1 — сквозная UI-адаптация, кандидат
+
+Приоритеты и идентификаторы исходных 180 требований не изменены. Реализация Android `333085b`, совместимое подтверждение почты `7a16b0a`. Все семь пар макетов сопоставлены с исходниками в [отчёте](design/P61_COMPLETE_CANDIDATE.md): Light/Dark, каталог/коллекция/лента/профиль/редактор, success/splash, e-mail и шесть цифр, 8000 уникальных сообщений.
+
+Build/lint/10 JVM и 22 backend теста PASS. Android UI/device, настоящие screenshots, TalkBack/320dp/large font и визуальная приёмка **PENDING / NOT RUN**. Исторические DONE этапов П0–П6 выше не означают автоматическую приёмку нового UI. Общая проверка теперь выполняется после всей реализации, по последней команде владельца.

@@ -1,0 +1,32 @@
+{
+  "implementation_commit": "333085b813edbf121e46d7cbdda0ad2870b668ab",
+  "backend_commit": "7a16b0a",
+  "api_base_url": "http://127.0.0.1:53000/",
+  "jvm": {
+    "tests": 10,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "backend": {
+    "tests": 22,
+    "fail": 0
+  },
+  "lint_warnings": 6,
+  "device_tests": "NOT RUN",
+  "visual_acceptance": "PENDING",
+  "artifacts": [
+    {
+      "path": "work/p61-complete/krapiva-p61-complete-debug.apk",
+      "bytes": 12626956,
+      "sha256": "659aac203eb8b3051de6c68e0bfba12c31edff3932e8e98fb44fe2301ae1739e",
+      "runtime_tested": false
+    },
+    {
+      "path": "work/p61-complete/krapiva-p61-complete-tests.apk",
+      "bytes": 1298517,
+      "sha256": "57046268d0043b59a5616ec5e75a114e847f85c99db4bda51ca0f905f4b132c9",
+      "runtime_tested": false
+    }
+  ]
+}

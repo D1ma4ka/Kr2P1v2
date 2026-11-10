@@ -1,3 +1,20 @@
+# П6.1 — полный кандидат реализации · 10 ноября 2026
+
+Реализован весь согласованный объём П6.1 по новой команде владельца, без промежуточной остановки на главной. Android: `333085b`; backend: `7a16b0a`; ветка `codex/p6-1-recovery`.
+
+- Две темы и общая навигация; каталог/коллекция/лента/профиль/форма чекина обновлены на реальных API.
+- Подтверждённый сервером success, новые splash/пена/пузырьки, skip/reduced motion; 8000 уникальных сообщений.
+- Подтверждение почты шестью цифрами с persistent attempt limit/expiry/email binding; перенос e-mail, совместимость прежних token API и password reset.
+- Android build/test APK/lint/JVM: PASS, 10 JVM, 0 lint errors / 6 warnings. Backend: 22/22 PASS. Новый локальный HTTP→SMTP→verification→login PASS. Source/provenance/assets PASS.
+
+**Статус: реализация кандидата подготовлена, device/visual acceptance PENDING.** Новых реальных UI screenshots нет, instrumented/TalkBack/320dp/full restart NOT RUN. Это не production/release и не завершение всего продукта. Следующий шаг — общая проверка на устройстве, затем визуальная приёмка. П7 не начинался.
+
+Полные изменения, доказательства, APK для USB reverse и честные визуальные отклонения: [P61_COMPLETE_CANDIDATE.md](design/P61_COMPLETE_CANDIDATE.md). Ниже — история прежнего home-only состояния, а не актуальный список незавершённой реализации.
+
+---
+
+## История предыдущих состояний
+
 # П6.1 — восстановление и безопасная передача · 10 ноября 2026
 
 ## Новая сессия: сборки восстановлены, Android runtime BLOCKED

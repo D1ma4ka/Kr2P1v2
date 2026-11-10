@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ru.krapiva.app.diary.DiaryDatesTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-10T17:20:31" hostname="b2c273902a9c" time="0.019">
+  <properties/>
+  <testcase name="localDayBoundsAndStrictCalendarAreConvertedToUtc" classname="ru.krapiva.app.diary.DiaryDatesTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
