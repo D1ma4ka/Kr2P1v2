@@ -18,6 +18,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.awaitCancellation
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.json.JSONObject
 import ru.krapiva.app.catalog.text
 import ru.krapiva.app.designsystem.*
@@ -30,11 +34,18 @@ import ru.krapiva.app.diary.*
     var friends by remember { mutableStateOf<String?>(null) }
     var offline by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
-    LaunchedEffect(p) {
+    val owner=LocalLifecycleOwner.current
+    LaunchedEffect(p,owner) {
+      owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+       try {
+        error=false
         try { val result=model.api.catalogGet("v1/me/home");home=result.first;offline=result.second }
         catch(e: Exception) { if(e is CancellationException)throw e;error=true }
         try { val result=model.api.json("v1/friends?limit=50");friends=result.getJSONArray("items").length().toString()+if(result.text("nextCursor")!=null)"+" else "" }
         catch(e: Exception) { if(e is CancellationException)throw e;friends=null }
+        awaitCancellation()
+       } finally {friends=null}
+      }
     }
     Surface(Modifier.fillMaxSize(),color=KraPivaColors.Ink) {
         Column(Modifier.safeDrawingPadding()) {
