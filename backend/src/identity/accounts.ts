@@ -1,4 +1,4 @@
-import {randomBytes} from 'node:crypto';
+import {randomBytes,randomInt} from 'node:crypto';
 import type pg from 'pg';
 import {transaction} from '../db/pool.js';
 import {ApiError} from '../http/errors.js';
@@ -34,8 +34,14 @@ export class Accounts {
   const token=randomBytes(32).toString('base64url');
   await client.query('UPDATE account_tokens SET consumed_at=coalesce(consumed_at,now()) WHERE user_id=$1 AND purpose=$2',[id,purpose]);
   await client.query(`INSERT INTO account_tokens(user_id,purpose,token_hash,expires_at) VALUES($1,$2,$3,now()+interval '30 minutes')`,[id,purpose,tokenHash(token)]);
+  let numeric='';
+  if(purpose==='verify_email') {
+   numeric=randomInt(0,1_000_000).toString().padStart(6,'0');
+   await client.query(`INSERT INTO email_verification_codes(user_id,code_hash,expires_at) VALUES($1,$2,now()+interval '10 minutes')
+    ON CONFLICT(user_id) DO UPDATE SET code_hash=excluded.code_hash,expires_at=excluded.expires_at,attempts=0,consumed_at=NULL,created_at=now()`,[id,await hashPassword(numeric)]);
+  }
   try {await this.mail.send(email,purpose==='verify_email'?'KraPiva — подтверждение почты':'KraPiva — восстановление доступа',
-   `Откройте KraPiva и вставьте одноразовый код в ${purpose==='verify_email'?'форму подтверждения почты':'форму нового пароля'}.\nКод: ${token}\nСрок: 30 минут. Если вы не запрашивали письмо, проигнорируйте его.`);}
+   `${numeric?`Код подтверждения: ${numeric}\nВведите его вместе с адресом почты в KraPiva. Срок: 10 минут, не более 5 попыток.\n\nДля прежних версий приложения:\n`:''}Откройте KraPiva и вставьте одноразовый код в ${purpose==='verify_email'?'форму подтверждения почты':'форму нового пароля'}.\nКод: ${token}\nСрок: 30 минут. Если вы не запрашивали письмо, проигнорируйте его.`);}
   catch {throw new ApiError(503,'MAIL_UNAVAILABLE','Почта временно недоступна; повторите позже');}
  }
  async request(email:string,purpose:'verify_email'|'reset_password') {
@@ -52,13 +58,32 @@ export class Accounts {
    if(!u) throw invalid();
    const t=await client.query('UPDATE account_tokens SET consumed_at=now() WHERE token_hash=$1 AND purpose=$2 AND consumed_at IS NULL AND expires_at>now() RETURNING id',[tokenHash(token),purpose]);
    if(!t.rowCount) throw invalid();
-   if(purpose==='verify_email') await client.query('UPDATE users SET email_verified_at=coalesce(email_verified_at,now()),updated_at=now() WHERE id=$1',[u.id]);
+   if(purpose==='verify_email') {
+    await client.query('UPDATE users SET email_verified_at=coalesce(email_verified_at,now()),updated_at=now() WHERE id=$1',[u.id]);
+    await client.query('UPDATE email_verification_codes SET consumed_at=now() WHERE user_id=$1',[u.id]);
+   }
    else {
     await client.query('UPDATE users SET password_hash=$2,updated_at=now() WHERE id=$1',[u.id,hash]);
     await client.query('UPDATE sessions SET revoked_at=coalesce(revoked_at,now()) WHERE user_id=$1',[u.id]);
     await client.query("UPDATE account_tokens SET consumed_at=coalesce(consumed_at,now()) WHERE user_id=$1 AND purpose='reset_password'",[u.id]);
    }
   });
+ }
+ async consumeCode(email:string,code:string) {
+  const success=await transaction(this.pool,async client=>{
+   // Same user-first ordering as resend/legacy verification; serializes concurrent guesses.
+   const user=(await client.query("SELECT id FROM users WHERE email=$1 AND status='active' AND email_verified_at IS NULL FOR UPDATE",[email.toLowerCase()])).rows[0];
+   if(!user) {await checkPassword(code,null);return false;}
+   const row=(await client.query('SELECT code_hash,attempts,consumed_at,expires_at>now() AS valid FROM email_verification_codes WHERE user_id=$1 FOR UPDATE',[user.id])).rows[0];
+   if(!row||row.consumed_at||!row.valid||row.attempts>=5) {await checkPassword(code,null);return false;}
+   await client.query('UPDATE email_verification_codes SET attempts=attempts+1 WHERE user_id=$1',[user.id]);
+   if(!await checkPassword(code,row.code_hash)) return false; // commit failed attempt, never rollback it
+   await client.query('UPDATE email_verification_codes SET consumed_at=now() WHERE user_id=$1',[user.id]);
+   await client.query("UPDATE account_tokens SET consumed_at=coalesce(consumed_at,now()) WHERE user_id=$1 AND purpose='verify_email'",[user.id]);
+   await client.query('UPDATE users SET email_verified_at=now(),updated_at=now() WHERE id=$1',[user.id]);
+   return true;
+  });
+  if(!success) throw invalid();
  }
  private async pair(client:pg.PoolClient,userId:string) {
   const accessToken=randomBytes(32).toString('base64url'),refreshToken=randomBytes(32).toString('base64url');

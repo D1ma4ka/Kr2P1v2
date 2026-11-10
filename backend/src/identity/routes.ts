@@ -27,6 +27,9 @@ export async function accountRoutes(app:FastifyInstance,pool:pg.Pool,mail:Accoun
  app.post<{Body:{token:string}}>('/v1/auth/verify',{schema:{body:s.object({token}),response:{...s.errors,204:{type:'null'}}}},async(req,reply)=>{
   await accounts.budget(req.ip,req.body.token,'verify');await accounts.consume(req.body.token,'verify_email');return reply.code(204).send();
  });
+ app.post<{Body:{email:string;code:string}}>('/v1/auth/verify-code',{schema:{body:s.object({email,code:{type:'string',pattern:'^[0-9]{6}$'}}),response:{...s.errors,204:{type:'null'}}}},async(req,reply)=>{
+  await accounts.budget(req.ip,req.body.email,'verify-code');await accounts.consumeCode(req.body.email,req.body.code);return reply.code(204).send();
+ });
  app.post<{Body:{token:string;password:string}}>('/v1/auth/reset-password',{schema:{body:s.object({token,password}),response:{...s.errors,204:{type:'null'}}}},async(req,reply)=>{
   await accounts.budget(req.ip,req.body.token,'reset');await accounts.consume(req.body.token,'reset_password',req.body.password);return reply.code(204).send();
  });
