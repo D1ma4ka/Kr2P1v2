@@ -1,0 +1,156 @@
+[
+  {
+    "screen": "home",
+    "theme": "dark",
+    "path": "docs/design/p61-approved/home-dark.png",
+    "original_path": "/workspace/generated_images/exec-2e6f8227-d46e-4a37-a826-7b3248348df5.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1736236,
+    "sha256": "3174c415a77e32d5188e8ba238a4fbd68b25dee0ab38f4e3b69cb2c59ba901ac",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "home",
+    "theme": "light",
+    "path": "docs/design/p61-approved/home-light.png",
+    "original_path": "/workspace/generated_images/exec-135103e7-112a-4913-b413-9c857807a207.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1620772,
+    "sha256": "5501eb4f00eda0b75b131955c0059f1e6524bb19b1555b83cca8eae99230cbd2",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "catalog",
+    "theme": "dark",
+    "path": "docs/design/p61-approved/catalog-dark.png",
+    "original_path": "/workspace/generated_images/exec-79c4428e-ba58-43de-80bc-75cac3412c53.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1767777,
+    "sha256": "0ea40dd64f237d879666dec0e1099a73cdfda8573ed8301f6d430595bf3e11a4",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "catalog",
+    "theme": "light",
+    "path": "docs/design/p61-approved/catalog-light.png",
+    "original_path": "/workspace/generated_images/exec-a5ae4a5b-3a42-468f-8cd6-10d765799337.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1527041,
+    "sha256": "52560e0495d64429a8eb15441b7c6933aa49bada70e9dbcb4abe4392ff6cc2e9",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "feed",
+    "theme": "dark",
+    "path": "docs/design/p61-approved/feed-dark.png",
+    "original_path": "/workspace/generated_images/exec-b6383043-5610-4754-8a86-58590f7c492f.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1857103,
+    "sha256": "c784e16ff139cfc7c805b219489d4a5490a5370375d3e05496b42365e3bbe7c2",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "feed",
+    "theme": "light",
+    "path": "docs/design/p61-approved/feed-light.png",
+    "original_path": "/workspace/generated_images/exec-98518bc6-6674-4854-8262-aaca22d46d13.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1613773,
+    "sha256": "2835616f9dc11d4a35fad3cf0245d2a781da70a7b2760c736eb8ecc46dc81506",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "profile",
+    "theme": "dark",
+    "path": "docs/design/p61-approved/profile-dark.png",
+    "original_path": "/workspace/generated_images/exec-ef1bbd9b-dc19-4c49-b6f6-fb1fb0e8fb01.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1833874,
+    "sha256": "562fc854b5c72b2d336e3bca33052f4bb8615ed3c6f3868a3151a3bd3015d60e",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "profile",
+    "theme": "light",
+    "path": "docs/design/p61-approved/profile-light.png",
+    "original_path": "/workspace/generated_images/exec-90b2d2c6-db90-4235-b646-6c5740dbf008.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1642585,
+    "sha256": "377b31bafab2f9b2b3278dadafccdfb726e45922ef093e0bb710471c81114a2d",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "checkin-create",
+    "theme": "dark",
+    "path": "docs/design/p61-approved/checkin-create-dark.png",
+    "original_path": "/workspace/generated_images/exec-075997da-1019-48f3-8e99-aecd840df5b9.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1479085,
+    "sha256": "ce1fe39dc3d788e22ced1998d74ea5a29dbf625f01caf0023202c84dded9980d",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "checkin-create",
+    "theme": "light",
+    "path": "docs/design/p61-approved/checkin-create-light.png",
+    "original_path": "/workspace/generated_images/exec-a54a68bb-1e55-41a3-8596-8748175e8287.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1348381,
+    "sha256": "d18ceba981920ff2e98749e9be81066adc1bc361fa14576c5d920e0c75956da9",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "checkin-success",
+    "theme": "dark",
+    "path": "docs/design/p61-approved/checkin-success-dark.png",
+    "original_path": "/workspace/generated_images/exec-62614c9d-7ab1-45cc-8263-3992aa9e01a4.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1777729,
+    "sha256": "68a7150046851abc4516463d18e6a2fac6453f376dcc7836cc41750a88f8dada",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "checkin-success",
+    "theme": "light",
+    "path": "docs/design/p61-approved/checkin-success-light.png",
+    "original_path": "/workspace/generated_images/exec-995e22fd-64a1-45ad-ade4-0ce0e049c752.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1627465,
+    "sha256": "3c21b2c9f63ccd09d7273c586fc52129ff88a9e8da496f154edeb1e2510680af",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "splash",
+    "theme": "dark",
+    "path": "docs/design/p61-approved/splash-dark.png",
+    "original_path": "/workspace/generated_images/exec-eee6417b-938b-462e-bdc7-c26612f4631d.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1571816,
+    "sha256": "8512cb419c059b586810c48dcf1110a0bb337a16fb19c6c67bc726cfd3a30afa",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  },
+  {
+    "screen": "splash",
+    "theme": "light",
+    "path": "docs/design/p61-approved/splash-light.png",
+    "original_path": "/workspace/generated_images/exec-00a76761-5c6a-4532-be01-cad8b087038e.png",
+    "width": 910,
+    "height": 1728,
+    "bytes": 1292403,
+    "sha256": "d512e73d4850603e01d37f18481185630aa0a700a98b615c01dbf27e565c5e85",
+    "kind": "approved design mockup; NOT runtime screenshot"
+  }
+]
