@@ -1,6 +1,11 @@
 # Источники требований
 
 Текущий нормативный документ: ../TECHNICAL_SPECIFICATION.md, v1.3.
+
+Исходное ТЗ v1.3 до согласованных дополнений П6.1 сохранено байт-в-байт в
+`v1.3/docs/TECHNICAL_SPECIFICATION.md`. Его размер и SHA-256 соответствуют
+неизменённому `v1.3/MANIFEST.json`; происхождение проверяет `scripts/verify_p0.py`.
+Рабочее ТЗ по-прежнему находится в `docs/TECHNICAL_SPECIFICATION.md`, а не в архиве.
 Полный пакет v1.3: README, changes prompt, ТЗ и PNG; provenance в v1.3/MANIFEST.json.
 PNG — визуальный референс владельца, не production asset и не источник данных каталога.
 

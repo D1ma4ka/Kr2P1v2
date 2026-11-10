@@ -38,8 +38,13 @@ def main():
         for entry in documents:
             # v1.0 manifest is immutable; archive layout follows original members.
             member = Path(entry["archive_member"])
+            # The current specification has owner-approved P6.1 supplements.
+            # Verify the byte-exact v1.3 import separately; never rewrite its manifest hashes.
             relative = (Path("docs/handoff/v1.0") / Path(*member.parts[1:])
-                        if version == "1.0" else Path(entry["repository_path"]))
+                        if version == "1.0" else
+                        Path("docs/handoff/v1.3/docs/TECHNICAL_SPECIFICATION.md")
+                        if member == Path("docs/TECHNICAL_SPECIFICATION.md") else
+                        Path(entry["repository_path"]))
             path = (ROOT / relative).resolve()
             require(path.is_relative_to(ROOT), "Manifest path outside repository")
             paths.append(path)
