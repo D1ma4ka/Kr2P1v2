@@ -1,0 +1,477 @@
+{
+  "audited_at": "2026-11-10 Europe/Istanbul",
+  "branch": "codex/p6-1-audit-save-2026-11-10",
+  "code_baseline_sha": "9dc0769d68a6bc15af347fc17023e7fc55f29018",
+  "documentation_source_sha": "cdb3be4b3a4afe0277df4ffd255ad4ad123d2575",
+  "initial_workspace": {
+    "path": "/workspace/Kr2P1v2",
+    "branch": "work",
+    "sha": "634feca5d14ed0463d9e6ef7268be1b9e23c48ef",
+    "tracked_files": [
+      "AGENTS.md",
+      "README.md"
+    ],
+    "dirty": false,
+    "stash_count": 0,
+    "wip_found": false
+  },
+  "approved_p61_designs": {
+    "expected": 14,
+    "verified": 0,
+    "status": "BLOCKED: original files unavailable; do not regenerate"
+  },
+  "files": [
+    {
+      "path": "android/app/src/main/AndroidManifest.xml",
+      "bytes": 1108,
+      "sha256": "37210f6a0cb735a276c594abe3d1a436c687b9d2c5f20712d95781339cf93982",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/MainActivity.kt",
+      "bytes": 827,
+      "sha256": "1555992c0cc5ebb2a2e678f5bab5ec3e41dd0070173f23c719d98ee89960c298",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/account/AccountApi.kt",
+      "bytes": 6309,
+      "sha256": "ccaaa231e43e3de3f3a1d92304e888df01a4bf2e54bfc2c38aac7c1b9d671ca4",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/account/AccountScreen.kt",
+      "bytes": 24575,
+      "sha256": "e825ffe25599da67b9d9269e0441056be97473f7e184599ec086f32fb45244a3",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/account/AccountStore.kt",
+      "bytes": 7353,
+      "sha256": "e35bb05b6f200d994aa50fa9f3e39c32339172fe1a81e98575a2d575b62209be",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/account/AccountViewModel.kt",
+      "bytes": 11870,
+      "sha256": "f7e269e8313fd6320aaa29683d58e0eaf3b33453aa8a52cd94b240041adb85ef",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/catalog/BarcodeDecoder.kt",
+      "bytes": 1714,
+      "sha256": "ff8d3ad6a6aec8d84d0ceeeb32b2121a096e45d6d014efbfdb4c250de975f844",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/catalog/CatalogNumbers.kt",
+      "bytes": 252,
+      "sha256": "45f243b74eed99a163b88562bdd6b55acf68e8ddfb912e04bea0bb20347b8618",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/catalog/CatalogRepository.kt",
+      "bytes": 768,
+      "sha256": "de47871869b064296eae5437456ada4d550de34dcd5e777fee169b91283f5478",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/catalog/CatalogScreen.kt",
+      "bytes": 16967,
+      "sha256": "5a6267955c9e646e38780d3a205137e71caa5dce8214ebba4608999a4e6bf599",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/catalog/CatalogViewModel.kt",
+      "bytes": 8773,
+      "sha256": "870b3031d9f2a67f107c57865199ed750da92af023da40f1eed77340db548375",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/catalog/Gtin.kt",
+      "bytes": 791,
+      "sha256": "ac88096d0ded48212ae5f50530f6c76e65a9320d6bebcdf74d9f844af7f8d25b",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/catalog/ProposalForm.kt",
+      "bytes": 6095,
+      "sha256": "6f080611d8156117dee9556bc6537a42a9bd11ec1215e719bff4d87173e144bb",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/catalog/ScannerScreen.kt",
+      "bytes": 8983,
+      "sha256": "41a0e5a2db570d1fa5113f34ea1cf9506a71098fd1dd52d0b90dbe9d8e062b70",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/designsystem/BeerHero.kt",
+      "bytes": 6657,
+      "sha256": "2de2986ef6da15a493ade991dbc17cf684a92c4b2174c681f2c13c4058394dcc",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/designsystem/LiquidMotion.kt",
+      "bytes": 843,
+      "sha256": "d5ae7ff78ea73102f0fe7a05a99ebc3f27ede51ed58e3a8226ca6bd41bbc55f1",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/designsystem/Theme.kt",
+      "bytes": 2229,
+      "sha256": "9de566a2e7c7f2453b392382f909916cdf509d35b08d5ec3e7b8a5c659a852c3",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/diary/DiaryDates.kt",
+      "bytes": 995,
+      "sha256": "960db65c40e56bf6767553add4a7b2d6c68d2cae56fde59f9f3ccc5b76bb6b48",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/diary/DiaryEditor.kt",
+      "bytes": 8664,
+      "sha256": "e2faa75a90b8148a3d7e730e08f945b4fd65cfd77eb3953eee3d2dc85eaae9c8",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/diary/DiaryNumbers.kt",
+      "bytes": 1063,
+      "sha256": "d07291386fb5f8120f586faabfdfdab63fa5ec5ea6f988548129eb7e70b7349c",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/diary/DiaryScreen.kt",
+      "bytes": 27309,
+      "sha256": "790b0d23432a98fae7c8481662f47a285f71577147ca1273c96e8b9eb8a56467",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/diary/DiaryViewModel.kt",
+      "bytes": 10568,
+      "sha256": "6d0097ced7eb7b7daacd30dd781be98495413d3d280842df4da9dfa43579b489",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/social/SocialScreen.kt",
+      "bytes": 14165,
+      "sha256": "9caed73a6b864d7af53c94e99f7aa244d4b498760dd400f1e590e7ad03fb123b",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/social/SocialViewModel.kt",
+      "bytes": 6876,
+      "sha256": "70860f847a7063bba546c708594dc559abfca56bfc76647b40d3f5369eeafafc",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/java/ru/krapiva/app/welcome/WelcomeScreen.kt",
+      "bytes": 3830,
+      "sha256": "348784cee94dc671cd761cec3621f2b10585a2abaf112fd497a9d196c6c96cf0",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/ic_brand_mark.xml",
+      "bytes": 1143,
+      "sha256": "36152617d67cdcaded4b45cf6035b043445918c08d3a82efe1ded5f9592cb390",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/ic_launcher_foreground.xml",
+      "bytes": 1256,
+      "sha256": "cda04af5f0fb494b5ba62cd2b2da9a04fb7c5eef8d2a662ef3f9be32e28ac847",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/ic_launcher_monochrome.xml",
+      "bytes": 1256,
+      "sha256": "18c0edc51b8beb4ccf6a72346103bad2eafc0292b8ff30d2cc6bc53340e503fd",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-anydpi/ic_launcher.xml",
+      "bytes": 289,
+      "sha256": "5c7883334f2c41c7ad9a4cad922649d261a93233640e2632a16520630c6640eb",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-anydpi/ic_launcher_round.xml",
+      "bytes": 289,
+      "sha256": "5c7883334f2c41c7ad9a4cad922649d261a93233640e2632a16520630c6640eb",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 2946,
+      "sha256": "d32a6990c5a195051afe6e23b2a35cf38107f09a184c4f036afc8fc5fde3fe60",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        72,
+        72
+      ]
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+      "bytes": 3657,
+      "sha256": "40cc831eeda013428ace5fa105f58aa6882749c416d67b49379a09b660764120",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        72,
+        72
+      ]
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 1839,
+      "sha256": "e80a41180cb4b81643a5aca6f8a53c3ee6f79da75695eab72b5a8584d3c8f7b8",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        48,
+        48
+      ]
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+      "bytes": 2296,
+      "sha256": "4b31394c8a5521b7f0b3dde8c960bc07909b9af3f6df0992ab5d6e6e3d270e8b",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        48,
+        48
+      ]
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 3939,
+      "sha256": "9cb7260caaf9f625310d265873df54f38f3d889857e8ab92f9a7df8c6b52f51a",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        96,
+        96
+      ]
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+      "bytes": 4936,
+      "sha256": "64122fb4576ee9697756ce8c83fcb4dfe82f9df30f5a86a050797efb53156713",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        96,
+        96
+      ]
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 6344,
+      "sha256": "2340280028a27b0ab47ad67f163572dd0965ca7992d6041a7ad16d143b0072e9",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        144,
+        144
+      ]
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+      "bytes": 7888,
+      "sha256": "bd48bc9931167c9725d1d755d918e2461fa04f468dd14400b8fa575b92732af6",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        144,
+        144
+      ]
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 8738,
+      "sha256": "71e0a051a7032f24a289b694c7ab4e848e8b19a62a399c5cf5b5ef9c73c0e416",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        192,
+        192
+      ]
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+      "bytes": 10805,
+      "sha256": "1b9a9753f1172f7da8a085e1ff921986047c53fd25611c1a8d2fe19ec96b6ffa",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        192,
+        192
+      ]
+    },
+    {
+      "path": "android/app/src/main/res/values/colors.xml",
+      "bytes": 200,
+      "sha256": "1e0841c77279c587c0768d1881de94222931bb9a218fe39f4943d9b0a91f74e4",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/res/values/strings.xml",
+      "bytes": 1337,
+      "sha256": "1e8d62bc84aa2aa9105e8d3dbdb15e6dd9a4930fa6b42a3070f4138ebb95da39",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/res/values/themes.xml",
+      "bytes": 796,
+      "sha256": "d2a023bb6c41cf21ac35c59c8e4b984c37533932d07d40a977de5ffc5caa38b0",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/res/xml/data_extraction_rules.xml",
+      "bytes": 1050,
+      "sha256": "cb029b35db0e976c087100424e16e14a6256b46962398887520e51508c3b5842",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "android/app/src/main/res/xml/full_backup_content.xml",
+      "bytes": 487,
+      "sha256": "865cae97840e81b9950d70457a05c5c1125a68364b0a83f44cd3daa030bc7e96",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "assets/brand/README.md",
+      "bytes": 1418,
+      "sha256": "65198503162554b133a577a1cb8f263b4ac027d6fa9bcd38a3c1e8b0fd55ed09",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "assets/brand/avatar.png",
+      "bytes": 14959,
+      "sha256": "d64a37a14c353736c02f6de7af0bb076fa3d115ce50dea0dda6d036a010065a2",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "path": "assets/brand/avatar.svg",
+      "bytes": 830,
+      "sha256": "2c39170d6aff29d937631735c7d37498aafcc9d069cd8c709d71ccd3c006144f",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "assets/brand/logo.png",
+      "bytes": 19488,
+      "sha256": "0a2b9137181a8a699a967c1ae8c3f785407e09227fffecb45ccb4080de98342d",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        940,
+        240
+      ]
+    },
+    {
+      "path": "assets/brand/logo.svg",
+      "bytes": 948,
+      "sha256": "98081fe4dac382d2b8b5fc58fcd5fc0414fb882a2c7d355d2076eafcdb2b9a46",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "assets/brand/mark.png",
+      "bytes": 26857,
+      "sha256": "23af5443202f8ac22558a39e11461e4bb92c94269b9b5f0a9e659cb03edea7de",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        512,
+        512
+      ]
+    },
+    {
+      "path": "assets/brand/mark.svg",
+      "bytes": 775,
+      "sha256": "2f1523568711fc414e52f69944a1b1e473e9ae907f78cd8d868caa32493804ac",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "assets/brand/tokens.json",
+      "bytes": 542,
+      "sha256": "72eee5208723cb45cde78f7fd01882f35837cd7d2436b22a47c72239236b21f1",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/ASSET_INVENTORY.md",
+      "bytes": 1787,
+      "sha256": "5830574040f1a4929b05cfb70bd31873f0641eed4a9aba9cfe1c388f2a79ea98",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/DESIGN_SYSTEM.md",
+      "bytes": 6695,
+      "sha256": "e8fa1f30f4f67c4455b3b51f5d99ac0df3766248aebeb92822bac1c13f1ef361",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/EXPORT.md",
+      "bytes": 889,
+      "sha256": "9d50662540e5d2a4f1cc0df57298ec69c959b21222529fd7039fe314f4cdd043",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/VISUAL_BASELINE.md",
+      "bytes": 4874,
+      "sha256": "c1408af0f4a762eb77cef34f4b631f79e4b29f305df7ac867aa8becad0038c2b",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/p3-android-baseline.jpg",
+      "bytes": 189205,
+      "sha256": "2da37b0c54fced49f3cf8e5510f2d2a98d97f8202ecb04afa27197c907eea2e4",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/p3-android-baseline.json",
+      "bytes": 1979,
+      "sha256": "eef1c47f2959c64dd2c0995e9e27313bf36d9e8b4f1062d7d067faad0bfa0bdb",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/p4-review.jpg",
+      "bytes": 301334,
+      "sha256": "85fc3cd040556d2f21580c27babc407886aa51c629a61a2ca3c8489a29598a98",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/p4-screenshot-manifest.json",
+      "bytes": 2141,
+      "sha256": "4fdba1cef17dac45a094e44ef50d4317aeb055aa120c61427c76f2ad06db39cd",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/p5-review.jpg",
+      "bytes": 318301,
+      "sha256": "76c456d9163356334375050d87a108c5a69d1745663923544903137c03543829",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/p5-screenshot-manifest.json",
+      "bytes": 2552,
+      "sha256": "c0e1cfb6549c30f538d826d508668e4a7a3e3eafadf00232fa428e7236dc4615",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/p6-review.jpg",
+      "bytes": 192793,
+      "sha256": "b23b1f2579a55df624786ec08ca7f2924acadb35c06e20118a258d9581104c93",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/p6-screenshot-manifest.json",
+      "bytes": 1959,
+      "sha256": "4c298721ee94a92f4613e823441a90c72153bd82ff9763ce9b0973bf4b9ec0ac",
+      "classification": "P0-P6 baseline, not verified P6.1"
+    },
+    {
+      "path": "docs/design/reference/krapiva-dark-concept.png",
+      "bytes": 2321303,
+      "sha256": "7783ecd1ac7e3450f4eb608444443f539fb3758aa41d8e474ad0ed0b97e5bf89",
+      "classification": "P0-P6 baseline, not verified P6.1",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    }
+  ]
+}
