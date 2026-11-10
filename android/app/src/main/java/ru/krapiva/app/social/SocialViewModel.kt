@@ -101,6 +101,9 @@ class SocialViewModel(val api: AccountApi, private val expired: () -> Unit): Vie
         val row = mutable.value.data ?: return@task
         api.json("v1/social/checkins/${row.getString("id")}/like",if(row.getBoolean("liked"))"DELETE" else "PUT");load()
     }
+    fun likePost(id: String,liked: Boolean) = task {
+        api.json("v1/social/checkins/$id/like",if(liked) "DELETE" else "PUT");load()
+    }
     fun sendComment() = task {
         val old = mutable.value
         if(old.comment.isBlank()) return@task

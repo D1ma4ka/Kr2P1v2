@@ -26,11 +26,17 @@ import kotlinx.coroutines.CancellationException
 import org.json.JSONObject
 import ru.krapiva.app.account.AccountApi
 import ru.krapiva.app.catalog.text
-import ru.krapiva.app.designsystem.KraPivaColors
+import ru.krapiva.app.designsystem.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.font.FontStyle
 import ru.krapiva.app.diary.*
 
 @Composable
-fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,initialCheckin: String? = null,request: Int = 0,providedModel: SocialViewModel? = null, initialPage: SocialPage = SocialPage.FEED, bottomBar: @Composable () -> Unit = {}) {
+fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,initialCheckin: String? = null,request: Int = 0,providedModel: SocialViewModel? = null, initialPage: SocialPage = SocialPage.FEED, bottomBar: @Composable () -> Unit = {},onCheckin: (() -> Unit)? = null,onSettings: () -> Unit = onProfile) {
     val model = providedModel ?: viewModel<SocialViewModel>(key = "social-$userId",factory = object: ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T = SocialViewModel(api,expired) as T
     })
@@ -46,16 +52,13 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
     var remove by remember { mutableStateOf<Pair<String,Boolean>?>(null) }
     Surface(Modifier.fillMaxSize(),color = KraPivaColors.Ink) {
         Column(Modifier.safeDrawingPadding().imePadding()) {
-            Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onHome,enabled = !state.busy) { Text("Главная") }
-                TextButton(onProfile,enabled = !state.busy) { Text("Мой профиль") }
-            }
-            Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceEvenly) {
-                for((page,label) in listOf(SocialPage.FEED to "Лента",SocialPage.SEARCH to "Поиск",SocialPage.FRIENDS to "Друзья",SocialPage.REQUESTS to "Заявки")) TextButton({ model.open(page) },enabled = !state.busy) { Text(label,color = if(state.page == page)KraPivaColors.Amber else KraPivaColors.Cream) }
+            ClubHeader(if(state.page == SocialPage.FEED) "Лента друзей" else null,onSettings,if(state.page == SocialPage.FEED) onCheckin else null)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for((page,label) in listOf(SocialPage.FEED to "Лента",SocialPage.FRIENDS to "Друзья",SocialPage.SEARCH to "Поиск",SocialPage.REQUESTS to "Заявки")) FilterChip(state.page == page,{model.open(page)},label = {Text(label)},enabled = !state.busy)
             }
             if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             LazyColumn(Modifier.weight(1f),contentPadding = PaddingValues(16.dp),verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item { DiaryTitle(when(state.page) { SocialPage.FEED -> "Лента друзей";SocialPage.SEARCH -> "Найти друзей";SocialPage.FRIENDS -> "Мои друзья";SocialPage.REQUESTS -> "Заявки в друзья";SocialPage.PROFILE -> "Профиль пользователя";SocialPage.DETAIL -> "Обсуждение чекина" }) }
+                item { if(state.page != SocialPage.FEED) DiaryTitle(when(state.page) { SocialPage.FEED -> "Лента друзей";SocialPage.SEARCH -> "Найти друзей";SocialPage.FRIENDS -> "Мои друзья";SocialPage.REQUESTS -> "Заявки в друзья";SocialPage.PROFILE -> "Профиль пользователя";SocialPage.DETAIL -> "Обсуждение чекина" }) }
                 item { TextButton({ model.refresh() },enabled = !state.busy) { Text("Обновить") } }
                 state.error?.let { error -> item { Text(error,color = MaterialTheme.colorScheme.error,modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }) } }
                 if(state.page == SocialPage.SEARCH) item {
@@ -102,7 +105,7 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
                 if(state.items.isEmpty() && !state.busy && state.error == null) item { Text(when(state.page) { SocialPage.FEED -> "В ленте пока пусто. Найдите друзей или обновите её позже.";SocialPage.REQUESTS -> "Нет ожидающих заявок";SocialPage.FRIENDS -> "Друзей пока нет";SocialPage.DETAIL -> "Комментариев пока нет";SocialPage.SEARCH -> "Введите имя — от двух символов. Если результатов нет, проверьте запрос.";else -> "Нет доступных записей" },color = KraPivaColors.Muted) }
                 items(state.items,key = { it.optString("id",it.optString("userId")) }) { item ->
                     when(state.page) {
-                        SocialPage.FEED,SocialPage.PROFILE -> SocialCheckin(item,api,state.revision,!state.busy,{ model.open(SocialPage.PROFILE,item.getString("userId")) },{ model.open(SocialPage.DETAIL,item.getString("id")) })
+                        SocialPage.FEED,SocialPage.PROFILE -> SocialCheckin(item,api,state.revision,!state.busy,{ model.open(SocialPage.PROFILE,item.getString("userId")) },{ model.open(SocialPage.DETAIL,item.getString("id")) },{model.likePost(item.getString("id"),item.getBoolean("liked"))})
                         SocialPage.DETAIL -> DiaryCard {
                             Text(item.getString("displayName"),style = MaterialTheme.typography.titleMedium)
                             Text(item.getString("body"));Text(DiaryDates.display(item.getString("createdAt")),color = KraPivaColors.Muted)
@@ -126,12 +129,48 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
     }
     remove?.let { (id,friend) -> AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { remove = null },title = { Text(if(friend)"Удалить из друзей?" else "Удалить комментарий?") },text = { Text(if(friend)"Доступ к записям для друзей прекратится. Для новой дружбы потребуется заявка." else "Комментарий исчезнет из обсуждения.") },confirmButton = { TextButton({ remove = null;if(friend)model.removeFriend(id)else model.removeComment(id) }) { Text("Удалить") } },dismissButton = { TextButton({ remove = null }) { Text("Отмена") } }) }
 }
-@Composable private fun SocialCheckin(row: JSONObject,api: AccountApi,revision: Int,enabled: Boolean,onUser: () -> Unit,onDetail: (() -> Unit)?) {
-    DiaryCard {
-        TextButton(onUser,enabled = enabled) { Text(row.getString("displayName")) }
-        CheckinCard(row,enabled && onDetail != null) { onDetail?.invoke() }
-        key(row.getString("id"),revision) { for(id in row.getJSONArray("mediaIds").strings()) SocialPhoto(api,id,"Фото в ленте") }
-        if(onDetail != null) TextButton(onDetail,enabled = enabled) { Text("Лайки: ${row.getInt("likeCount")} · комментарии: ${row.getInt("commentCount")}") }
+@Composable private fun SocialCheckin(row: JSONObject,api: AccountApi,revision: Int,enabled: Boolean,onUser: () -> Unit,onDetail: (() -> Unit)?,onLike: (() -> Unit)? = null) {
+    val author by produceState<JSONObject?>(null,row.getString("userId"),revision) {
+        try { value = api.json("v1/users/${row.getString("userId")}") } catch(e: Exception) {if(e is CancellationException)throw e}
+    }
+    val preview by produceState<JSONObject?>(null,row.getString("id"),revision) {
+        if(onDetail != null && row.optInt("commentCount") > 0) try { value=api.json("v1/social/checkins/${row.getString("id")}/comments?limit=1").getJSONArray("items").optJSONObject(0) } catch(e: Exception) {if(e is CancellationException)throw e}
+    }
+    ClubCard(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically,horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            val avatar = author?.text("avatarAssetId")
+            if(avatar != null) ClubPhoto(api,avatar,"Аватар автора",Modifier.size(40.dp).clip(CircleShape).clickable(enabled = enabled,onClick = onUser))
+            else IconButton(onUser,enabled = enabled) {ClubGlyph(ClubIcon.PERSON)}
+            Column(Modifier.weight(1f)) {
+                TextButton(onUser,enabled = enabled,contentPadding = PaddingValues(0.dp)) { Text(row.getString("displayName"),style = MaterialTheme.typography.titleMedium,color = KraPivaColors.Cream) }
+                Text(DiaryDates.display(row.getString("createdAt")),color = KraPivaColors.Muted,style = MaterialTheme.typography.bodySmall)
+            }
+            if(onDetail != null) IconButton(onDetail,enabled = enabled) {ClubGlyph(ClubIcon.MORE,description = "Открыть обсуждение")}
+        }
+        Row(Modifier.fillMaxWidth(),verticalAlignment = Alignment.CenterVertically,horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text(row.getString("positionName"),style = MaterialTheme.typography.titleLarge)
+                Text(listOfNotNull(row.text("breweryName"),row.text("styleName")).joinToString(" · "),color = KraPivaColors.Muted)
+            }
+            Text(if(row.isNull("ratingQuarters")) "Без оценки" else "★ ${DiaryNumbers.rating(row.getInt("ratingQuarters"))}",color = KraPivaColors.Amber)
+        }
+        key(row.getString("id"),revision) {
+            val photos=row.getJSONArray("mediaIds").strings()
+            if(photos.isEmpty()) ClubPhoto(api,null,"Без фотографии",Modifier.fillMaxWidth().height(140.dp))
+            else for(id in if(onDetail == null) photos else photos.take(1)) SocialPhoto(api,id,"Фото в ленте")
+            if(onDetail != null && photos.size>1) TextButton(onDetail,enabled = enabled) {Text("Все фото (${photos.size})")}
+        }
+        row.text("body")?.let {Text(it,fontStyle = FontStyle.Italic)}
+        if(onDetail != null) {
+            Row(Modifier.fillMaxWidth(),verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onLike ?: onDetail,enabled = enabled) {ClubGlyph(ClubIcon.HEART,color = if(row.getBoolean("liked")) KraPivaColors.Amber else KraPivaColors.Cream,description = if(row.getBoolean("liked")) "Убрать лайк" else "Нравится");Spacer(Modifier.width(6.dp));Text(row.getInt("likeCount").toString())}
+                TextButton(onDetail,enabled = enabled) {ClubGlyph(ClubIcon.COMMENT,description = "Комментарии");Spacer(Modifier.width(6.dp));Text(row.getInt("commentCount").toString())}
+                Spacer(Modifier.weight(1f))
+                ru.krapiva.app.catalog.WishlistMark(api,row.getString("positionId"),false)
+            }
+            preview?.let {comment -> HorizontalDivider(color = KraPivaColors.Border);Text(comment.getString("displayName"),style = MaterialTheme.typography.titleMedium);Text(comment.getString("body"),maxLines = 2)}
+            TextButton(onDetail,enabled = enabled) {Text("Лайки: ${row.getInt("likeCount")} · комментарии: ${row.getInt("commentCount")}")}
+        }
     }
 }
 @Composable private fun SocialPhoto(api: AccountApi,id: String,label: String,cover: Boolean = false) {
@@ -145,6 +184,6 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
     }
     val bitmap = remember(result) { result?.let { BitmapFactory.decodeByteArray(it,0,it.size) } }
     if(bitmap == null) Text(if(loading)"Загрузка фото…" else "Фото недоступно. Обновите страницу.",color = KraPivaColors.Muted)
-    else Image(bitmap.asImageBitmap(),label,Modifier.fillMaxWidth().height(if(cover)140.dp else 180.dp).clickable { full = true },contentScale = ContentScale.Fit)
+    else Image(bitmap.asImageBitmap(),label,Modifier.fillMaxWidth().height(if(cover)160.dp else 220.dp).clip(ClubTokens.ControlShape).clickable { full = true },contentScale = ContentScale.Crop)
     if(full) AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { full = false },text = { bitmap?.let { Image(it.asImageBitmap(),"Просмотр фото",Modifier.fillMaxWidth().heightIn(max = 420.dp),contentScale = ContentScale.Fit) } },confirmButton = { TextButton({ full = false }) { Text("Закрыть") } })
 }

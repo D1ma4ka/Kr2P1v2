@@ -30,10 +30,13 @@ import org.json.JSONObject
 import ru.krapiva.app.R
 import ru.krapiva.app.account.AccountApi
 import ru.krapiva.app.account.NavigationMark
-import ru.krapiva.app.designsystem.KraPivaColors
+import ru.krapiva.app.designsystem.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.horizontalScroll
+import ru.krapiva.app.diary.objects
 
 @Composable
-fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String, onProfile: () -> Unit, expired: () -> Unit, providedModel: CatalogViewModel? = null, onHome: (() -> Unit)? = null, onCheckin: ((JSONObject?) -> Unit)? = null, requestedPosition: String? = null, consumePosition: () -> Unit = {}, bottomBar: @Composable () -> Unit = {}) {
+fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String, onProfile: () -> Unit, expired: () -> Unit, providedModel: CatalogViewModel? = null, onHome: (() -> Unit)? = null, onCheckin: ((JSONObject?) -> Unit)? = null, requestedPosition: String? = null, consumePosition: () -> Unit = {}, bottomBar: @Composable () -> Unit = {},onSettings: () -> Unit = onProfile) {
     val model: CatalogViewModel = providedModel ?: viewModel(key = "catalog-$userId", factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T = CatalogViewModel(CatalogRepository(api), upload, expired) as T
     })
@@ -42,17 +45,15 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
     BackHandler { if (!model.back()) onProfile() }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.safeDrawingPadding().imePadding()) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { if (!model.back()) onProfile() }, enabled = !state.busy) { Text("Назад") }
-                Text("KraPiva · Каталог", style = MaterialTheme.typography.titleLarge)
-            }
+            ClubHeader(if(state.page == CatalogPage.POSITIONS) "Каталог" else null,onSettings,if(state.page == CatalogPage.POSITIONS && onCheckin != null) ({ onCheckin(null) }) else null)
+            if(state.page != CatalogPage.POSITIONS) TextButton(onClick = { if(!model.back()) onProfile() },enabled = !state.busy) { Text("Назад") }
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Assertive }) }
             state.notice?.let { Text(it, modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Polite }) }
             if (state.offline) Text("Нет связи с сервером · сохранённая копия, до 24 часов. Статус мог измениться.", color = KraPivaColors.Muted, modifier = Modifier.padding(horizontal = 16.dp))
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (state.page) {
-                    CatalogPage.POSITIONS, CatalogPage.BREWERIES, CatalogPage.STYLES, CatalogPage.PROPOSALS -> CatalogList(state, model)
+                    CatalogPage.POSITIONS, CatalogPage.BREWERIES, CatalogPage.STYLES, CatalogPage.PROPOSALS -> CatalogList(state, model, api)
                     CatalogPage.POSITION, CatalogPage.BREWERY -> Detail(state, model, api, onCheckin)
                     CatalogPage.PROPOSAL -> ProposalForm(state, model)
                     CatalogPage.SCANNER -> ScannerScreen(state, model)
@@ -70,13 +71,15 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
     OutlinedTextField(value, onChange, label = { Text(label) }, enabled = enabled, modifier = Modifier.fillMaxWidth())
 }
 @Composable
-private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
+private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: AccountApi) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                CatalogTitle(when (state.page) { CatalogPage.BREWERIES -> "Пивоварни"; CatalogPage.STYLES -> "Выбрать стиль"; CatalogPage.PROPOSALS -> "Мои предложения"; else -> "Каталог пива" })
+                if(state.page != CatalogPage.POSITIONS) CatalogTitle(when (state.page) { CatalogPage.BREWERIES -> "Пивоварни"; CatalogPage.STYLES -> "Выбрать стиль"; CatalogPage.PROPOSALS -> "Мои предложения"; else -> "Каталог пива" })
                 if (state.page == CatalogPage.POSITIONS) {
-                    CatalogInput("Название, пивоварня или стиль", state.filters.q, !state.busy) { model.filters(state.filters.copy(q = it.take(120))) }
+                    OutlinedTextField(state.filters.q,{ model.filters(state.filters.copy(q = it.take(120))) },label = { Text("Название, пивоварня или стиль") },enabled = !state.busy,singleLine = true,modifier = Modifier.fillMaxWidth(),shape = ClubTokens.CardShape,
+                        leadingIcon = { ClubGlyph(ClubIcon.SEARCH) },trailingIcon = { IconButton({ model.open(CatalogPage.SCANNER) },enabled = !state.busy) { ClubGlyph(ClubIcon.SCAN,description = "Сканировать штрихкод") } })
+                    StyleChips(state,model)
                     CatalogAction("Найти", !state.busy) { model.refresh() }
                     Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton({ model.open(CatalogPage.SCANNER) },modifier = Modifier.weight(1f),enabled = !state.busy) { Text("Сканировать штрихкод") }
@@ -96,7 +99,7 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
         }
         items(state.items, key = { it.getString("id") }) { item ->
             when (state.page) {
-                CatalogPage.POSITIONS -> BeerPositionCard(item, model.repository, state.offline, !state.busy) { model.detail(item.getString("id")) }
+                CatalogPage.POSITIONS -> BeerPositionCard(item, model.repository, state.offline, !state.busy,rating = {CatalogRating(api,item.getString("id"),state.offline)},trailing = { WishlistMark(api,item.getString("id"),state.offline) },onClick = { model.detail(item.getString("id")) })
                 CatalogPage.PROPOSALS -> Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = KraPivaColors.Surface)) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(item.getJSONObject("proposedData").getString("name"), style = MaterialTheme.typography.titleLarge)
@@ -148,22 +151,24 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel) {
             failed = bitmap == null
         } catch (error: Exception) { if (error is kotlinx.coroutines.CancellationException) throw error; failed = true }
     }
-    val modifier = if (large) Modifier.fillMaxWidth().height(180.dp) else Modifier.size(64.dp)
-    if (bitmap != null) Image(bitmap!!.asImageBitmap(), "Фото ${data.optString("name")}", modifier, contentScale = ContentScale.Fit)
+    val modifier = if (large) Modifier.fillMaxWidth().height(180.dp) else Modifier.width(112.dp).height(112.dp)
+    if (bitmap != null) Image(bitmap!!.asImageBitmap(), "Фото ${data.optString("name")}", modifier.clip(ClubTokens.ControlShape), contentScale = ContentScale.Crop)
     else {
         Image(painterResource(R.drawable.ic_brand_mark), if (id == null) "Фотография отсутствует" else "Фотография недоступна", modifier.padding(8.dp))
         if (failed && large) Text("Не удалось загрузить фото. Обновите карточку.", color = KraPivaColors.Muted)
     }
 }
-@Composable internal fun BeerPositionCard(data: JSONObject, repository: CatalogRepository, offline: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    Card(Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick), colors = CardDefaults.cardColors(containerColor = KraPivaColors.Surface)) {
-        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+@Composable internal fun BeerPositionCard(data: JSONObject, repository: CatalogRepository, offline: Boolean, enabled: Boolean,rating: @Composable (() -> Unit)? = null,trailing: @Composable (() -> Unit)? = null,onClick: () -> Unit) {
+    ClubCard(Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             CatalogImage(data, repository, offline)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(data.getString("name"), style = MaterialTheme.typography.titleLarge)
+                Text(data.getString("name"), style = MaterialTheme.typography.titleLarge,maxLines = 2,overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Text(data.getString("breweryName"), color = KraPivaColors.Muted)
                 Text(listOfNotNull(data.text("styleName"), data.text("abv")?.let { "$it%" }, data.text("packaging"), data.text("volumeMl")?.let { "$it мл" }).joinToString(" · "), color = KraPivaColors.Muted)
+                rating?.invoke()
             }
+            trailing?.invoke()
         }
     }
 }

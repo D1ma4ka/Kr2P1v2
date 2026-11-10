@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +55,10 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     BackHandler(enabled = state.screen !in setOf(AccountScreen.WELCOME, AccountScreen.HOME, AccountScreen.RESTORING)) {
         model.navigate(if (authenticated) AccountScreen.HOME else AccountScreen.WELCOME)
     }
+    if(state.screen == AccountScreen.RESTORING && state.busy) {
+        ru.krapiva.app.welcome.ClubSplash()
+        return
+    }
     val selected = when(state.screen) {
         AccountScreen.HOME -> ClubDestination.HOME
         AccountScreen.CATALOG -> ClubDestination.CATALOG
@@ -83,15 +88,19 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         }
         return
     }
+    if(state.screen == AccountScreen.PROFILE && authenticated) {
+        ClubProfile(state,model) { navigation { it() } }
+        return
+    }
     if (state.screen == AccountScreen.CATALOG && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload, { model.navigate(AccountScreen.PROFILE) }, model::sessionExpired, onHome = model::openHome, onCheckin = { model.openDiary("new",it) }, requestedPosition = model.catalogPosition, consumePosition = model::consumeCatalogPosition, bottomBar = { navigation { it() } })
+            ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload, { model.navigate(AccountScreen.PROFILE) }, model::sessionExpired, onHome = model::openHome, onCheckin = { model.openDiary("new",it) }, requestedPosition = model.catalogPosition, consumePosition = model::consumeCatalogPosition, bottomBar = { navigation { it() } },onSettings = {model.navigate(AccountScreen.SETTINGS)})
         }
         return
     }
     if (state.screen == AccountScreen.SOCIAL && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            ru.krapiva.app.social.SocialApp(model.api,state.profile!!.getString("userId"),model::openHome,{ model.navigate(AccountScreen.PROFILE) },model::openPosition,model::sessionExpired,model.socialCheckinId,model.socialRequest,initialPage = model.socialPage,bottomBar = { navigation { it() } })
+            ru.krapiva.app.social.SocialApp(model.api,state.profile!!.getString("userId"),model::openHome,{ model.navigate(AccountScreen.PROFILE) },model::openPosition,model::sessionExpired,model.socialCheckinId,model.socialRequest,initialPage = model.socialPage,bottomBar = { navigation { it() } },onCheckin = {model.openDiary("new")},onSettings = {model.navigate(AccountScreen.SETTINGS)})
         }
         return
     }
@@ -106,7 +115,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         Column(Modifier.safeDrawingPadding().imePadding()) {
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if(state.screen != AccountScreen.WELCOME) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (state.screen in setOf(AccountScreen.WELCOME, AccountScreen.REGISTER, AccountScreen.RESTORING)) BeerHero(Modifier.size(88.dp),
                         forceReducedMotion = state.screen == AccountScreen.RESTORING && !state.busy)
                     else Image(painterResource(R.drawable.ic_brand_mark), null, Modifier.size(48.dp))
@@ -164,8 +173,13 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     TextButton(onClick, enabled = enabled, modifier = Modifier.heightIn(min = 48.dp)) { Text(label) }
 }
 @Composable private fun Welcome(state: AccountState, model: AccountViewModel) {
-    Title("Открывай пиво.\nСохраняй впечатления.")
-    Text("Личный профиль и сообщество любителей крафтового пива. Только для совершеннолетних.", color = KraPivaColors.Muted)
+    Column(Modifier.fillMaxWidth(),horizontalAlignment = Alignment.CenterHorizontally,verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ClubBeer(Modifier.width(220.dp).height(260.dp))
+        ClubBrand()
+        Text("Твоя пивная история",style = MaterialTheme.typography.headlineMedium,textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Text("Вкус. Впечатления. Люди.",color = KraPivaColors.Amber)
+        Text("Крафтовое сообщество · 18+",style = MaterialTheme.typography.bodyMedium,color = KraPivaColors.Muted)
+    }
     Action("Создать аккаунт", !state.busy) { model.navigate(AccountScreen.REGISTER) }
     Action("Войти", !state.busy) { model.navigate(AccountScreen.LOGIN) }
     Text("Ответственное потребление. Алкоголь вредит здоровью.", color = KraPivaColors.Muted)
@@ -178,17 +192,18 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None)
 }
 @Composable private fun AuthForm(state: AccountState, model: AccountViewModel) {
-    var email by remember { mutableStateOf("") }; var password by remember { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf(state.authEmail) }; var password by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }; var name by remember { mutableStateOf("") }
     var token by remember { mutableStateOf("") }; var adult by remember { mutableStateOf(false) }
     val screen = state.screen; val enabled = !state.busy
     Title(when(screen) { AccountScreen.LOGIN -> "Вход"; AccountScreen.REGISTER -> "Новый аккаунт"; AccountScreen.VERIFY -> "Подтверждение почты"; AccountScreen.RESET -> "Новый пароль"; else -> "Восстановление доступа" })
     if (BuildConfig.DEBUG) Text("Локальная тестовая среда: почта @example.invalid; письма в Mailpit.", color = KraPivaColors.Muted)
-    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.VERIFY)) Input("E-mail", email, enabled, keyboard = KeyboardType.Email) { email = it.take(254) }
+    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.VERIFY)) Input("E-mail", email, enabled, keyboard = KeyboardType.Email, singleLine = false) { email = it.replace("\n", "").replace("\r", "").take(254) }
     if (screen == AccountScreen.REGISTER) Input("Отображаемое имя", name, enabled) { name = it.take(80) }
     if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.RESET)) Input("Пароль · 12–128 символов", password, enabled, password = true) { password = it.take(128) }
     if (screen in setOf(AccountScreen.REGISTER, AccountScreen.RESET)) Input("Повторите пароль", confirm, enabled, password = true) { confirm = it.take(128) }
-    if (screen in setOf(AccountScreen.VERIFY, AccountScreen.RESET)) Input("Одноразовый код из письма", token, enabled) { token = it.trim().take(43) }
+    if (screen == AccountScreen.VERIFY) Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = it.filter { char -> char in '0'..'9' }.take(6) }
+    if (screen == AccountScreen.RESET) Input("Одноразовый код из письма", token, enabled) { token = it.trim().take(43) }
     if (screen == AccountScreen.REGISTER) Row(verticalAlignment = Alignment.CenterVertically) {
         Checkbox(adult, { adult = it }, enabled = enabled); Text("Подтверждаю, что мне исполнилось 18 лет", Modifier.weight(1f))
     }
@@ -202,9 +217,9 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
             model.register(email, password, name, adult); password = ""; confirm = ""
         }
         AccountScreen.VERIFY -> {
-            Action("Подтвердить", enabled && token.length == 43) { model.verify(token); token = "" }
+            Action("Подтвердить", enabled && token.length == 6 && email.isNotBlank()) { model.verifyCode(email,token); token = "" }
             Link("Отправить письмо снова", enabled && email.isNotBlank()) { model.mail(email, false) }
-            Text("Повторная отправка — не чаще раза в минуту. Код действует 30 минут.", color = KraPivaColors.Muted)
+            Text("Повторная отправка — не чаще раза в минуту. Код действует 10 минут; не более 5 попыток. После повторной отправки используйте новое письмо.", color = KraPivaColors.Muted)
         }
         AccountScreen.FORGOT -> Action("Получить код", enabled && email.isNotBlank()) { model.mail(email, true) }
         AccountScreen.RESET -> Action("Сменить пароль", enabled && token.length == 43 && password.length >= 12 && confirm == password) { model.reset(token, password); token = ""; password = ""; confirm = "" }

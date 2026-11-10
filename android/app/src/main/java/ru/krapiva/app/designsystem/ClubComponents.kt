@@ -28,7 +28,7 @@ enum class ClubDestination(val label: String, val icon: ClubIcon) {
     HOME("Главная", ClubIcon.HOME), CATALOG("Каталог", ClubIcon.CATALOG),
     COLLECTION("Коллекция", ClubIcon.BOTTLE), FEED("Лента", ClubIcon.FEED), PROFILE("Профиль", ClubIcon.PERSON)
 }
-enum class ClubIcon { HOME, CATALOG, BOTTLE, FEED, PERSON, PEOPLE, GLASS, LEAF, PLUS, HEART, COMMENT, REFRESH, CHEVRON, SETTINGS }
+enum class ClubIcon { HOME, CATALOG, BOTTLE, FEED, PERSON, PEOPLE, GLASS, LEAF, PLUS, HEART, COMMENT, REFRESH, CHEVRON, SETTINGS, SEARCH, SCAN, BOOKMARK, CHECK, MORE }
 
 /** One icon vocabulary, drawn locally; no remote icon/font dependency. */
 @Composable
@@ -39,6 +39,12 @@ fun ClubGlyph(icon: ClubIcon, modifier: Modifier = Modifier.size(24.dp), color: 
             fun line(x: Float, y: Float, a: Float, b: Float) = drawLine(color, Offset(x,y), Offset(a,b), 1.7f, StrokeCap.Round)
             fun path(vararg points: Float) { drawPath(Path().apply { moveTo(points[0],points[1]); for(i in 2 until points.size step 2) lineTo(points[i],points[i+1]) },color,style=stroke) }
             when(icon) {
+                ClubIcon.SEARCH -> {drawCircle(color,7f,Offset(10f,10f),style=stroke);line(15f,15f,22f,22f)}
+                ClubIcon.SCAN -> {path(2f,8f,2f,2f,8f,2f);path(16f,2f,22f,2f,22f,8f);path(2f,16f,2f,22f,8f,22f);path(16f,22f,22f,22f,22f,16f);for(x in listOf(6f,9f,13f,16f,18f))line(x,7f,x,17f)}
+                ClubIcon.BOOKMARK -> path(5f,22f,5f,3f,19f,3f,19f,22f,12f,17f,5f,22f)
+                ClubIcon.CHECK -> path(4f,12f,10f,18f,21f,5f)
+                ClubIcon.MORE -> for(x in listOf(4f,12f,20f))drawCircle(color,1.5f,Offset(x,12f))
+
                 ClubIcon.HOME -> path(3f,10f,12f,3f,21f,10f,21f,21f,15f,21f,15f,15f,9f,15f,9f,21f,3f,21f,3f,10f)
                 ClubIcon.CATALOG -> for(x in listOf(3f,14f)) for(y in listOf(3f,14f)) drawRoundRect(color,Offset(x,y),Size(7f,7f),androidx.compose.ui.geometry.CornerRadius(2f),style=stroke)
                 ClubIcon.BOTTLE -> path(10f,2f,14f,2f,14f,8f,18f,12f,18f,22f,6f,22f,6f,12f,10f,8f,10f,2f)
@@ -68,7 +74,7 @@ fun ClubNavigation(selected: ClubDestination, enabled: Boolean = true, onSelect:
                 Column(Modifier.weight(1f).heightIn(min = 52.dp).selectable(active,enabled = enabled,role = Role.Tab,onClick = {onSelect(destination)})
                     .testTag("nav-${destination.name}"),horizontalAlignment = Alignment.CenterHorizontally,verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     ClubGlyph(destination.icon,Modifier.size(25.dp),color)
-                    Text(destination.label,color = color,fontSize = 11.sp,lineHeight = 16.sp,fontWeight = if(active)FontWeight.SemiBold else FontWeight.Normal,maxLines = 1)
+                    Text(destination.label,color = color,fontSize = 11.sp,lineHeight = 16.sp,fontWeight = if(active)FontWeight.SemiBold else FontWeight.Normal,maxLines = 2)
                 }
             }
         }
@@ -92,7 +98,7 @@ fun AmberAction(label: String, onClick: () -> Unit, modifier: Modifier = Modifie
 @Composable
 fun ClubBrand() {
     Row(verticalAlignment = Alignment.CenterVertically,horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("KraPiva",style = MaterialTheme.typography.displaySmall)
+        Text("KraPiva",style = MaterialTheme.typography.displaySmall,fontSize = 32.sp / androidx.compose.ui.platform.LocalDensity.current.fontScale.coerceAtLeast(1f),maxLines = 1)
         ClubGlyph(ClubIcon.LEAF,Modifier.size(32.dp),KraPivaColors.Amber)
     }
 }

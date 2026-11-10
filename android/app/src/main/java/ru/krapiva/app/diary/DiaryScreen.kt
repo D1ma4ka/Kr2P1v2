@@ -29,7 +29,8 @@ import ru.krapiva.app.account.NavigationMark
 import ru.krapiva.app.catalog.CatalogRepository
 import ru.krapiva.app.catalog.BeerPositionCard
 import ru.krapiva.app.catalog.text
-import ru.krapiva.app.designsystem.KraPivaColors
+import ru.krapiva.app.designsystem.*
+import androidx.compose.foundation.horizontalScroll
 
 @Composable
 fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position: JSONObject?,upload: suspend (Uri) -> String,onProfile: () -> Unit,onCatalog: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,providedModel: DiaryViewModel? = null,onSocial: (String?) -> Unit = {}, onHome: () -> Unit = onProfile, bottomBar: @Composable ((() -> Unit) -> Unit) -> Unit = {}) {
@@ -38,14 +39,20 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
     })
     val state by model.state.collectAsStateWithLifecycle()
     LaunchedEffect(request) { model.entry(request,entry,position) }
+    if(state.success && state.data != null) {
+        BackHandler { model.dismissSuccess() }
+        CheckinSuccess(state.data!!,api,model::dismissSuccess,{ model.new() },{ model.dismissSuccess();onSocial(null) })
+        return
+    }
     var leave by remember { mutableStateOf(false) }
     var pendingNavigation by remember { mutableStateOf<(() -> Unit)?>(null) }
     val back = { if(state.page == DiaryPage.EDITOR) leave = true else if(state.page == DiaryPage.HOME) onHome() else model.open(DiaryPage.HOME) }
     BackHandler { back() }
     Surface(Modifier.fillMaxSize(),color = KraPivaColors.Ink) {
         Column(Modifier.safeDrawingPadding().imePadding()) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp),verticalAlignment = Alignment.CenterVertically) {
-                TextButton(back,enabled = !state.busy) { Text("Назад") }; Text("KraPiva · Коллекция",style = MaterialTheme.typography.titleLarge)
+            if(state.page != DiaryPage.EDITOR) {
+                ClubHeader("Коллекция",onCheckin = {model.new()})
+                if(state.page != DiaryPage.HOME) TextButton(back,enabled = !state.busy) {Text("Назад")}
             }
             if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.error?.let { Text(it,color = KraPivaColors.Error,modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Assertive }) }
@@ -53,7 +60,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
             if(state.offline) Text("Нет связи · сохранённая копия до 24 часов. Данные могли измениться.",modifier = Modifier.padding(horizontal = 16.dp),color = KraPivaColors.Muted)
             Box(Modifier.weight(1f)) {
                 when(state.page) {
-                    DiaryPage.EDITOR -> DiaryEditor(state,model)
+                    DiaryPage.EDITOR -> DiaryEditor(state,model,back,{ pendingNavigation = { model.new() };leave = true })
                     DiaryPage.DETAIL -> CheckinDetail(state,model,onPosition,onSocial)
                     DiaryPage.STATISTICS -> StatisticsScreen(state,model)
                     else -> DiaryList(state,model,onPosition,onSocial)
@@ -68,24 +75,21 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
 }
 @Composable internal fun DiaryTitle(value: String) { Text(value,style = MaterialTheme.typography.headlineMedium,modifier = Modifier.semantics { heading() }) }
 @Composable internal fun DiaryButton(text: String,enabled: Boolean = true,action: () -> Unit) { Button(action,Modifier.fillMaxWidth().heightIn(min = 52.dp),enabled = enabled) { Text(text) } }
-@Composable internal fun DiaryCard(content: @Composable ColumnScope.() -> Unit) { Card(Modifier.fillMaxWidth(),colors = CardDefaults.cardColors(containerColor = KraPivaColors.Surface)) { Column(Modifier.padding(16.dp),verticalArrangement = Arrangement.spacedBy(8.dp),content = content) } }
+@Composable internal fun DiaryCard(content: @Composable ColumnScope.() -> Unit) { ClubCard(Modifier.fillMaxWidth(),content = content) }
 @Composable private fun Summary(stats: JSONObject) {
     DiaryCard { Text("Всего чекинов: ${stats.getInt("totalCheckins")}");Text("Уникальных позиций: ${stats.getInt("uniquePositions")}");Text("Средняя оценка: ${DiaryNumbers.average(stats.text("averageRating"))}");Text("Без оценки: ${stats.getInt("unratedCheckins")}",color = KraPivaColors.Muted) }
 }
 @Composable private fun DiaryList(state: DiaryState,model: DiaryViewModel,onPosition: (String) -> Unit,onSocial: (String?) -> Unit) {
     LazyColumn(Modifier.fillMaxSize(),contentPadding = PaddingValues(16.dp),verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { DiaryTitle(when(state.page) { DiaryPage.HOME -> "Коллекция";DiaryPage.DIARY -> "Мои записи";DiaryPage.UNIQUE -> "Уникальные позиции";DiaryPage.WISHLIST -> "Хочу попробовать";DiaryPage.PICK -> "Выберите позицию для чекина";else -> "Черновики · не отправлено" }) }
+        item { if(state.page != DiaryPage.HOME) DiaryTitle(when(state.page) { DiaryPage.HOME -> "Коллекция";DiaryPage.DIARY -> "Мои записи";DiaryPage.UNIQUE -> "Уникальные позиции";DiaryPage.WISHLIST -> "Хочу попробовать";DiaryPage.PICK -> "Выберите позицию для чекина";else -> "Черновики · не отправлено" }) }
         if(state.page == DiaryPage.HOME) {
             state.statistics?.let { stats -> item { Summary(stats);Text("Получено значков: ${stats.getInt("earnedBadges")}",color = KraPivaColors.Muted) } }
             item {
-                DiaryButton("Друзья и лента",!state.busy) { onSocial(null) }
-                DiaryButton("Новый чекин",!state.busy) { model.new() }
-                Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton({ model.open(DiaryPage.DIARY) },enabled = !state.busy) { Text("Коллекция") };TextButton({ model.open(DiaryPage.STATISTICS) },enabled = !state.busy) { Text("Статистика") }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for((page,label) in listOf(DiaryPage.DIARY to "Мои записи",DiaryPage.UNIQUE to "Сорта",DiaryPage.WISHLIST to "Хочу попробовать",DiaryPage.STATISTICS to "Статистика",DiaryPage.DRAFTS to "Черновики"))
+                        FilterChip(false,{model.open(page)},label = {Text(label)},enabled = !state.busy)
                 }
-                Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton({ model.open(DiaryPage.UNIQUE) },enabled = !state.busy) { Text("Уникальные") };TextButton({ model.open(DiaryPage.WISHLIST) },enabled = !state.busy) { Text("Wishlist") };TextButton({ model.open(DiaryPage.DRAFTS) },enabled = !state.busy) { Text("Черновики") }
-                }
+                TextButton({onSocial(null)},enabled = !state.busy) {Text("Друзья и лента")}
                 Text("Последние чекины",style = MaterialTheme.typography.titleLarge)
             }
         } else if(state.page == DiaryPage.PICK) item { OutlinedTextField(state.pickerQuery,model::pickerQuery,label = { Text("Поиск позиции") },modifier = Modifier.fillMaxWidth());DiaryButton("Найти позицию",!state.busy) { model.refresh() } }
@@ -104,7 +108,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
                     Text(item.optString("positionName","Черновик"));Text("Не отправлено",color = KraPivaColors.Amber);Text(item.optString("body"))
                     TextButton({ model.edit(item) },enabled = !state.busy) { Text("Продолжить черновик") };TextButton({ model.removeDraft(item.getString("draftId")) },enabled = !state.busy) { Text("Удалить черновик") }
                 }
-                else -> CheckinCard(item,!state.busy) { model.detail(item.getString("id")) }
+                else -> ClubCheckinCard(item,model.api,state.offline,!state.busy) { model.detail(item.getString("id")) }
             }
         }
         if(state.next != null && state.page != DiaryPage.HOME) item { DiaryButton("Загрузить ещё",!state.busy) { model.refresh(true) } }

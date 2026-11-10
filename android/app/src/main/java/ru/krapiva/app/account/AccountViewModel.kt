@@ -19,7 +19,7 @@ import java.io.IOException
 
 enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG, DIARY, SOCIAL, HOME }
 data class AccountState(
-    val screen: AccountScreen = AccountScreen.RESTORING, val busy: Boolean = false,
+    val authEmail: String = "", val screen: AccountScreen = AccountScreen.RESTORING, val busy: Boolean = false,
     val error: String? = null, val notice: String? = null, val profile: JSONObject? = null,
     val avatar: Bitmap? = null, val cover: Bitmap? = null, val offline: Boolean = false, val fullPhoto: Bitmap? = null, val catalogPosition: String? = null,
 )
@@ -109,7 +109,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     fun register(email: String, password: String, name: String, adult: Boolean) = task {
         api.json("v1/auth/register", "POST", JSONObject().put("email", email.trim()).put("password", password)
             .put("displayName", name.trim()).put("adultConfirmed", adult), false)
-        mutable.value = mutable.value.copy(screen = AccountScreen.VERIFY, notice = "Проверьте почту и вставьте одноразовый код. Срок — 30 минут.")
+        mutable.value = mutable.value.copy(authEmail = email.trim(),screen = AccountScreen.VERIFY, notice = "Проверьте почту и введите 6 цифр из письма. Срок — 10 минут.")
     }
     fun login(email: String, password: String) = task {
         val session = api.json("v1/auth/login", "POST", JSONObject().put("email", email.trim()).put("password", password), false)
@@ -119,9 +119,13 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         api.json("v1/auth/verify", "POST", JSONObject().put("token", token.trim()), false)
         mutable.value = mutable.value.copy(screen = AccountScreen.LOGIN, notice = "Почта подтверждена. Войдите в аккаунт.")
     }
+    fun verifyCode(email: String,code: String) = task {
+        api.json("v1/auth/verify-code", "POST", JSONObject().put("email",email.trim()).put("code",code), false)
+        mutable.value = mutable.value.copy(authEmail = email.trim(),screen = AccountScreen.LOGIN, notice = "Почта подтверждена. Войдите в аккаунт.")
+    }
     fun mail(email: String, reset: Boolean) = task {
         val result = api.json("v1/auth/${if (reset) "forgot-password" else "resend"}", "POST", JSONObject().put("email", email.trim()), false)
-        mutable.value = mutable.value.copy(screen = if (reset) AccountScreen.RESET else AccountScreen.VERIFY, notice = result.getString("message"))
+        mutable.value = mutable.value.copy(authEmail = email.trim(),screen = if (reset) AccountScreen.RESET else AccountScreen.VERIFY, notice = result.getString("message"))
     }
     fun reset(token: String, password: String) = task {
         api.json("v1/auth/reset-password", "POST", JSONObject().put("token", token.trim()).put("password", password), false)

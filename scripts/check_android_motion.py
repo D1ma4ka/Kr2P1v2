@@ -19,17 +19,29 @@ def adb(*args):
 adb("shell", "am", "start", "-W", "-n", "ru.krapiva.app.debug/ru.krapiva.app.MainActivity")
 deadline = time.monotonic() + 30
 rectangle = None
+registration_opened = False
 while time.monotonic() < deadline:
     adb("shell", "uiautomator", "dump", "/sdcard/p3-ui.xml")
     xml = adb("shell", "cat", "/sdcard/p3-ui.xml")
-    for node in ET.fromstring(xml).iter("node"):
+    nodes = list(ET.fromstring(xml).iter("node"))
+    # P6.1 finite Craft Club welcome replaces the old welcome hero; sensor hero remains
+    # in registration. Navigate through the actual visible CTA, then rediscover its bounds.
+    if not registration_opened:
+        button = next((n for n in nodes if n.get("text") == "Создать аккаунт" and n.get("enabled") == "true"), None)
+        if button is not None:
+            bounds = list(map(int, re.findall(r"\d+", button.get("bounds", ""))))
+            if len(bounds) == 4 and bounds[2] > bounds[0] and bounds[3] > bounds[1]:
+                adb("shell", "input", "tap", str((bounds[0]+bounds[2])//2), str((bounds[1]+bounds[3])//2))
+                registration_opened = True
+                continue
+    for node in nodes:
         if node.get("content-desc") == "Фирменный бокал KraPiva с пеной и хмелем":
             rectangle = tuple(map(int, re.findall(r"\d+", node.get("bounds", ""))))
             break
     if rectangle:
         break
     time.sleep(1)
-assert rectangle and len(rectangle) == 4, "Visible welcome hero not found"
+assert rectangle and len(rectangle) == 4, "Visible registration sensor hero not found"
 
 
 def capture(name, x):

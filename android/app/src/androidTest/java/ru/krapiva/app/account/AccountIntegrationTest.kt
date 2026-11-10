@@ -91,7 +91,7 @@ class AccountIntegrationTest {
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Создать аккаунт").fetchSemanticsNodes().isNotEmpty() }
         screenshot("p3-welcome.png")
         compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
-        compose.onNodeWithText("E-mail").performTextInput(email)
+        compose.onNodeWithText("E-mail").performTextReplacement(email)
         compose.onNodeWithText("Отображаемое имя").performTextInput("Synthetic Android")
         compose.onNodeWithText("Пароль · 12–128 символов").performTextInput(password)
         compose.onNodeWithText("Повторите пароль").performTextInput(password)
@@ -101,9 +101,9 @@ class AccountIntegrationTest {
         val code = runBlocking {
             val messages = JSONObject(URL("http://10.0.2.2:58025/api/v1/search?query=to:$email").readText()).getJSONArray("messages")
             val message = JSONObject(URL("http://10.0.2.2:58025/api/v1/message/${messages.getJSONObject(0).getString("ID")}").readText())
-            Regex("Код: ([A-Za-z0-9_-]{43})").find(message.getString("Text"))!!.groupValues[1]
+            Regex("Код подтверждения: ([0-9]{6})").find(message.getString("Text"))!!.groupValues[1]
         }
-        compose.onNodeWithText("Одноразовый код из письма").performTextInput(code)
+        compose.onNodeWithText("Код из 6 цифр").performTextInput(code)
         // Wait for token-driven enabled semantics and native IME layout before the physical click.
         compose.waitUntil(15_000) { compose.onAllNodes(hasText("Подтвердить") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
         // Close IME before measuring visibility: insets settle independently of Compose.
@@ -117,7 +117,7 @@ class AccountIntegrationTest {
             .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { click -> assertTrue(click()) }
         try { compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() } }
         catch(error: Throwable) { throw AssertionError("P3_VERIFY_STATE=${model.state.value.screen},busy=${model.state.value.busy},error=${model.state.value.error}",error) }
-        compose.onNodeWithText("E-mail").performTextInput(email)
+        compose.onNodeWithText("E-mail").performTextReplacement(email)
         compose.onNodeWithText("Пароль · 12–128 символов").performTextInput(password)
         compose.onNodeWithText("Войти").performScrollTo().performClick()
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
@@ -212,7 +212,7 @@ class AccountIntegrationTest {
         }
         assertNull(store.cached(userId)); assertNull(store.session())
         compose.onNodeWithText("Забыли пароль?").performScrollTo().performClick()
-        compose.onNodeWithText("E-mail").performTextInput(email)
+        compose.onNodeWithText("E-mail").performTextReplacement(email)
         compose.onNodeWithText("Получить код").performScrollTo().performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Новый пароль").fetchSemanticsNodes().isNotEmpty() }
         val resetCode = runBlocking {
@@ -225,10 +225,11 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Повторите пароль").performTextInput("New synthetic Android password!")
         compose.onNodeWithText("Сменить пароль").performScrollTo().performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("E-mail").performTextInput(email)
+        compose.onNodeWithText("E-mail").performTextReplacement(email)
         compose.onNodeWithText("Пароль · 12–128 символов").performTextInput("New synthetic Android password!")
         compose.onNodeWithText("Войти").performScrollTo().performClick()
-        compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.PROFILE && !model.state.value.busy }
+        compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
+        compose.onNodeWithTag("nav-PROFILE").performClick()
         compose.onNodeWithText("Synthetic Android").assertExists()
         compose.onNodeWithText("Тестовый город").assertExists()
         screenshot("p3-reset-login.png")

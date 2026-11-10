@@ -43,9 +43,9 @@ class DiaryIntegrationTest {
         val model = DiaryViewModel(api,{ uri -> runBlocking { val bytes = context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }; api.jsonBytesForTest(bytes) } },{ error("Session expired") })
         try {
             compose.setContent { KraPivaTheme { DiaryApp(api,store.session()!!.getString("userId"),1,"HOME",null,{ error("Supplied model") },{},{},{},{},model) } }
-            ready(model);waitForText("Моё пиво");compose.onNodeWithText("Всего чекинов: 0").assertExists();shot("p5-home-empty.png")
+            ready(model);waitForText("Коллекция");compose.onNodeWithText("Всего чекинов: 0").assertExists();shot("p5-home-empty.png")
             // Open the actual editor through the home CTA and actual catalog selection.
-            compose.onNodeWithText("Новый чекин").performScrollTo().performClick();ready(model)
+            compose.onNodeWithText("Чекин").performClick();ready(model)
             compose.onNode(hasScrollAction()).performScrollToNode(hasText("Synthetic Android Тёмный Ёж"))
             compose.onNodeWithText("Synthetic Android Тёмный Ёж").performClick();ready(model)
             compose.onNodeWithText("Оценка 0,25–5 · пусто = без оценки").performTextInput("4,25")
@@ -64,9 +64,11 @@ class DiaryIntegrationTest {
             val add = device.wait(Until.findObject(By.text(Pattern.compile("(?i).*(add|добавить).*"))),3000)
             add?.click()
             assertTrue(device.wait(Until.hasObject(By.pkg(context.packageName)),15_000));compose.waitForIdle()
-            compose.onNodeWithText("Фото: 1 из 4").assertExists()
+            compose.onNodeWithText("1 из 4").assertExists()
             compose.onNodeWithText("Сохранить чекин на сервере").performScrollTo().performClick();ready(model)
             compose.waitUntil(20_000) { model.state.value.page == DiaryPage.DETAIL && !model.state.value.busy }
+            compose.onNodeWithTag("checkin-success").assertExists()
+            compose.onNodeWithText("Посмотреть чекин").performScrollTo().performClick()
             val first = model.state.value.data!!;assertEquals(17,first.getInt("ratingQuarters"));assertEquals(1,first.getJSONArray("mediaIds").length());compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Фото чекина").fetchSemanticsNodes().isNotEmpty() }
             shot("p5-checkin-photo.png")
             compose.onNodeWithContentDescription("Фото чекина").performScrollTo().performClick();compose.onNodeWithText("Фото чекина").assertExists();shot("p5-photo-view.png");compose.onNodeWithText("Закрыть").performClick()

@@ -28,7 +28,7 @@ data class DiaryFilters(val q: String = "", val styleId: String = "",val brewery
         return params.filterValues { it.isNotBlank() }.entries.joinToString("&") { "${it.key}=${Uri.encode(it.value)}" }
     }
 }
-data class DiaryState(val page: DiaryPage = DiaryPage.HOME,val items: List<JSONObject> = emptyList(),val next: String? = null,val data: JSONObject? = null,val statistics: JSONObject? = null,val tags: List<JSONObject> = emptyList(),val filters: DiaryFilters = DiaryFilters(),val busy: Boolean = false,val offline: Boolean = false,val error: String? = null,val notice: String? = null,val editor: JSONObject? = null,val pickerQuery: String = "")
+data class DiaryState(val page: DiaryPage = DiaryPage.HOME,val items: List<JSONObject> = emptyList(),val next: String? = null,val data: JSONObject? = null,val statistics: JSONObject? = null,val tags: List<JSONObject> = emptyList(),val filters: DiaryFilters = DiaryFilters(),val busy: Boolean = false,val offline: Boolean = false,val error: String? = null,val notice: String? = null,val editor: JSONObject? = null,val pickerQuery: String = "",val success: Boolean = false)
 class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> String,private val expired: () -> Unit): ViewModel() {
     private val mutable = MutableStateFlow(DiaryState())
     val state = mutable.asStateFlow()
@@ -86,7 +86,7 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
         val (data,offline) = api.catalogGet("v1/checkins/$id")
         mutable.value = DiaryState(page = DiaryPage.DETAIL,data = data,offline = offline)
     }
-    private fun blank(position: JSONObject? = null) = JSONObject().put("draftId",UUID.randomUUID().toString()).put("requestId",UUID.randomUUID().toString()).put("positionId",position?.optString("canonicalId",position.optString("id"))).put("positionName",position?.optString("name")).put("body","").put("ratingQuarters",JSONObject.NULL).put("occurredAt",Instant.now().toString()).put("visibility","private").put("tagIds",JSONArray()).put("mediaIds",JSONArray()).put("localPhotos",JSONArray())
+    private fun blank(position: JSONObject? = null) = JSONObject().put("draftId",UUID.randomUUID().toString()).put("requestId",UUID.randomUUID().toString()).put("positionId",position?.optString("canonicalId",position.optString("id"))).put("positionName",position?.optString("name")).put("breweryName",position?.optString("breweryName")).put("styleName",position?.text("styleName")).put("imageAssetId",position?.text("imageAssetId")).put("body","").put("ratingQuarters",JSONObject.NULL).put("occurredAt",Instant.now().toString()).put("visibility","private").put("tagIds",JSONArray()).put("mediaIds",JSONArray()).put("localPhotos",JSONArray())
     fun new(position: JSONObject? = null) {
         if(mutable.value.busy) return
         mutable.value = DiaryState(page = if(position == null)DiaryPage.PICK else DiaryPage.EDITOR,editor = blank(position)); if(position == null) refresh() else tags()
@@ -106,6 +106,7 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
         api.saveDraft(data); mutable.value = mutable.value.copy(notice = "Черновик сохранён на устройстве · не отправлено")
     }
     fun removeDraft(id: String) = task { api.removeDraft(id); load() }
+    fun dismissSuccess() { mutable.value = mutable.value.copy(success = false) }
     fun publish(data: JSONObject) = task {
         api.saveDraft(data)
         val id = data.text("id")
@@ -114,7 +115,7 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
             val previous = api.json("v1/me/checkin-requests/${data.getString("requestId")}").text("checkinId")
             if(previous != null) {
                 val row = api.json("v1/checkins/$previous"); api.invalidateDiary()
-                mutable.value = DiaryState(page = DiaryPage.DETAIL,data = row,notice = "Этот запрос уже сохранён. Локальная копия оставлена в черновиках для сверки.")
+                mutable.value = DiaryState(page = DiaryPage.DETAIL,data = row,success = true,notice = "Этот запрос уже сохранён. Локальная копия оставлена в черновиках для сверки.")
                 return@task
             }
         }
@@ -128,7 +129,7 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
         if(id == null) body.put("positionId",data.getString("positionId")) else body.put("version",data.getInt("version"))
         val result = api.json(if(id == null)"v1/checkins" else "v1/checkins/$id",if(id == null)"POST" else "PATCH",body,requestId = if(id == null)data.getString("requestId") else null)
         api.invalidateDiary(); api.removeDraft(data.getString("draftId")); uploads.clear()
-        mutable.value = DiaryState(page = DiaryPage.DETAIL,data = result,notice = "Чекин сохранён на сервере")
+        mutable.value = DiaryState(page = DiaryPage.DETAIL,data = result,success = id == null,notice = "Чекин сохранён на сервере")
     }
     fun delete() = task {
         val data = mutable.value.data ?: return@task

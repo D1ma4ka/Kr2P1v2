@@ -218,24 +218,6 @@ private fun HomeContent(state: HomeState, profile: JSONObject, avatar: Bitmap?, 
         else Text(name.trim().take(1).uppercase(),fontWeight = FontWeight.Bold,color = MaterialTheme.colorScheme.onPrimaryContainer,fontSize = 22.sp)
     }
 }
-@Composable private fun ClubPhoto(api: AccountApi,id: String?,label: String,modifier: Modifier,cacheOwn: Boolean = false,offline: Boolean = false) {
-    var bitmap by remember(id,offline) { mutableStateOf<Bitmap?>(null) }
-    var failed by remember(id,offline) { mutableStateOf(false) }
-    LaunchedEffect(id,offline) {
-        if(id != null) try {
-            val bytes = if(cacheOwn)api.photo(id,offline) else api.bytes("v1/media/$id?size=thumbnail")
-            bitmap = withContext(Dispatchers.IO) { bytes?.let { BitmapFactory.decodeByteArray(it,0,it.size) } }
-            failed = bitmap == null
-        } catch(error: Exception) { if(error is CancellationException)throw error;failed = true }
-    }
-    Box(modifier.clip(ClubTokens.ControlShape).background(MaterialTheme.colorScheme.surfaceVariant),contentAlignment = Alignment.Center) {
-        if(bitmap != null) Image(bitmap!!.asImageBitmap(),label,Modifier.fillMaxSize(),contentScale = ContentScale.Crop)
-        else Column(horizontalAlignment = Alignment.CenterHorizontally,verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            ClubGlyph(ClubIcon.GLASS,Modifier.size(36.dp),KraPivaColors.Amber)
-            Text(if(id == null)"Без фото" else if(failed)"Фото недоступно" else "Загрузка фото",style = MaterialTheme.typography.bodySmall,color = KraPivaColors.Muted)
-        }
-    }
-}
 @Composable private fun LoadingCard() {
     ClubCard(Modifier.fillMaxWidth().height(140.dp).semantics { contentDescription = "Загрузка записей" }) {
         Box(Modifier.fillMaxWidth(.65f).height(18.dp).clip(ClubTokens.ControlShape).background(MaterialTheme.colorScheme.surfaceVariant))
