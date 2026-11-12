@@ -12,6 +12,7 @@ export async function catalogRoutes(app:FastifyInstance,pool:pg.Pool) {
  const simpleQuery=s.object({limit:s.pageQuery.properties.limit,cursor:c.query.properties.cursor,q:c.query.properties.q},[]);
  const schema=(response:unknown)=>({...secure,response:{...s.errors,200:response}});
  app.get<{Querystring:repo.CatalogQuery}>('/v1/positions',{schema:{...schema(s.page(c.position)),querystring:c.query}},request=>repo.positions(pool,request.query));
+ app.get<{Querystring:{name:string;breweryName:string;gtin?:string;abv?:string;packaging?:string|null;volumeMl?:string}}>('/v1/positions/similar',{schema:{...schema(s.object({items:{type:'array',maxItems:20,items:c.similarCandidate}})),querystring:c.similarQuery}},async request=>({items:await p.similarPositions(pool,request.query)}));
  app.get<{Params:{id:string}}>('/v1/positions/:id',{schema:{...schema(c.position),params:s.idParams}},request=>repo.position(pool,request.params.id));
  app.get<{Querystring:repo.CatalogQuery}>('/v1/breweries',{schema:{...schema(s.page(c.brewery)),querystring:simpleQuery}},request=>repo.breweries(pool,request.query));
  app.get<{Params:{id:string}}>('/v1/breweries/:id',{schema:{...schema(c.brewery),params:s.idParams}},request=>repo.brewery(pool,request.params.id));

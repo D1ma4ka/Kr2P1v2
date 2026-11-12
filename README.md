@@ -9,7 +9,10 @@ A modern social platform for craft beer enthusiasts and bars
 с настоящим сервером и постоянной БД.
 
 **P0–P7 сохранены. П8 automatic stabilization PASS; device/visual acceptance
-PENDING. Текущая ветка `codex/krapiva-p8`, commit `4f96719`; П9 не начинался.**
+PENDING. Текущая ветка `codex/krapiva-p8`; П9 не начинался.**
+P8.1 добавляет autosave офлайн-черновиков, сохранение черновиков владельца при
+logout и обязательную серверную проверку похожих позиций перед публикацией.
+Подробности: [P8.1 handoff](docs/P8.1_HANDOFF.md).
 П7: нативная карта MapLibre/кластеры/заведения, 10 серверных правил достижений,
 закрепления и базовая модерация. Backend38/38, JVM12/12, сборка/lint PASS.
 Нативная карта на устройстве ещё не проверена; production не развёрнут.

@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import ru.krapiva.app.designsystem.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -57,6 +58,10 @@ import java.time.OffsetDateTime
         val q = if(validate)DiaryNumbers.quarters(rating) else runCatching { DiaryNumbers.quarters(rating) }.getOrNull()
         if(validate) { require(body.length <= 5000) { "Не более 5000 символов" };require(serving.length <= 80 && venue.length <= 300) { "Слишком длинное поле подачи или места" };DiaryDates.instant(occurred) }
         return JSONObject(initial.toString()).put("body",body).put("ratingQuarters",q ?: JSONObject.NULL).put("ratingInput",rating).put("occurredInput",occurred).put("occurredAt",if(validate) { if(occurred == DiaryDates.display(initial.getString("occurredAt")))initial.getString("occurredAt") else DiaryDates.instant(occurred) } else initial.getString("occurredAt")).put("servingFormat",serving.ifBlank { null } ?: JSONObject.NULL).put("venueName",venueName).put("venueId",venueId.ifBlank { null } ?: JSONObject.NULL).put("venueText",if(venueId.isBlank())venue.ifBlank { null } ?: JSONObject.NULL else JSONObject.NULL).put("visibility",visibility).put("tagIds",JSONArray(tags.toList())).put("mediaIds",JSONArray(media.toList())).put("localPhotos",JSONArray(local.toList()))
+    }
+    LaunchedEffect(id,body,rating,occurred,serving,venue,venueId,visibility,tags.contentToString(),media.contentToString(),local.contentToString()) {
+        delay(700)
+        model.autosaveDraft(data(false))
     }
     var extra by rememberSaveable(id) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -134,11 +139,11 @@ import java.time.OffsetDateTime
         }
         error?.let { Text(it,color = KraPivaColors.Error) }
         Text("Изменения ещё не сохранены",color = KraPivaColors.Muted)
-        DiaryButton("Сохранить чекин на сервере",!state.busy) {
-            try { error = null;model.publish(data(true)) } catch(e: Exception) { error = if(e is java.time.DateTimeException) "Укажите настоящую дату и время, например 2026-11-07 12:00" else e.message ?: "Проверьте поля" }
+        DiaryButton("Проверить пиво и сохранить",!state.busy) {
+            try { error = null;model.preparePublish(data(true)) } catch(e: Exception) { error = if(e is java.time.DateTimeException) "Укажите настоящую дату и время, например 2026-11-07 12:00" else e.message ?: "Проверьте поля" }
         }
         DiaryButton("Сохранить черновик на устройстве",!state.busy) { error = null;model.saveDraft(data(false)) }
-        Text("Черновик остаётся на устройстве до подтверждённого сохранения. Выход из аккаунта удаляет локальные черновики.",style = MaterialTheme.typography.bodySmall,color = KraPivaColors.Muted)
+        Text("Черновик остаётся на устройстве до подтверждённого сохранения. При выходе он сохраняется и будет доступен после входа владельца.",style = MaterialTheme.typography.bodySmall,color = KraPivaColors.Muted)
     }
 }
 

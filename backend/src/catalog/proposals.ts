@@ -72,6 +72,28 @@ export async function duplicates(db:Db,data:ProposalInput) {
  (($2::uuid IS NOT NULL AND b.id=$2) OR ($2::uuid IS NULL AND catalog_normalize(b.name)=catalog_normalize($3)))
  AND p.status='verified' ORDER BY p.id LIMIT 20`,[data.name,data.breweryId??null,data.breweryName])).rows;
 }
+export async function similarPositions(db:Db,input:{name:string;breweryName:string;gtin?:string;abv?:string;packaging?:string|null;volumeMl?:string}) {
+ const gtin=input.gtin ? normalizeGtin(input.gtin) : null;
+ const rows=await db.query(`WITH candidates AS (
+   SELECT p.id,p.id AS "requestedId",p.id AS "canonicalId",r.name,b.name AS "breweryName",st.name AS "styleName",
+    r.abv::float8,p.packaging,p.volume_ml AS "volumeMl",
+    CASE WHEN a.moderation_status='approved' AND a.deleted_at IS NULL THEN a.id ELSE NULL END AS "imageAssetId",
+    CASE WHEN $3::text IS NOT NULL AND EXISTS(SELECT 1 FROM barcode_mappings bm WHERE bm.position_id=p.id AND bm.gtin=$3 AND bm.status='verified') THEN 'barcode'
+      WHEN catalog_normalize(r.name)=catalog_normalize($1) THEN 'name'
+      WHEN catalog_normalize(b.name)=catalog_normalize($2) THEN 'brewery' ELSE 'similar' END AS "match",
+    CASE WHEN $3::text IS NOT NULL AND EXISTS(SELECT 1 FROM barcode_mappings bm WHERE bm.position_id=p.id AND bm.gtin=$3 AND bm.status='verified') THEN 1.0
+      ELSE greatest(similarity(catalog_normalize(r.name),catalog_normalize($1)),similarity(catalog_normalize(b.name),catalog_normalize($2))*0.7) END AS score
+   FROM beer_positions p JOIN beer_releases r ON r.id=p.release_id JOIN breweries b ON b.id=r.brewery_id
+    LEFT JOIN styles st ON st.id=r.style_id LEFT JOIN media_assets a ON a.id=p.image_asset_id
+   WHERE p.status='verified' AND (
+     ($3::text IS NOT NULL AND EXISTS(SELECT 1 FROM barcode_mappings bm WHERE bm.position_id=p.id AND bm.gtin=$3 AND bm.status='verified'))
+     OR catalog_normalize(r.name)=catalog_normalize($1)
+     OR similarity(catalog_normalize(r.name),catalog_normalize($1))>=0.28
+     OR (catalog_normalize(b.name)=catalog_normalize($2) AND similarity(catalog_normalize(r.name),catalog_normalize($1))>=0.18)
+   )
+ ) SELECT * FROM candidates ORDER BY score DESC,id LIMIT 20`,[input.name,input.breweryName,gtin]);
+ return rows.rows.map(row=>({...row,score:Number(row.score)}));
+}
 export interface Decision {version:number;action:'accept'|'reject'|'link';reason:string;positionId?:string;breweryId?:string;releaseId?:string;allowDuplicate?:boolean;}
 export async function decide(pool:pg.Pool,user:string,id:string,input:Decision) {
  return transaction(pool,async db=>{

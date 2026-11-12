@@ -16,9 +16,9 @@ class AccountApi(private val store: AccountStore) {
     @Volatile private var session: JSONObject? = null
     suspend fun restore(): Boolean = withContext(Dispatchers.IO) { session = store.session(); session != null }
     suspend fun accept(value: JSONObject) = withContext(Dispatchers.IO) {
-        store.clear(); store.saveSession(value); session = value
+        store.clear(preserveDrafts = true); store.saveSession(value); session = value
     }
-    suspend fun clear() = withContext(Dispatchers.IO) { session = null; store.clear() }
+    suspend fun clear(preserveDrafts: Boolean = false) = withContext(Dispatchers.IO) { session = null; store.clear(preserveDrafts) }
     private fun raw(path: String, method: String, body: ByteArray?, contentType: String, token: String?, requestId: String? = null): ByteArray {
         // Android's HttpURLConnection may add form Content-Type to bodyless PUT/DELETE.
         // Send valid empty JSON so Fastify's JSON-only API can parse the request.

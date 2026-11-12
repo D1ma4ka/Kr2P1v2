@@ -44,6 +44,30 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
         CheckinSuccess(state.data!!,api,model::dismissSuccess,{ model.new() },{ model.dismissSuccess();onSocial(null) })
         return
     }
+    state.publishCandidates?.let { candidates ->
+        AlertDialog(
+            onDismissRequest = model::cancelPublishCheck,
+            title = { Text(if(candidates.isEmpty()) "Проверь карточку пива" else "Похоже, это пиво уже есть в KraPiva!") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if(candidates.isEmpty()) Text("Совпадений не найдено. Проверьте исходные данные перед публикацией.")
+                    else {
+                        Text("Выберите одну подходящую позицию или укажите, что это другое пиво.")
+                        candidates.take(5).forEach { candidate ->
+                            OutlinedButton({ model.confirmPublish(candidate.getString("id")) },modifier=Modifier.fillMaxWidth()) {
+                                Column(horizontalAlignment=Alignment.Start) {
+                                    Text(candidate.getString("name"));Text(candidate.getString("breweryName"),color=KraPivaColors.Muted)
+                                    Text(listOfNotNull(candidate.text("styleName"),candidate.text("abv")?.let{"$it%"},candidate.text("packaging"),candidate.text("volumeMl")?.let{"$it мл"}).joinToString(" · "),color=KraPivaColors.Muted)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton({ model.confirmPublish() }) { Text(if(candidates.isEmpty()) "Подтвердить проверку" else "Это другое пиво") } },
+            dismissButton = { TextButton(model::cancelPublishCheck) { Text("Исправить черновик") } }
+        )
+    }
     var leave by remember { mutableStateOf(false) }
     var pendingNavigation by remember { mutableStateOf<(() -> Unit)?>(null) }
     val back = { if(state.page == DiaryPage.EDITOR) leave = true else if(state.page == DiaryPage.HOME) onHome() else model.open(DiaryPage.HOME) }

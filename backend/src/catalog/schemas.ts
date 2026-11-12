@@ -21,6 +21,8 @@ export const brewery=s.object({id:s.uuid,name:{type:'string'},country:s.nullable
  source:{type:'string'},status:{type:'string',enum:['verified']},imageAssetId:nullable(s.uuid),imageSource:s.nullableText(2000),createdAt:s.timestamp});
 export const proposal=s.object({id:s.uuid,status:{type:'string',enum:['pending','accepted','rejected']},version:s.version,
  proposedData:input,positionId:nullable(s.uuid),decisionReason:s.nullableText(2000),createdAt:s.timestamp,decidedAt:nullable(s.timestamp)});
+export const similarCandidate=s.object({id:s.uuid,requestedId:s.uuid,canonicalId:s.uuid,name:{type:'string'},breweryName:{type:'string'},styleName:s.nullableText(120),abv:{type:['number','null']},packaging:s.nullableText(80),volumeMl:{type:['integer','null']},imageAssetId:nullable(s.uuid),match:{type:'string',enum:['barcode','name','brewery','similar']},score:{type:'number',minimum:0,maximum:1}});
+export const similarQuery=s.object({name:text(200),breweryName:text(200),gtin:{type:'string',pattern:'^(?:[0-9]{8}|[0-9]{12,14})$'},abv:{type:'string',pattern:'^(?:100|[0-9]{1,2})(?:\\.[0-9]{1,2})?$'},packaging:s.nullableText(80),volumeMl:{type:'string',pattern:'^[1-9][0-9]{0,4}$'}},['name','breweryName']);
 export const query=s.object({limit:s.pageQuery.properties.limit,cursor:{type:'string',maxLength:2048,pattern:'^[A-Za-z0-9_-]+$'},
  q:{type:'string',maxLength:120},breweryId:s.uuid,styleId:s.uuid,packaging:text(80),
  abvMin:{type:'string',pattern:'^(?:100|[0-9]{1,2})(?:\\.[0-9]{1,2})?$'},

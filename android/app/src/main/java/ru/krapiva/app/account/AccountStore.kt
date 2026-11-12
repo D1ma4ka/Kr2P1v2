@@ -88,9 +88,9 @@ class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.
     fun cached(userId: String): JSONObject? = readableDatabase.rawQuery("SELECT payload FROM profile WHERE user_id=?", arrayOf(userId)).use {
         if (it.moveToFirst()) JSONObject(decrypt(it.getBlob(0))) else null
     }
-    @Synchronized fun clear() {
+    @Synchronized fun clear(preserveDrafts: Boolean = false) {
         sessionFile.delete()
-        writableDatabase.delete("diary_drafts", null, null)
+        if (!preserveDrafts) writableDatabase.delete("diary_drafts", null, null)
         writableDatabase.delete("catalog", null, null)
         writableDatabase.delete("profile", null, null)
         writableDatabase.delete("photos", null, null)

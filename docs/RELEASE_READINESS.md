@@ -3,6 +3,8 @@
 Backend38/38 и Android JVM12/12/build/lint/package PASS. Исправления П8
 проверены автоматическими тестами; native SDK runtime/visual/device acceptance
 NOT RUN, так же как общая визуальная приёмка П6.1/П7.
+P8.1 autosave/deduplication implementation candidate добавлен; manual offline,
+reboot и update-over-install acceptance остаётся PENDING.
 Реальные verified venues/production provider/RU access ещё не подтверждены.
 **Production и двухплатформенный продукт INCOMPLETE. P9 не начинать.**
 Актуальные доказательства: [П8](stages/P8.md), [П7](stages/P7.md), [PROGRESS](PROGRESS.md),

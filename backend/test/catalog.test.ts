@@ -63,6 +63,8 @@ test('P4 real HTTP/PostgreSQL: empty catalog, proposals, ACL, search, GTIN, dupl
   await decision(first.id,{},409);
   const card=await call('/v1/positions/'+id);
   assert.equal(card.ibu,null);assert.equal(card.volumeMl,500);assert.equal(card.imageAssetId,null);
+  const similar=await call('/v1/positions/similar?name='+encodeURIComponent('Synthetic Темный Еж')+'&breweryName='+encodeURIComponent('Synthetic Пивоварня')+'&gtin=4006381333931');
+  assert.equal(similar.items[0].id,id);assert.equal(similar.items[0].match,'barcode');
   assert.equal((await call('/v1/barcodes/lookup?kind=gtin&code=4006381333931')).position.id,id);
   assert.equal((await call('/v1/positions?q='+encodeURIComponent('темный ЕЖ stout ПИВОВАРНЯ'))).items[0].id,id);
   assert.equal((await call('/v1/positions?q=absent')).items.length,0);

@@ -53,7 +53,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     }
     fun openPosition(id: String) { if (!mutable.value.busy) mutable.value = mutable.value.copy(screen = AccountScreen.CATALOG,catalogPosition = id,error = null,notice = null) }
     fun consumeCatalogPosition() { mutable.value = mutable.value.copy(catalogPosition = null) }
-    private suspend fun clearSession() { catalogOwner.viewModelStore.clear(); diaryPosition = null; diaryVenue=null;venueId=null;socialCheckinId = null; consumeCatalogPosition(); api.clear() }
+    private suspend fun clearSession(preserveDrafts: Boolean = true) { catalogOwner.viewModelStore.clear(); diaryPosition = null; diaryVenue=null;venueId=null;socialCheckinId = null; consumeCatalogPosition(); api.clear(preserveDrafts) }
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
     init { restore() }
@@ -195,13 +195,13 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         // Logout is a local security action even when the network is down.
         clearSession()
         mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = if (serverFailure == null) {
-            "Вы вышли из аккаунта"
+            "Вы вышли из аккаунта. Неопубликованные черновики сохранены на этом устройстве."
         } else {
-            "Вы вышли из аккаунта на этом устройстве. Сервер обновится при следующем входе."
+            "Вы вышли из аккаунта на этом устройстве. Черновики сохранены; сервер обновится при следующем входе."
         })
     }
-    fun clearLocally() = task { clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN,
-        notice = "Данные удалены с телефона. Серверная сессия действует до истечения срока или сброса пароля.") }
+    fun clearLocally() = task { clearSession(false); mutable.value = AccountState(screen = AccountScreen.LOGIN,
+        notice = "Данные удалены с телефона, включая локальные черновики. Серверная сессия действует до истечения срока или сброса пароля.") }
     fun deleteAccount() = task {
         val response = api.json("v1/me/deletion-request", "POST", JSONObject())
         clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = response.getString("message"))
