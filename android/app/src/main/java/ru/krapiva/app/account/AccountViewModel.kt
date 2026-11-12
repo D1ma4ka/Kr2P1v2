@@ -81,6 +81,11 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
             if (api.restore()) loadProfile(AccountScreen.HOME) else mutable.value = AccountState(screen = AccountScreen.WELCOME)
         } catch (error: ApiFailure) {
             if (error.status == 401) { clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN) } else throw error
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            // A truncated/invalid encrypted session must not strand the app on RESTORING.
+            clearSession()
+            mutable.value = AccountState(screen = AccountScreen.WELCOME, error = "Сохранённая сессия недоступна. Войдите снова.")
         }
     }
     private suspend fun loadProfile(destination: AccountScreen = AccountScreen.PROFILE) {
@@ -169,7 +174,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
             val buffer = ByteArray(8192)
             var count = input.read(buffer)
             while (count >= 0) {
-                output.write(buffer, 0, count)
+                if (count > 0) output.write(buffer, 0, count)
                 if (output.size() > 8 * 1024 * 1024) throw ApiFailure(413, "Фото должно быть меньше 8 МБ")
                 count = input.read(buffer)
             }
@@ -180,8 +185,20 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     }
     fun sessionExpired() = task { clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN, error = "Сессия завершена. Войдите снова.") }
     fun logout() = task {
-        api.json("v1/session", "DELETE")
-        clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = "Вы вышли из аккаунта")
+        val serverFailure = try {
+            api.json("v1/session", "DELETE")
+            null
+        } catch (error: Exception) {
+            if (error is kotlinx.coroutines.CancellationException) throw error
+            error
+        }
+        // Logout is a local security action even when the network is down.
+        clearSession()
+        mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = if (serverFailure == null) {
+            "Вы вышли из аккаунта"
+        } else {
+            "Вы вышли из аккаунта на этом устройстве. Сервер обновится при следующем входе."
+        })
     }
     fun clearLocally() = task { clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN,
         notice = "Данные удалены с телефона. Серверная сессия действует до истечения срока или сброса пароля.") }

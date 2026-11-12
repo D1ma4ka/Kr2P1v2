@@ -3,6 +3,7 @@ package ru.krapiva.app.account
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import ru.krapiva.app.BuildConfig
@@ -43,10 +44,27 @@ class AccountApi(private val store: AccountStore) {
             return bytes
         } finally { connection.disconnect() }
     }
+    /** Retry only idempotent reads; writes remain single-shot to avoid duplicates. */
+    private suspend fun rawWithRetry(path: String, method: String, body: ByteArray?, contentType: String, token: String?, requestId: String? = null): ByteArray {
+        var attempt = 0
+        while (true) {
+            try {
+                return raw(path, method, body, contentType, token, requestId)
+            } catch (error: java.io.IOException) {
+                if (method !in setOf("GET", "HEAD") || attempt >= 2) throw error
+                delay(250L shl attempt)
+                attempt++
+            } catch (error: ApiFailure) {
+                if (method !in setOf("GET", "HEAD") || error.status !in 502..504 || attempt >= 2) throw error
+                delay(250L shl attempt)
+                attempt++
+            }
+        }
+    }
     suspend fun bytes(path: String, method: String = "GET", body: ByteArray? = null, contentType: String = "application/json", secure: Boolean = true, requestId: String? = null): ByteArray = withContext(Dispatchers.IO) {
         if (secure && session == null) throw ApiFailure(401, "Требуется вход")
         val access = if (secure) session?.getString("accessToken") else null
-        try { raw(path, method, body, contentType, access, requestId) }
+        try { rawWithRetry(path, method, body, contentType, access, requestId) }
         catch (error: ApiFailure) {
             if (error.status != 401 || !secure) throw error
             val token = refreshMutex.withLock {
@@ -58,7 +76,7 @@ class AccountApi(private val store: AccountStore) {
                     next.getString("accessToken")
                 }
             }
-            raw(path, method, body, contentType, token, requestId)
+            rawWithRetry(path, method, body, contentType, token, requestId)
         }
     }
     suspend fun json(path: String, method: String = "GET", body: JSONObject? = null, secure: Boolean = true, requestId: String? = null): JSONObject {

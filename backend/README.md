@@ -26,7 +26,8 @@ node --env-file=../.env --test dist/test/*.test.js
 сессии, UUID/idempotency keys/versions/cursor paging; OpenAPI генерируется
 `npm run openapi`, контракт проверяется тестом. Sign-up/login/reset P3 описаны ниже.
 Synthetic accounts создаёт только явный dev CLI; production seed отсутствует.
-Social/map/badges routes ещё не реализованы, возвращается 404.
+Social/map/badges и moderation routes реализованы; их runtime/device acceptance
+отдельно ограничена доступностью реального Android SDK/устройства.
 
 `/health/live` проверяет процесс, `/health/ready` — серверные зависимости;
 не является обещанием готовности всех продуктовых функций. SIGINT/SIGTERM

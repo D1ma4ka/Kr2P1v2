@@ -1,10 +1,11 @@
-# Текущая готовность — П7 candidate, 10 ноября 2026
+# Текущая готовность — П8 automatic candidate, 11 ноября 2026
 
-Backend38/38 и Android JVM12/12/build/lint PASS. Код П7 подготовлен; native SDK
-runtime/visual/device acceptance NOT RUN, так же как общая визуальная приёмка П6.1.
+Backend38/38 и Android JVM12/12/build/lint/package PASS. Исправления П8
+проверены автоматическими тестами; native SDK runtime/visual/device acceptance
+NOT RUN, так же как общая визуальная приёмка П6.1/П7.
 Реальные verified venues/production provider/RU access ещё не подтверждены.
-**Production и двухплатформенный продукт INCOMPLETE. STOP перед П8.**
-Актуальные доказательства: [П7](stages/P7.md), [PROGRESS](PROGRESS.md),
+**Production и двухплатформенный продукт INCOMPLETE. P9 не начинать.**
+Актуальные доказательства: [П8](stages/P8.md), [П7](stages/P7.md), [PROGRESS](PROGRESS.md),
 [verification manifest](places/VERIFICATION.json). Ниже историческая приёмка П5;
 она не заменяет проверку нового Android UI/MapLibre.
 

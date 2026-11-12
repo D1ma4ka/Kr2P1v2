@@ -1,3 +1,22 @@
+# П8 — автоматическая стабилизация подготовлена · 11 ноября 2026
+
+Выполнена отдельная ветка `codex/krapiva-p8` поверх П7 `43af2ce`. Исправлены
+повторяемые чтения Android только для GET/HEAD, восстановление после повреждённой
+сессии, локальный logout без сети, безопасное чтение URI и security headers API.
+Публичные API, миграции и пользовательские данные не менялись.
+
+**Backend 38/38 PASS**, Android JVM 12/12, `assembleDebug`,
+`assembleDebugAndroidTest`, `lintDebug`, OpenAPI, provenance/foundation guards и
+`npm audit --omit=dev` PASS. Миграции 001–010 применены/проверены в существующем
+локальном volume без удаления данных. Debug APK сохранён в
+`work/p8/krapiva-p8-debug.apk`; SHA-256 и ручной чек-лист — в
+[P8 handoff](P8_HANDOFF.md) и [отчёте этапа](stages/P8.md).
+
+**Статус: P8 automatic stabilization PASS; device/visual acceptance PENDING.**
+Телефон, `adb`, `/dev/kvm`, instrumented/runtime, MapLibre gestures/tiles,
+optical scan, TalkBack, 320dp, screenshots, staging/production и iOS в этой
+среде недоступны и не объявляются пройденными. П9 не начинался.
+
 # П7 — реализация подготовлена · 10 ноября 2026
 
 По прямой команде владельца выполнен П7 поверх `e8f4ba6` (П6.1 candidate).

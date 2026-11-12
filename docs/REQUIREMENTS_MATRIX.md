@@ -13,7 +13,7 @@ P4 implementation/automated PASS: backend17, Android unit6/device7, CI4229245063
 P5 implementation/automated PASS: backend19, Android unit8/device9, CI42355943975.
 P6 implementation/automated PASS: backend21/restart/restore CI42398072924; Android11/unit8 CI42463380380.
 A9 physical optical capture и TalkBack NOT RUN; полный ручной сценарий PARTIAL.
-П7 реализован как кандидат: backend38/JVM12/build/lint PASS; A8/A10/A11 UI/A16–A18 native device acceptance NOT RUN, реальные verified venues ещё не внесены. Подробности — stages/P7.md.
+П7 реализован как кандидат: backend38/JVM12/build/lint PASS; A8/A10/A11 UI/A16–A18 native device acceptance NOT RUN, реальные verified venues ещё не внесены. Подробности — stages/P7.md. П8 automatic stabilization PASS: backend38/38, Android JVM12/12, build/lint/package, migration/security checks; device/visual/staging acceptance остаётся PENDING в stages/P8.md.
 Будущие полные продуктовые E2E NOT RUN; 29 целевых экранов не объявляются принятыми.
 
 | ID | Приоритет | Критерий из v1.3 | Этап | Код / проверка | Статус |
