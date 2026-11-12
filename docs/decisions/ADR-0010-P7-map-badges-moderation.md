@@ -2,6 +2,11 @@
 
 10 ноября 2026. П7 разрешён прямой командой владельца. Основание — `e8f4ba6` (кандидат П6.1; device/visual acceptance ещё PENDING). Новый рабочий checkout не создаётся, ветка `codex/krapiva-p7`. П8, расходы и deployment не разрешены.
 
+Актуализация 12 ноября 2026: последующее разрешение владельца открыло П8.
+П8 automatic stabilization завершена в `codex/krapiva-p8` (`4f96719`); этот ADR
+сохраняет решения и ограничения П7, а текущая передача находится в
+`docs/P8_HANDOFF.md`.
+
 ## Карта
 
 MapLibre Native Android **11.13.5**, BSD-2-Clause, SDK адаптирован за Android-компонентом. Yandex MapKit рассмотрен, но ключ/условия регистрации сейчас не настроены, покупка и регистрация платного доступа не выполняются. MapLibre не требует платного ключа. Maven POM и официальный source JAR проверены через TLS/checksum; лицензия POM: https://repo.maven.apache.org/maven2/org/maplibre/gl/android-sdk/11.13.5/android-sdk-11.13.5.pom.

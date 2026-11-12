@@ -1,6 +1,8 @@
 # П7: локальная проверка карты, достижений и модерации
 
-Только development/test. Production, деплой, платные API и П8 не запускались.
+Только development/test. Production, деплой и платные API не запускались.
+П8 automatic stabilization выполнена локально; device/visual/staging acceptance
+остаётся PENDING. Актуальная передача: [docs/P8_HANDOFF.md](../P8_HANDOFF.md).
 Архитектурные решения и ограничения: [ADR-0010](../decisions/ADR-0010-P7-map-badges-moderation.md).
 
 ## Запуск

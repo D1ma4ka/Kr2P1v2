@@ -15,9 +15,9 @@
 | Friends/feed/reactions/comments | P6 implemented/automated PASS | P12 NOT RUN | A5/A6/A38 | Real two-account Android SocialIntegrationTest + recreation/logout PASS CI42463380380 Android11/11; backend21/restore42398072924. A38/iOS NOT RUN |
 | Badges/3 pins/rule engine | P7 | P12 | A8/A39 | NOT RUN |
 | Bars/shops/in-app map/clusters | P7 | P12 | A10/A16–A18/A40 | NOT RUN |
-| Brand/home/navigation/motion | P3/P4/P5 partial product, P7/P8 future | P10/P12 NOT RUN | A22–A30/A41 | Original brand/motion/home actual Android CI42355943975; remaining screens/iOS future |
-| Cache/drafts/offline/reconnect | P3/P4/P5 automated PASS, broad regression P8 | P11/P12/P13 NOT RUN | A19/A20/A34–A41 | Real radio/cache/draft/logout CI42355943975; iOS NOT RUN |
-| Security/accessibility/backup | P8 full regression future | P13 NOT RUN | NFR/§17.4/A43 | Backend SQL/media/social restart/restore CI42398072924 PASS; physical TalkBack/iOS NOT RUN |
+| Brand/home/navigation/motion | P3/P4/P5 partial product, P7 implemented, P8 automatic checks PASS | P10/P12 NOT RUN | A22–A30/A41 | Android build/lint/JVM PASS; screenshots/TalkBack/device acceptance PENDING |
+| Cache/drafts/offline/reconnect | P3/P4/P5 automated PASS, P8 client hardening PASS | P11/P12/P13 NOT RUN | A19/A20/A34–A41 | Backend38/38 and Android package PASS; physical radio/reconnect regression NOT RUN |
+| Security/accessibility/backup | P8 automatic security/regression checks PASS; device/retention/staging PENDING | P13 NOT RUN | NFR/§17.4/A43 | Backend headers/media/ACL/migrations PASS; physical TalkBack/iOS NOT RUN |
 | Delivery/store readiness | P9 future | P13 future | A42/A43 | P5 CI debug build only, no RC/public APK/TestFlight |
 
 Перед приёмкой P13 каждая из 174 строк MUST REQUIREMENTS_MATRIX должна иметь

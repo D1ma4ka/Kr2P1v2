@@ -1,4 +1,4 @@
-# Текущая готовность — П8 automatic candidate, 11 ноября 2026
+# Текущая готовность — П8 automatic candidate, 12 ноября 2026
 
 Backend38/38 и Android JVM12/12/build/lint/package PASS. Исправления П8
 проверены автоматическими тестами; native SDK runtime/visual/device acceptance
@@ -27,8 +27,8 @@ P5 backend19 PASS, Android8 unit/build/lint +9 instrumented PASS; physical/TalkB
 | Catalog scale smoke | PASS bounded | 50000 synthetic positions/3000000 GTIN, EXPLAIN/plans/timings; catalog/SCALING.md |
 | Restart/backup/restore | PASS local | CI SQL+media isolated restore, session/ACL/photo hashes; P2/P3/P4/P5 server foundation |
 | Diary/wishlist/stats/home P5 | PASS automated | real SQL/API19 + Android8 unit/build/lint/device9 PASS; stages/P5.md |
-| Social/map/badges | INCOMPLETE | P6–P7; SQL foundation не подменяет функции |
-| Device/accessibility/security/load | INCOMPLETE | P8 regression/physical/production load/retention и release R8 ещё нужны |
+| Social/map/badges | IMPLEMENTED CANDIDATE | P6–P7 backend/JVM/API PASS; native MapLibre/device/visual acceptance PENDING |
+| Device/accessibility/security/load | INCOMPLETE | P8 automatic checks PASS; physical accessibility, screenshots, production load и retention ещё нужны |
 | RU staging/production | BLOCKED | размещение/DNS/TLS/SMTP/legal/budget не согласованы и не развёрнуты |
 | iOS/MUST parity/publication | INCOMPLETE | P10–P13, обязательный второй клиент; Mac/Xcode/iPhone/Apple доступы позже |
 
