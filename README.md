@@ -8,6 +8,12 @@ A modern social platform for craft beer enthusiasts and bars
 совершеннолетних пользователей: каталог пивных позиций, дневник и социальная сеть
 с настоящим сервером и постоянной БД.
 
+14 ноября: поверх П8.1 исправлено неоднозначное письмо подтверждения email,
+добавлены графитовая тёмная тема с векторной крапивой и sensor-aware анимация пива
+на auth/loading. Backend **39/39**, Android JVM **17/17**, debug APK и lint PASS.
+Android UI/visual checks **NOT RUN**: программный эмулятор без KVM не загрузился.
+[Результат, изменённые файлы и APK](docs/stages/AUTH_THEME_MOTION.md).
+
 **P0–P7 сохранены. П8 automatic stabilization PASS; device/visual acceptance
 PENDING. Текущая ветка `codex/krapiva-p8`; П9 не начинался.**
 P8.1 добавляет autosave офлайн-черновиков, сохранение черновиков владельца при

@@ -1,0 +1,56 @@
+{
+  "date": "2026-11-14",
+  "branch": "fix/auth-theme-motion",
+  "sourceCommit": "11f7b577a34187454d91e29604fdd907472bc99b",
+  "baseCommit": "2f39fa1c0361bfabd0b9212346209e5aa354a32c",
+  "upstreamAppCodeCommit": "bd47f34ffdc4c8c1a5eb94c483e5406f2b359940",
+  "apk": {
+    "workspacePath": "/workspace/Kr2P1v2/android/app/build/outputs/apk/debug/app-debug.apk",
+    "bytes": 63427586,
+    "sha256": "4c29b48453e6a6f569b6e5da5653fc91ea3f337c900deed5295522d6b361c6be",
+    "package": "ru.krapiva.app.debug",
+    "versionName": "0.1.0-p7",
+    "minSdk": 26,
+    "targetSdk": 35,
+    "apiBaseUrl": "http://127.0.0.1:53000/",
+    "signatureVerification": "PASS (v2)",
+    "zipIntegrity": "PASS"
+  },
+  "android": {
+    "assembleDebug": "PASS",
+    "assembleDebugAndroidTest": "PASS",
+    "unit": {
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "lint": {
+      "Error": 0,
+      "Fatal": 0,
+      "Warning": 7
+    },
+    "instrumented": "NOT RUN",
+    "physicalDevice": "NOT RUN",
+    "visualReview": "NOT RUN",
+    "emulatorAttempt": "Software Android 35 x86_64 without KVM: adb transport became online, sys.boot_completed never reached 1 in 10 minutes; stopped, no app installed or tests launched"
+  },
+  "backend": {
+    "build": "PASS",
+    "targetedAuthTests": 4,
+    "regressionTests": 39,
+    "failures": 0,
+    "skipped": 0,
+    "realSmtpMailpit": "PASS",
+    "persistedAccountAndLoginAfterServerRestart": "PASS"
+  },
+  "limitations": [
+    "Complete Android UI → API → SMTP chain not executed; server chain passed independently.",
+    "Physical tilt, visual acceptance and TalkBack not verified.",
+    "New mail contains only numeric OTP; old verification endpoint remains for previously issued tokens.",
+    "Inherited version suffix -p7 is not a source revision: this APK contains current P8.1 plus this source commit."
+  ],
+  "productionChanged": false,
+  "paidServicesStarted": false,
+  "merged": false
+}

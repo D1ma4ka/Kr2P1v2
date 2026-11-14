@@ -1,0 +1,12 @@
+✔ P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, session rotation, profile/media ACL and deletion request (3992.760687ms)
+✔ account failure paths: SMTP rollback, expired tokens and independent token rate budgets (983.468084ms)
+✔ P6.1 email-bound numeric verification: single use, expiry, atomic guess limit and resend invalidation (4022.05801ms)
+✔ real HTTP and Mailpit: one six-digit OTP, persisted email and authenticated profile after server restart (1824.342907ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11419.373936

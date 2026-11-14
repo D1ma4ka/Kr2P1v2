@@ -1,0 +1,7 @@
+PASS: v1.0, 8 sources match sizes and SHA-256
+PASS: v1.3, 4 sources match sizes and SHA-256
+PASS: baseline AGENTS unchanged; README introduction preserved
+PASS: all 135 FR and 45 NFR mapped, priorities intact, 174 MUST
+PASS: 29 screens, 43 planned E2E scenarios, 52 original acceptance checks
+PASS: baseline contains no legacy files; checkout descends from baseline
+Source/traceability verification passed. Application tests are reported separately.
