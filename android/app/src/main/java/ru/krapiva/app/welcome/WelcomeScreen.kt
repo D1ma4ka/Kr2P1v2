@@ -1,5 +1,7 @@
 package ru.krapiva.app.welcome
 
+import ru.krapiva.app.designsystem.KraPivaBackdrop
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,7 +23,7 @@ import ru.krapiva.app.designsystem.KraPivaSpacing
 @Composable
 fun WelcomeScreen() {
     var showAbout by rememberSaveable { mutableStateOf(false) }
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    KraPivaBackdrop {
         Box(modifier = Modifier.safeDrawingPadding(), contentAlignment = Alignment.Center) {
             Column(
                 modifier = Modifier.widthIn(max = 520.dp).fillMaxWidth()

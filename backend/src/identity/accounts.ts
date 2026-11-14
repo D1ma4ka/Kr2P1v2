@@ -40,8 +40,13 @@ export class Accounts {
    await client.query(`INSERT INTO email_verification_codes(user_id,code_hash,expires_at) VALUES($1,$2,now()+interval '10 minutes')
     ON CONFLICT(user_id) DO UPDATE SET code_hash=excluded.code_hash,expires_at=excluded.expires_at,attempts=0,consumed_at=NULL,created_at=now()`,[id,await hashPassword(numeric)]);
   }
+  // A verification email contains one credential only. The legacy endpoint remains
+  // available for previously issued tokens; new clients always use the six digits.
+  const text=purpose==='verify_email'
+   ? `Код подтверждения: ${numeric}\nВведите эти 6 цифр на экране подтверждения почты KraPiva.\nКод действует 10 минут; не более 5 попыток. Это не пароль аккаунта.`
+   : `Откройте KraPiva и вставьте одноразовый код в форму нового пароля.\nКод: ${token}\nСрок: 30 минут.`;
   try {await this.mail.send(email,purpose==='verify_email'?'KraPiva — подтверждение почты':'KraPiva — восстановление доступа',
-   `${numeric?`Код подтверждения: ${numeric}\nВведите его вместе с адресом почты в KraPiva. Срок: 10 минут, не более 5 попыток.\n\nДля прежних версий приложения:\n`:''}Откройте KraPiva и вставьте одноразовый код в ${purpose==='verify_email'?'форму подтверждения почты':'форму нового пароля'}.\nКод: ${token}\nСрок: 30 минут. Если вы не запрашивали письмо, проигнорируйте его.`);}
+   `${text}\nЕсли вы не запрашивали письмо, проигнорируйте его.`);}
   catch {throw new ApiError(503,'MAIL_UNAVAILABLE','Почта временно недоступна; повторите позже');}
  }
  async request(email:string,purpose:'verify_email'|'reset_password') {

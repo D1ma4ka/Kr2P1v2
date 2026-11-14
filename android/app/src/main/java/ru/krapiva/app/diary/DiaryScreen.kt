@@ -72,7 +72,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
     var pendingNavigation by remember { mutableStateOf<(() -> Unit)?>(null) }
     val back = { if(state.page == DiaryPage.EDITOR) leave = true else if(state.page == DiaryPage.HOME) onHome() else model.open(DiaryPage.HOME) }
     BackHandler { back() }
-    Surface(Modifier.fillMaxSize(),color = KraPivaColors.Ink) {
+    KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding().imePadding()) {
             if(state.page != DiaryPage.EDITOR) {
                 ClubHeader("Коллекция",onCheckin = {model.new()})

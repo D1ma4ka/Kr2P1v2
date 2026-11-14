@@ -1,16 +1,5 @@
 package ru.krapiva.app.designsystem
 
-import android.animation.ValueAnimator
-import android.database.ContentObserver
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
-import android.content.Context
-import android.os.Handler
-import android.os.Looper
-import android.provider.Settings
-import android.view.WindowManager
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
@@ -21,70 +10,16 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import kotlinx.coroutines.delay
-import kotlin.math.sin
 import kotlin.math.tan
 
 @Composable
 fun BeerHero(modifier: Modifier = Modifier, previewAngle: Float? = null, forceReducedMotion: Boolean = false, forceNoSensor: Boolean = false) {
-    val context = LocalContext.current
-    val owner = LocalLifecycleOwner.current
-    val manager = remember(context) { context.getSystemService(Context.SENSOR_SERVICE) as SensorManager }
-    var active by remember { mutableStateOf(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
-    var reduced by remember { mutableStateOf(!ValueAnimator.areAnimatorsEnabled()) }
-    var available by remember { mutableStateOf(false) }
-    var target by remember { mutableFloatStateOf(0f) }
-    val angle = remember { mutableFloatStateOf(0f) }
+    val motion = rememberLiquidAnimation(forceReducedMotion, previewAngle, forceNoSensor)
     val hop = remember { PathParser().parsePathString("M54,45C37,47 35,61 42,75Q47,84 54,88Q61,84 66,75C73,61 71,47 54,45Z").toPath() }
     val scales = remember { PathParser().parsePathString("M54,45V40 M54,48Q48,59 40,60 M54,48Q60,59 68,60 M40,59Q43,70 54,72Q65,70 68,59 M44,70Q47,80 54,85Q61,80 64,70 M54,62Q49,67 47,74 M54,62Q59,67 61,74").toPath() }
-    DisposableEffect(owner, context) {
-        val observer = LifecycleEventObserver { _, _ -> active = owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
-        val settings = object : ContentObserver(Handler(Looper.getMainLooper())) {
-            override fun onChange(selfChange: Boolean) { reduced = !ValueAnimator.areAnimatorsEnabled() }
-        }
-        owner.lifecycle.addObserver(observer)
-        context.contentResolver.registerContentObserver(Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, settings)
-        onDispose { owner.lifecycle.removeObserver(observer); context.contentResolver.unregisterContentObserver(settings) }
-    }
-    val static = reduced || forceReducedMotion
-    DisposableEffect(manager, active, static, previewAngle, forceNoSensor) {
-        val model = LiquidMotion()
-        val sensor = if (forceNoSensor) null else manager.getDefaultSensor(Sensor.TYPE_GRAVITY) ?: manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        var last = 0L
-        var filteredX = 0f; var filteredY = 9.81f
-        val listener = object : SensorEventListener {
-            @Suppress("DEPRECATION")
-            override fun onSensorChanged(event: SensorEvent) {
-                if (event.timestamp - last < 33_000_000L) return
-                last = event.timestamp
-                filteredX += (event.values[0] - filteredX) * 0.2f
-                filteredY += (event.values[1] - filteredY) * 0.2f
-                val rotation = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.rotation
-                target = model.target(filteredX, filteredY, rotation)
-            }
-            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
-        }
-        available = active && !static && previewAngle == null && sensor != null && manager.registerListener(listener, sensor, 33_333)
-        onDispose { manager.unregisterListener(listener) }
-    }
-    LaunchedEffect(active, static, available, previewAngle) {
-        if (static || !active) { angle.floatValue = 0f; return@LaunchedEffect }
-        if (previewAngle != null) { angle.floatValue = previewAngle.coerceIn(-8f, 8f); return@LaunchedEffect }
-        val model = LiquidMotion()
-        var frame = 0
-        while (true) {
-            val wanted = if (available) target else sin(frame++ * 0.035f) * 2f
-            angle.floatValue = model.step(wanted)
-            delay(33)
-        }
-    }
     val amber = ClubTokens.Amber
     val cream = androidx.compose.ui.graphics.Color(0xFFF4EEE4)
     val ink = ClubTokens.OnAmber
@@ -94,7 +29,7 @@ fun BeerHero(modifier: Modifier = Modifier, previewAngle: Float? = null, forceRe
             moveTo(w * .23f, h * .2f); lineTo(w * .77f, h * .2f)
             lineTo(w * .69f, h * .87f); quadraticTo(w * .5f, h * .93f, w * .31f, h * .87f); close()
         }
-        val delta = tan(Math.toRadians(angle.floatValue.toDouble())).toFloat() * w
+        val delta = tan(Math.toRadians(motion.angle.value.toDouble())).toFloat() * w
         val liquid = Path().apply {
             moveTo(0f, h * .4f - delta / 2); cubicTo(w * .3f, h * .37f, w * .7f, h * .43f, w, h * .4f + delta / 2)
             lineTo(w, h); lineTo(0f, h); close()

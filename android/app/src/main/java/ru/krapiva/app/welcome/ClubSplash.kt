@@ -15,7 +15,7 @@ import ru.krapiva.app.designsystem.*
 /** Only shown during real session restoration. Skipping affects animation, never authentication. */
 @Composable fun ClubSplash() {
     var still by rememberSaveable {mutableStateOf(false)}
-    Surface(Modifier.fillMaxSize(),color=KraPivaColors.Ink) {
+    KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding().fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(20.dp)) {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End) {TextButton({still=true}){Text(if(still)"Анимация остановлена" else "Пропустить анимацию")}}
             Spacer(Modifier.height(24.dp))

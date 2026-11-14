@@ -50,7 +50,7 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
     }
     BackHandler { if(state.page == SocialPage.FEED) onHome() else model.open(SocialPage.FEED) }
     var remove by remember { mutableStateOf<Pair<String,Boolean>?>(null) }
-    Surface(Modifier.fillMaxSize(),color = KraPivaColors.Ink) {
+    KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding().imePadding()) {
             ClubHeader(if(state.page == SocialPage.FEED) "Лента друзей" else null,onSettings,if(state.page == SocialPage.FEED) onCheckin else null)
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),horizontalArrangement = Arrangement.spacedBy(8.dp)) {

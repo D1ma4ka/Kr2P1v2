@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -118,13 +119,13 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         }
         return
     }
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding().imePadding()) {
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 if(state.screen != AccountScreen.WELCOME) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (state.screen in setOf(AccountScreen.WELCOME, AccountScreen.REGISTER, AccountScreen.RESTORING)) BeerHero(Modifier.size(88.dp),
-                        forceReducedMotion = state.screen == AccountScreen.RESTORING && !state.busy)
+                    if (state.screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.VERIFY, AccountScreen.FORGOT, AccountScreen.RESET, AccountScreen.RESTORING)) ClubBeer(Modifier.size(104.dp).testTag("auth-beer"),
+                        still = state.screen == AccountScreen.RESTORING && !state.busy)
                     else Image(painterResource(R.drawable.ic_brand_mark), null, Modifier.size(48.dp))
                     Column { Text("KraPiva", style = MaterialTheme.typography.headlineMedium, color = KraPivaColors.Cream)
                         Text("CRAFT BEER COMMUNITY · 18+", style = MaterialTheme.typography.labelSmall, color = KraPivaColors.Amber) }
@@ -204,12 +205,11 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     var token by remember { mutableStateOf("") }; var adult by remember { mutableStateOf(false) }
     val screen = state.screen; val enabled = !state.busy
     Title(when(screen) { AccountScreen.LOGIN -> "Вход"; AccountScreen.REGISTER -> "Новый аккаунт"; AccountScreen.VERIFY -> "Подтверждение почты"; AccountScreen.RESET -> "Новый пароль"; else -> "Восстановление доступа" })
-    if (BuildConfig.DEBUG) Text("Локальная тестовая среда: почта @example.invalid; письма в Mailpit.", color = KraPivaColors.Muted)
     if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.VERIFY)) Input("E-mail", email, enabled, keyboard = KeyboardType.Email, singleLine = false) { email = it.replace("\n", "").replace("\r", "").take(254) }
     if (screen == AccountScreen.REGISTER) Input("Отображаемое имя", name, enabled) { name = it.take(80) }
-    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.RESET)) Input("Пароль · 12–128 символов", password, enabled, password = true) { password = it.take(128) }
+    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.RESET)) Input("Пароль · От 12 символов", password, enabled, password = true) { password = it.take(128) }
     if (screen in setOf(AccountScreen.REGISTER, AccountScreen.RESET)) Input("Повторите пароль", confirm, enabled, password = true) { confirm = it.take(128) }
-    if (screen == AccountScreen.VERIFY) Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = it.filter { char -> char in '0'..'9' }.take(6) }
+    if (screen == AccountScreen.VERIFY) Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = EmailVerificationCode.input(it) }
     if (screen == AccountScreen.RESET) Input("Одноразовый код из письма", token, enabled) { token = it.trim().take(43) }
     if (screen == AccountScreen.REGISTER) Row(verticalAlignment = Alignment.CenterVertically) {
         Checkbox(adult, { adult = it }, enabled = enabled); Text("Подтверждаю, что мне исполнилось 18 лет", Modifier.weight(1f))
@@ -224,7 +224,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
             model.register(email, password, name, adult); password = ""; confirm = ""
         }
         AccountScreen.VERIFY -> {
-            Action("Подтвердить", enabled && token.length == 6 && email.isNotBlank()) { model.verifyCode(email,token); token = "" }
+            Action("Подтвердить", enabled && EmailVerificationCode.isComplete(token) && email.isNotBlank()) { model.verifyCode(email,token); token = "" }
             Link("Отправить письмо снова", enabled && email.isNotBlank()) { model.mail(email, false) }
             Text("Повторная отправка — не чаще раза в минуту. Код действует 10 минут; не более 5 попыток. После повторной отправки используйте новое письмо.", color = KraPivaColors.Muted)
         }

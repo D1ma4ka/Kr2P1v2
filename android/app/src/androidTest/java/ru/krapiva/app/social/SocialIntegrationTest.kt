@@ -45,8 +45,8 @@ class SocialIntegrationTest {
         request("v1/auth/register",method = "POST",body = JSONObject().put("email",email).put("password",password).put("displayName",name).put("adultConfirmed",true))
         val messages = JSONObject(URL("http://10.0.2.2:58025/api/v1/search?query=to:$email").readText()).getJSONArray("messages")
         val mail = JSONObject(URL("http://10.0.2.2:58025/api/v1/message/${messages.getJSONObject(0).getString("ID")}").readText())
-        val code = Regex("Код: ([A-Za-z0-9_-]{43})").find(mail.getString("Text"))!!.groupValues[1]
-        request("v1/auth/verify",method = "POST",body = JSONObject().put("token",code))
+        val code = Regex("Код подтверждения: ([0-9]{6})").find(mail.getString("Text"))!!.groupValues[1]
+        request("v1/auth/verify-code",method = "POST",body = JSONObject().put("email",email).put("code",code))
         return request("v1/auth/login",method = "POST",body = JSONObject().put("email",email).put("password",password))
     }
     private fun privacy(token: String,value: String) {

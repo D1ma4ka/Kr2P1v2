@@ -47,7 +47,7 @@ import ru.krapiva.app.diary.*
        } finally {friends=null}
       }
     }
-    Surface(Modifier.fillMaxSize(),color=KraPivaColors.Ink) {
+    KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding()) {
             LazyColumn(Modifier.weight(1f),contentPadding=PaddingValues(horizontal=16.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 item { Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {

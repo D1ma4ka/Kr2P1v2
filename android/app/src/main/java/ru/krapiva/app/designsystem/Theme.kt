@@ -49,17 +49,20 @@ object KraPivaSpacing {
     val Large = 24.dp
     val Section = 32.dp
 }
-private val Dark = darkColorScheme(
+internal val Dark = darkColorScheme(
     primary = ClubTokens.Amber, onPrimary = ClubTokens.OnAmber,
     primaryContainer = Color(0xFF3A2D1B), onPrimaryContainer = Color(0xFFFFD89A),
-    secondary = Color(0xFFF4EEE4), onSecondary = Color(0xFF101315),
-    background = Color(0xFF101315), onBackground = Color(0xFFF4EEE4),
-    surface = Color(0xFF1D2226), onSurface = Color(0xFFF4EEE4),
-    surfaceVariant = Color(0xFF252B2E), onSurfaceVariant = Color(0xFFB7B9B7),
-    outline = Color(0xFF767D80), outlineVariant = Color(0xFF343B3E),
+    secondary = Color(0xFFF4EEE4), onSecondary = Color(0xFF1B211E),
+    background = Color(0xFF1B211E), onBackground = Color(0xFFF4EEE4),
+    surface = Color(0xFF252E28), onSurface = Color(0xFFF4EEE4),
+    surfaceVariant = Color(0xFF2D3830), onSurfaceVariant = Color(0xFFB9C5BB),
+    surfaceContainerLowest = Color(0xFF181E1A), surfaceContainerLow = Color(0xFF222A25),
+    surfaceContainer = Color(0xFF252E28), surfaceContainerHigh = Color(0xFF2D3830),
+    surfaceContainerHighest = Color(0xFF354138),
+    outline = Color(0xFF819285), outlineVariant = Color(0xFF3E4B40),
     error = Color(0xFFFFB4AB), onError = Color(0xFF601410),
 )
-private val Light = lightColorScheme(
+internal val Light = lightColorScheme(
     primary = Color(0xFF935500), onPrimary = Color.White,
     primaryContainer = Color(0xFFFFE1AF), onPrimaryContainer = Color(0xFF392300),
     secondary = Color(0xFF202322), onSecondary = Color.White,

@@ -32,7 +32,7 @@ test('P6 real HTTP/PostgreSQL/SMTP: two registered accounts, friendship state ma
  const mailbox=process.env.MAILPIT_API_URL??'http://127.0.0.1:58025';
  const messages=await(await fetch(mailbox+'/api/v1/search?query='+encodeURIComponent('to:'+email))).json() as {messages:{ID:string}[]};
  const message=await(await fetch(mailbox+'/api/v1/message/'+messages.messages[0]!.ID)).json() as {Text:string};
- await call('/v1/auth/verify','POST',{token:message.Text.match(/Код: ([A-Za-z0-9_-]{43})/)![1]},undefined,204);
+ await call('/v1/auth/verify-code','POST',{email,code:message.Text.match(/Код подтверждения: ([0-9]{6})\b/)![1]},undefined,204);
  return call('/v1/auth/login','POST',{email,password});
  };
  try{

@@ -43,7 +43,7 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
     val state by model.state.collectAsStateWithLifecycle()
     LaunchedEffect(requestedPosition,state.busy) { if (!state.busy) requestedPosition?.let { model.detail(it); consumePosition() } }
     BackHandler { if (!model.back()) onProfile() }
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding().imePadding()) {
             ClubHeader(if(state.page == CatalogPage.POSITIONS) "Каталог" else null,onSettings,if(state.page == CatalogPage.POSITIONS && onCheckin != null) ({ onCheckin(null) }) else null)
             if(state.page != CatalogPage.POSITIONS) TextButton(onClick = { if(!model.back()) onProfile() },enabled = !state.busy) { Text("Назад") }

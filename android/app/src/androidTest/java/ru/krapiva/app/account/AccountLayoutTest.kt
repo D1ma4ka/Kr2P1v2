@@ -28,9 +28,9 @@ class AccountLayoutTest {
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Создать аккаунт").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
         compose.onNodeWithText("E-mail").performScrollTo().performTextInput("layout@example.invalid")
-        compose.onNodeWithText("Пароль · 12–128 символов").performScrollTo().performTextInput("Layout synthetic password!")
+        compose.onNodeWithText("Пароль · От 12 символов").performScrollTo().performTextInput("Layout synthetic password!")
         compose.onNodeWithText("Повторите пароль").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Фирменный бокал KraPiva с пеной и хмелем").assertExists()
+        compose.onNodeWithTag("auth-beer").assertExists()
     }
 }

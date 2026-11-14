@@ -22,4 +22,23 @@ class LiquidMotionTest {
         assertEquals(0f, motion.angle, .001f)
         assertTrue(motion.step(Float.NaN).isFinite())
     }
+    @Test fun inertiaSurvivesDirectionChangeAndOscillationSettles() {
+        val motion = LiquidMotion()
+        motion.step(4f)
+        val before = motion.step(4f)
+        assertTrue("Momentum should survive a direction change", motion.step(-4f) > before)
+        repeat(100) { motion.step(-4f) }
+        assertEquals(-4f, motion.angle, .001f)
+        repeat(600) { step ->
+            val value = motion.step(if (step % 30 < 15) 100f else -100f)
+            assertTrue(value.isFinite() && value in -8f..8f)
+        }
+    }
+    @Test fun resumeStartsAtTheFrozenSurfaceInsteadOfJumpingToZero() {
+        val resumed = LiquidMotion(8f)
+        assertEquals(8f, resumed.step(8f), .001f)
+        assertTrue(resumed.step(0f) in 7f..8f)
+        assertEquals(8f, LiquidMotion(100f).angle, .001f)
+        assertEquals(0f, LiquidMotion(Float.NaN).angle, .001f)
+    }
 }

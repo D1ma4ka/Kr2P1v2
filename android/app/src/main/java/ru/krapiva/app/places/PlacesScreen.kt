@@ -64,7 +64,7 @@ import kotlin.coroutines.resume
     } catch(e: Exception) {if(e is CancellationException)throw e;locationError="Геопозиция недоступна. Выберите город вручную."}finally {locating=false}}}
     val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {allowed->if(allowed)locate()else {locationError="Доступ отклонён. Карта работает с ручным выбором города."}}
     BackHandler {if(state.selected!=null)model.back()else onBack()}
-    Surface(Modifier.fillMaxSize(),color=KraPivaColors.Ink) {Column(Modifier.safeDrawingPadding()) {
+    KraPivaBackdrop {Column(Modifier.safeDrawingPadding()) {
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {TextButton({if(state.selected!=null)model.back()else onBack()}) {Text("Назад")};Text("Места и карта",style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(top=12.dp))}
         Box(Modifier.fillMaxWidth().height(4.dp)) {if(state.busy||state.selectionBusy)LinearProgressIndicator(Modifier.fillMaxWidth())}
         Row(Modifier.fillMaxWidth().padding(horizontal=12.dp)) {

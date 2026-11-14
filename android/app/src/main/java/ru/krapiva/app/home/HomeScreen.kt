@@ -60,7 +60,7 @@ fun HomeApp(api: AccountApi, profile: JSONObject, avatar: Bitmap?, onCheckin: ()
         if(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) model.refresh()
         onDispose { owner.lifecycle.removeObserver(observer);model.hide() }
     }
-    Surface(Modifier.fillMaxSize(),color = KraPivaColors.Ink) {
+    KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding()) {
             HomeContent(state,profile,avatar,api,onCheckin,onCollection,onOwnCheckin,onSocial,onFriends,onProfile,onSettings,model::refresh,model::like,Modifier.weight(1f),onPlaces,onBadges)
             bottomBar()

@@ -38,7 +38,7 @@ import ru.krapiva.app.designsystem.*
     LaunchedEffect(owner) {owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {try {load();awaitCancellation()}finally {items=emptyList()}}}
     BackHandler(onBack=onBack)
     val pins=items.filter {it.text("pinSlot")!=null}.sortedBy {it.getInt("pinSlot")}.map {it.getString("id")}
-    Surface(Modifier.fillMaxSize(),color=KraPivaColors.Ink) {Column(Modifier.safeDrawingPadding()) {
+    KraPivaBackdrop {Column(Modifier.safeDrawingPadding()) {
         Row {TextButton(onBack){Text("Назад")};Text("Достижения",style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(12.dp))}
         if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())
         LazyColumn(Modifier.weight(1f).testTag("badges-list"),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {

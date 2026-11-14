@@ -1,6 +1,8 @@
 package ru.krapiva.app.designsystem
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
@@ -40,8 +42,8 @@ class BeerHeroTest {
     }
     @Test fun noSensorLoopMovesAndReducedMotionStaysStill() {
         compose.setContent { KraPivaTheme { Column {
-            BeerHero(Modifier.testTag("fallback"), forceNoSensor = true)
-            BeerHero(Modifier.testTag("static"), forceReducedMotion = true)
+            ClubBeer(Modifier.testTag("fallback").size(112.dp), forceNoSensor = true)
+            ClubBeer(Modifier.testTag("static").size(112.dp), still = true)
         } } }
         val moving = compose.onNodeWithTag("fallback").captureToImage().asAndroidBitmap()
         val still = compose.onNodeWithTag("static").captureToImage().asAndroidBitmap()
@@ -82,7 +84,7 @@ class BeerHeroTest {
             }
         }
         compose.setContent { KraPivaTheme {
-            CompositionLocalProvider(LocalLifecycleOwner provides owner) { if (visible.value) BeerHero() }
+            CompositionLocalProvider(LocalLifecycleOwner provides owner) { if (visible.value) ClubBeer(Modifier.size(112.dp)) }
         } }
         expectSubscriptions(1, "resume")
         compose.runOnIdle { registry.currentState = Lifecycle.State.CREATED }

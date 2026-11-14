@@ -24,12 +24,12 @@ test('P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, sessio
    ...(body===undefined?{}:{body:JSON.stringify(body)})});
   const text=await response.text();return {status:response.status,body:text?JSON.parse(text):null};
  };
- const code=async(email:string)=>{
+ const code=async(email:string,reset=false)=>{
   const api=process.env.MAILPIT_API_URL??'http://127.0.0.1:58025';
   const search=await (await fetch(api+'/api/v1/search?query='+encodeURIComponent('to:'+email))).json() as {messages:{ID:string}[]};
   assert.ok(search.messages.length);
   const message=await (await fetch(api+'/api/v1/message/'+search.messages[0]!.ID)).json() as {Text:string};
-  return message.Text.match(/Код: ([A-Za-z0-9_-]{43})/)![1]!;
+  return message.Text.match(reset?/Код: ([A-Za-z0-9_-]{43})/:/Код подтверждения: ([0-9]{6})\b/)![1]!;
  };
  const suffix=randomUUID().replaceAll('-',''), email=`a${suffix}@example.invalid`, other=`b${suffix}@example.invalid`,password='Synthetic password 2026!';
  const signup={email,password,displayName:'Synthetic P3',adultConfirmed:true};
@@ -40,14 +40,14 @@ test('P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, sessio
   const verification=await code(email);
   assert.equal((await call('/v1/auth/register',signup)).status,202);
   assert.equal((await call('/v1/auth/login',{email,password})).status,401);
-  assert.equal((await call('/v1/auth/verify',{token:verification})).status,204);
-  assert.equal((await call('/v1/auth/verify',{token:verification})).status,401);
+  assert.equal((await call('/v1/auth/verify-code',{email,code:verification})).status,204);
+  assert.equal((await call('/v1/auth/verify-code',{email,code:verification})).status,401);
   const login=await call('/v1/auth/login',{email,password});assert.equal(login.status,200);
   const user=login.body.userId,access=login.body.accessToken;
   assert.equal((await call('/v1/auth/login',{email,password:'incorrect password'})).status,401);
   assert.equal((await call('/v1/auth/login',{email:'unknown@example.invalid',password})).status,401);
   assert.equal((await call('/v1/auth/register',{...signup,email:other})).status,202);
-  assert.equal((await call('/v1/auth/verify',{token:await code(other)})).status,204);
+  assert.equal((await call('/v1/auth/verify-code',{email:other,code:await code(other)})).status,204);
   const second=(await call('/v1/auth/login',{email:other,password})).body;
   const original=(await call('/v1/me',undefined,access)).body;
   const edit={firstName:'Имя',lastName:'Фамилия',country:'Россия',city:'Москва',bio:'Серверный профиль',gender:'Не указан',
@@ -80,7 +80,7 @@ test('P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, sessio
   assert.equal((await call('/v1/me',undefined,rotated.body.accessToken)).status,401);
   const fresh=(await call('/v1/auth/login',{email,password})).body;
   assert.equal((await call('/v1/auth/forgot-password',{email})).status,202);
-  const reset=await code(email);
+  const reset=await code(email,true);
   assert.equal((await call('/v1/auth/forgot-password',{email})).status,202);
   assert.equal((await call('/v1/auth/reset-password',{token:reset,password:'New synthetic password!'})).status,204);
   assert.equal((await call('/v1/auth/reset-password',{token:reset,password:'New synthetic password!'})).status,401);
