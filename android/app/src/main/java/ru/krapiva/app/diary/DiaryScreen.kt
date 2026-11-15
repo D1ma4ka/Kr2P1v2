@@ -180,6 +180,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement = Arrangement.spacedBy(12.dp)) {
         DiaryTitle("Мой чекин");CheckinCard(data,false) { }
+        ru.krapiva.app.offline.ShareCheckin(model.api,data)
         data.getJSONArray("mediaIds").strings().forEach { DiaryPhoto(it,model.api,state.offline) }
         TextButton({ onPosition(data.getString("positionId")) },enabled = !state.busy) { Text("Открыть позицию") }
         if(data.text("venueId") != null) TextButton({onVenue(data.getString("venueId"))}) { Text("Открыть место на карте") }
