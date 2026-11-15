@@ -1,0 +1,18 @@
+{
+  "run_id": 43718075162,
+  "job_id": 132823828432,
+  "source_commit": "f5463ac6268943c3c27d7b7befcae6c1f704a6f2",
+  "conclusion": "success",
+  "artifact_id": 14163193063,
+  "artifact_name": "KraPiva-P8.3-phone-debug",
+  "zip_size_bytes": 30978238,
+  "archive_digest": "sha256:45896bd3334e993d3431f34d7053f8fd13be1cc8f9622ce798d9d76662e92a88",
+  "download_url": "https://github.com/D1ma4ka/Kr2P1v2/actions/runs/43718075162/artifacts/14163193063",
+  "expires_at": "2026-11-22T13:20:57Z",
+  "apk_name": "KraPiva-P8.3-debug.apk",
+  "apk_sha256": "c8ed08aaf6853ecfa263a6b0514b7e1d4b1277a35b9756582c6c26cd47bb6e94",
+  "signing_certificate_sha256": "f19a01e6580b5e231497d4050a64dd2e522b1a9f6c47fe531f76f9922d1fe5e0",
+  "api_base_url": "http://127.0.0.1:53000/",
+  "access": "Private GitHub repository; sign-in required",
+  "device_installation": "NOT RUN"
+}

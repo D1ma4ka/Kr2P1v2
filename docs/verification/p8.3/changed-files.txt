@@ -38,3 +38,4 @@ backend/test/social.test.ts
 docs/PROGRESS.md
 docs/api/openapi.yaml
 docs/stages/P8.3.md
+docs/verification/p8.3/phone-download.json

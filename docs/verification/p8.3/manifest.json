@@ -58,5 +58,6 @@
     "backend/test/migrations.test.ts": "d604fd7aad3f8b38ea53eeefaf6ac2df0c2c1acc58aa4d532b4ce0984064f224",
     "backend/test/p7.test.ts": "51d97defbfab022b7881766b0c47c32e41f380a83c0d9921daa207195d53f12f",
     "backend/test/social.test.ts": "ce514809e89e10e2ddbc6548a24cbb91c6b4ac183ba2d2eb99e769861e1553b6"
-  }
+  },
+  "source_commit": "f5463ac6268943c3c27d7b7befcae6c1f704a6f2"
 }
