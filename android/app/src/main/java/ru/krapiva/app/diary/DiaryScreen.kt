@@ -96,7 +96,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
             }
         }
     }
-    if(leave) AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { leave = false;pendingNavigation = null },title = { Text("Выйти из редактора?") },text = { Text("Сохраните черновик кнопкой в форме, чтобы продолжить позже. На сервер изменения отправляются отдельно.") },confirmButton = { TextButton({ leave = false;val action = pendingNavigation;pendingNavigation = null;if(action != null)action() else model.open(DiaryPage.HOME) }) { Text("Выйти") } },dismissButton = { TextButton({ leave = false;pendingNavigation = null }) { Text("Остаться") } })
+    if(leave) AlertDialog(containerColor = KraPivaColors.Surface,onDismissRequest = { leave = false;pendingNavigation = null },title = { Text("Выйти из редактора?") },text = { Text("Перед выходом изменения будут сохранены в зашифрованный черновик. На сервер они отправляются отдельно.") },confirmButton = { TextButton({ leave = false;val action = pendingNavigation;pendingNavigation = null;model.leaveEditor { if(action != null)action() else model.open(DiaryPage.HOME) } }) { Text("Выйти") } },dismissButton = { TextButton({ leave = false;pendingNavigation = null }) { Text("Остаться") } })
 }
 @Composable internal fun DiaryTitle(value: String) { Text(value,style = MaterialTheme.typography.headlineMedium,modifier = Modifier.semantics { heading() }) }
 @Composable internal fun DiaryButton(text: String,enabled: Boolean = true,action: () -> Unit) { Button(action,Modifier.fillMaxWidth().heightIn(min = 52.dp),enabled = enabled) { Text(text) } }

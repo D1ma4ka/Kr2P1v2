@@ -15,7 +15,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import ru.krapiva.app.designsystem.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -60,9 +59,9 @@ import java.time.OffsetDateTime
         return JSONObject(initial.toString()).put("body",body).put("ratingQuarters",q ?: JSONObject.NULL).put("ratingInput",rating).put("occurredInput",occurred).put("occurredAt",if(validate) { if(occurred == DiaryDates.display(initial.getString("occurredAt")))initial.getString("occurredAt") else DiaryDates.instant(occurred) } else initial.getString("occurredAt")).put("servingFormat",serving.ifBlank { null } ?: JSONObject.NULL).put("venueName",venueName).put("venueId",venueId.ifBlank { null } ?: JSONObject.NULL).put("venueText",if(venueId.isBlank())venue.ifBlank { null } ?: JSONObject.NULL else JSONObject.NULL).put("visibility",visibility).put("tagIds",JSONArray(tags.toList())).put("mediaIds",JSONArray(media.toList())).put("localPhotos",JSONArray(local.toList()))
     }
     LaunchedEffect(id,body,rating,occurred,serving,venue,venueId,visibility,tags.contentToString(),media.contentToString(),local.contentToString()) {
-        delay(700)
         model.autosaveDraft(data(false))
     }
+    SideEffect { model.editorSnapshot = data(false) }
     var extra by rememberSaveable(id) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth(),verticalAlignment = Alignment.CenterVertically) {
@@ -94,6 +93,22 @@ import java.time.OffsetDateTime
         }
         TextButton({ rating = "" },enabled = !state.busy,modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Без оценки") }
         OutlinedTextField(rating,{ rating = it },enabled = !state.busy,label = { Text("Оценка 0,25–5 · пусто = без оценки") },modifier = Modifier.fillMaxWidth(),singleLine = true)
+        DiaryTitle("Подача")
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Кран", "Банка", "Бутылка", "Бокал", "Дегустационный сет").forEach { option ->
+                FilterChip(serving == option,{ serving = option },enabled = !state.busy,label = { Text(option) })
+            }
+        }
+        OutlinedTextField(serving,{ serving = it.take(80) },enabled = !state.busy,label = { Text("Свой вариант подачи (необязательно)") },modifier = Modifier.fillMaxWidth())
+        DiaryTitle("Вкусы")
+        state.tags.chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { tag -> val tid = tag.getString("id")
+                    FilterChip(tid in tags,{ tags = if(tid in tags)tags.filter { it != tid }.toTypedArray() else (tags.toList()+tid).toTypedArray() },enabled = !state.busy,label = { Text(tag.getString("label")) },modifier = Modifier.weight(1f))
+                }
+            }
+        }
+        if(state.tags.isEmpty()) Text("Справочник вкусов недоступен. Сохранённые теги остаются в черновике.",color = KraPivaColors.Muted)
         DiaryTitle("Впечатления")
         OutlinedTextField(body,{ body = it.take(5000) },enabled = !state.busy,label = { Text("Заметка о пиве") },modifier = Modifier.fillMaxWidth(),minLines = 3)
         Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween) {
@@ -131,14 +146,11 @@ import java.time.OffsetDateTime
             if(extra) {
                 OutlinedTextField(occurred,{ occurred = it },enabled = !state.busy,label = { Text("Дата и время (ГГГГ-ММ-ДД ЧЧ:ММ)") },modifier = Modifier.fillMaxWidth())
                 Text("Часовой пояс: ${java.time.ZoneId.systemDefault().id}",color = KraPivaColors.Muted)
-                OutlinedTextField(serving,{ serving = it.take(80) },enabled = !state.busy,label = { Text("Подача: кран, бутылка, банка…") },modifier = Modifier.fillMaxWidth())
-                Text("Вкусовые теги · ваше впечатление",style = MaterialTheme.typography.titleMedium)
-                state.tags.forEach { tag -> val tid = tag.getString("id");Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(tid in tags,{ selected -> tags = if(selected)(tags.toList()+tid).distinct().toTypedArray() else tags.filter { it != tid }.toTypedArray() },enabled = !state.busy);Text(tag.getString("label")) } }
-                if(state.tags.isEmpty()) Text("Справочник тегов недоступен. Можно сохранить без тегов.",color = KraPivaColors.Muted)
+
             }
         }
         error?.let { Text(it,color = KraPivaColors.Error) }
-        Text("Изменения ещё не сохранены",color = KraPivaColors.Muted)
+        Text("Черновик сохраняется на устройстве автоматически. Публикация — отдельное действие.",color = KraPivaColors.Muted)
         DiaryButton("Проверить пиво и сохранить",!state.busy) {
             try { error = null;model.preparePublish(data(true)) } catch(e: Exception) { error = if(e is java.time.DateTimeException) "Укажите настоящую дату и время, например 2026-11-07 12:00" else e.message ?: "Проверьте поля" }
         }

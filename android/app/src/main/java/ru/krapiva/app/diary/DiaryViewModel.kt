@@ -8,6 +8,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import org.json.JSONObject
 import ru.krapiva.app.account.AccountApi
@@ -33,6 +35,8 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
     private val mutable = MutableStateFlow(DiaryState())
     val state = mutable.asStateFlow()
     private var lastRequest = -1
+    var editorSnapshot: JSONObject? = null
+    private val draftMutex = Mutex()
     private val uploads = mutableMapOf<String,String>()
     private fun task(block: suspend () -> Unit) {
         if (mutable.value.busy) return
@@ -110,16 +114,30 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
     }
     fun saveDraft(data: JSONObject) = task {
         data.put("status","saved_offline")
-        api.saveDraft(data); mutable.value = mutable.value.copy(notice = "Черновик сохранён на устройстве · не отправлено")
+        persistDraft(data); mutable.value = mutable.value.copy(notice = "Черновик сохранён на устройстве · не отправлено")
     }
-    /** Debounced persistence used by the editor; failure stays local and is retried on the next edit. */
+    private suspend fun persistDraft(data: JSONObject) = draftMutex.withLock { api.saveDraft(data) }
+    fun leaveEditor(action: () -> Unit) = task {
+        editorSnapshot?.let { persistDraft(JSONObject(it.toString()).put("status","saved_offline")) }
+        mutable.value = mutable.value.copy(busy = false)
+        action()
+    }
+    /** Persist on each edit; leaving waits for the final snapshot and reports disk failures. */
     fun autosaveDraft(data: JSONObject) {
         data.put("status","saved_offline")
-        viewModelScope.launch { runCatching { api.saveDraft(data) } }
+        val snapshot = JSONObject(data.toString())
+        viewModelScope.launch {
+            try { persistDraft(snapshot) }
+            catch(e: Exception) {
+                if(e is CancellationException) throw e
+                mutable.value = mutable.value.copy(error = "Не удалось сохранить черновик на устройстве. Не закрывайте редактор; освободите место и повторите сохранение.")
+            }
+        }
     }
     fun removeDraft(id: String) = task { api.removeDraft(id); load() }
     fun dismissSuccess() { mutable.value = mutable.value.copy(success = false) }
     fun preparePublish(data: JSONObject) = task {
+        persistDraft(JSONObject(data.toString()).put("status","saved_offline"))
         val name=data.text("positionName") ?: ""
         val brewery=data.text("breweryName") ?: ""
         require(name.isNotBlank() && brewery.isNotBlank()) { "Выберите позицию каталога перед публикацией" }
