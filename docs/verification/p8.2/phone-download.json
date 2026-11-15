@@ -1,0 +1,18 @@
+{
+  "run_id": 43692859205,
+  "job_id": 132746951924,
+  "conclusion": "success",
+  "source_commit": "820e367c48f46f47a3addf88f90e194d5974231f",
+  "artifact_id": 14153131503,
+  "artifact_name": "KraPiva-P8.2-phone-debug",
+  "download_url": "https://github.com/D1ma4ka/Kr2P1v2/actions/runs/43692859205/artifacts/14153131503",
+  "zip_size_bytes": 30960639,
+  "artifact_digest": "sha256:f248ba4b021ec1f10c0b1a5d58aa8d6c11831bad128a807dc3c6bca5ab702320",
+  "expires_at": "2026-11-22T08:09:34Z",
+  "apk_name": "KraPiva-P8.2-debug.apk",
+  "apk_sha256": "84266865ec42c575db4581727e211f547c93a71bfdeaaf0e3415d21631b62a7f",
+  "signing_certificate_sha256": "63a443ee876af92a6c57bc054e93e808ab5e41d01f19fc6042a4bb42cf0e9bd8",
+  "access": "Private repository; GitHub sign-in required",
+  "backend_url": "http://127.0.0.1:53000/",
+  "device_installation": "NOT RUN; user reported the original chat link did not download"
+}
