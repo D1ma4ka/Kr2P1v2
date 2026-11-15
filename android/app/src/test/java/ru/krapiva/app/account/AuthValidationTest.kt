@@ -14,6 +14,11 @@ class AuthValidationTest {
         assertTrue(AuthValidation.password("a".repeat(12)))
         assertTrue(AuthValidation.password("a".repeat(128)))
         assertFalse(AuthValidation.password("a".repeat(129)))
+        // JSON Schema minLength/maxLength count Unicode code points, not UTF-16 units.
+        assertFalse(AuthValidation.password("🍺".repeat(6)))
+        assertTrue(AuthValidation.password("🍺".repeat(12)))
+        assertTrue(AuthValidation.password("🍺".repeat(128)))
+        assertFalse(AuthValidation.password("🍺".repeat(129)))
         assertFalse(AuthValidation.registrationIssues("user@example.invalid", "Имя", password, password, false).isEmpty())
     }
 }

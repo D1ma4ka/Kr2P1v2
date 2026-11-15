@@ -1,0 +1,52 @@
+{
+  "base_commit": "57710756dc247e165eb80b6fbd5242f205e810fb",
+  "branch": "codex/krapiva-p8.2",
+  "apk": {
+    "path": "/workspace/Kr2P1v2/android/app/build/outputs/apk/debug/app-debug.apk",
+    "size_bytes": 63268795,
+    "sha256": "009b6a83c060e2c73bbaa2e3b1e9549788636161114ad809419750175cc58d1d",
+    "application_id": "ru.krapiva.app.debug",
+    "version_name": "0.1.0-p8.2",
+    "api_base_url": "http://127.0.0.1:53000/"
+  },
+  "backend": {
+    "passed": 40,
+    "failed": 0,
+    "skipped": 0,
+    "mail_delivery": "local Mailpit only"
+  },
+  "android_jvm": {
+    "tests": 18,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0
+  },
+  "android_runtime": "NOT RUN: adb devices empty, /dev/kvm unavailable",
+  "source_sha256": {
+    "android/app/build.gradle.kts": "70ec259101be7adb29f4b9301b9205917a3303e3a8a912ef318b33dcacf9ac5a",
+    "android/app/src/androidTest/java/ru/krapiva/app/account/AccountIntegrationTest.kt": "dd1ffddaece8bbfbb2f764272e4dd6a1deeeb27ea85743c2f4e72530f5e82058",
+    "android/app/src/androidTest/java/ru/krapiva/app/account/AccountLayoutTest.kt": "e0169e4aebea755bae7ac88d8d330f21d3a77189cb391f0ffe34d63ad3d10cbf",
+    "android/app/src/androidTest/java/ru/krapiva/app/account/AuthFormTest.kt": "2c59acc4ecb0307405b18edb9a4cc4bfbe78d3d9efdc897ac3176f96c8659b58",
+    "android/app/src/androidTest/java/ru/krapiva/app/designsystem/LoadingMotionTest.kt": "7d41a91368e57de39645b82a5b0479826964f1b00955656a38925b50ccd39807",
+    "android/app/src/main/java/ru/krapiva/app/account/AccountScreen.kt": "818d26cd4c64e8c77807b3561fa4a6a502bffd917456e2ccedbe23d82e4d322e",
+    "android/app/src/main/java/ru/krapiva/app/account/AccountViewModel.kt": "80144de0ee6492551a77336184101597dd1f61525b9e0fc76560c050c34016e9",
+    "android/app/src/main/java/ru/krapiva/app/account/AuthValidation.kt": "b88b963207d53f21f67da2f8577a0c156b960a1c58367feb43cf7f047510747e",
+    "android/app/src/main/java/ru/krapiva/app/designsystem/ClubMotion.kt": "ef7b56b40ad05a9cd6c6d13ec17294e8acf0b5edc815f7c14e7b941348697296",
+    "android/app/src/main/java/ru/krapiva/app/welcome/ClubSplash.kt": "a62b57548565a093b2a873f5a69331c2fc1e172763ba220c37b7e58991116de3",
+    "android/app/src/main/res/drawable-nodpi/krapiva_logo.png": "0a2b9137181a8a699a967c1ae8c3f785407e09227fffecb45ccb4080de98342d",
+    "android/app/src/test/java/ru/krapiva/app/account/AuthValidationTest.kt": "e00e717c9372d269f7a21b540c1173dc883f32b0f18fe2dfab4a8df00b4e443e",
+    "backend/migrations/011_password_reset_codes.sql": "af97f1381ac0cf340955ed5e1b954eecce1670eddd250c2d1e84197a72d6f702",
+    "backend/src/app.ts": "8743a10bc64488cd709b924b25d8ba5ae332fc5f20388f9c15d83b0de8b80ac5",
+    "backend/src/db/readiness.ts": "99db0b7654442de00d9304bd02781e4b333d1847fa569a1b31d143dbab67bf8d",
+    "backend/src/identity/accounts.ts": "d81e1308cce9a396b6d0e69c5f004f565f792d23735f62bb5822887bc8578915",
+    "backend/src/identity/routes.ts": "ae8d3892bd9b364498d59f482a0b6b5f6945f9c8c9e9c5eae6b4331f7d595039",
+    "backend/src/mail/accounts.ts": "499ce11d08a7a095a597493b4add46736582ed6031355baf0958ee71b1bddba0",
+    "backend/test/accounts.test.ts": "f10c2e27688a82ca2244f7ad7adcf7d88db5eaad1765f67753bb1c34f64e684f",
+    "backend/test/migrations.test.ts": "c79cc414d14fa0de209600bce315233daeb3654bb00aad47ce6151042885779c",
+    "backend/test/p7.test.ts": "5cba80a0418d82efa32b001e5c7ce07bcb1f42df9dabc5401c9b35c5d57f900d",
+    "backend/test/password-reset-code.test.ts": "1c449b0b8e8219cd8efb9dfca6ed739a09a556403d10b0e46f8ffb38df7c8883",
+    "backend/test/social.test.ts": "8924302b15d17b81b8ea23efff603bb2b89d5ae16b7a6f17974ef04bd99684c9",
+    "compose.yaml": "8dc2288e6d6130882a1e676d08ac49352516975734c632a5a6d8a93bf1c54b8a",
+    "scripts/check_android_motion.py": "3f7d4ff5803a7c8ebb81be67312671de43feb388b5bbe1294fce237a4e542e06"
+  }
+}

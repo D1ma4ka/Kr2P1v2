@@ -251,7 +251,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         AccountScreen.FORGOT -> Action("Получить код", enabled && email.isNotBlank()) { model.mail(email, true) }
         AccountScreen.RESET -> {
             Text("Код действует 10 минут; не более 5 попыток. После повторной отправки используйте новое письмо.")
-            if (password.isNotEmpty() && !AuthValidation.password(password)) Text(if (password.length > 128) "Пароль слишком длинный" else "Пароль: От 12 символов", color = MaterialTheme.colorScheme.error)
+            if (password.isNotEmpty() && !AuthValidation.password(password)) Text(if (AuthValidation.passwordLength(password) > 128) "Пароль слишком длинный" else "Пароль: От 12 символов", color = MaterialTheme.colorScheme.error)
             if (confirm.isNotEmpty() && confirm != password) Text("Пароли должны совпадать", color = MaterialTheme.colorScheme.error)
             Action("Сменить пароль", enabled && AuthValidation.email(email) && EmailVerificationCode.isComplete(token) && AuthValidation.password(password) && confirm == password) { model.reset(email, token, password) }
             Link("Отправить код снова", enabled && AuthValidation.email(email)) { model.mail(email, true); token = "" }
