@@ -9,6 +9,8 @@ update-over-install **PENDING**: нет устройства/KVM и прежне
 Новые локальные данные AES-GCM + owner scope; SQLite v3→v4 additive.
 [Полный отчёт и матрица](stages/P8.4.md), [ручная приёмка и установка](P8.4_ACCEPTANCE.md),
 [будущая синхронизация](P8.4_FUTURE_SYNC.md), [метаданные APK](verification/p8.4/manifest.json).
+[Скачать P8.4 debug APK](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/43723838252/artifacts/14165733301) — Actions 43723838252 SUCCESS, private GitHub sign-in, до 22.11.2026 17:28 Europe/Istanbul.
+Подпись отличается от скачиваемого P8.3: обновление требует прежнего ключа; данные не удалять.
 Исторические результаты ниже сохранены. П9 не начинался.
 
 ---
