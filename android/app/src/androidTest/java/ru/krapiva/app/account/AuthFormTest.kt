@@ -72,6 +72,16 @@ class AuthFormTest {
         compose.runOnIdle { keyboard?.hide() }
         compose.onNodeWithText("Зарегистрироваться").assertIsNotEnabled()
         compose.onNodeWithText("Подтверждаю, что мне исполнилось 18 лет").performScrollTo().performClick()
+        compose.onNodeWithText("Повторите пароль").performScrollTo().performTextReplacement("Different password!")
+        compose.runOnIdle { keyboard?.hide() }
+        repeat(2) { compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsEnabled().performClick() }
+        compose.onNodeWithText("Пароли не совпадают").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("E-mail").assertTextContains(email)
+        compose.onNodeWithText("Пароль · От 12 символов").assertTextContains(password)
+        compose.onNodeWithText("Повторите пароль").assertTextContains("Different password!")
+        compose.runOnIdle { assertEquals(AccountScreen.REGISTER, model.state.value.screen); assertFalse(model.state.value.busy) }
+        compose.onNodeWithText("Повторите пароль").performScrollTo().performTextReplacement(password)
+        compose.runOnIdle { keyboard?.hide() }
         compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsEnabled().performClick()
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.VERIFY && !model.state.value.busy }
         compose.onNodeWithTag("verification-email").assertTextContains(email)

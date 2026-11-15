@@ -7,6 +7,11 @@ internal object AuthValidation {
     }
     fun passwordLength(value: String): Int = value.codePointCount(0, value.length)
     fun password(value: String): Boolean = passwordLength(value) in 12..128
+    fun registrationReady(email: String, name: String, password: String, confirm: String, adult: Boolean): Boolean =
+        email.isNotBlank() && name.isNotBlank() && password.isNotEmpty() && confirm.isNotEmpty() && adult
+    fun registrationError(email: String, name: String, password: String, confirm: String, adult: Boolean): String? =
+        if (password != confirm) "Пароли не совпадают"
+        else registrationIssues(email, name, password, confirm, adult).firstOrNull()
     fun registrationIssues(email: String, name: String, password: String, confirm: String, adult: Boolean): List<String> = buildList {
         if (!email(email)) add("Введите корректный e-mail")
         if (name.isBlank() || name.length > 80) add("Укажите отображаемое имя")

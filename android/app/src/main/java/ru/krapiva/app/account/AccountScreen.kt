@@ -221,6 +221,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     var email by rememberSaveable { mutableStateOf(state.authEmail) }; var password by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }; var name by rememberSaveable { mutableStateOf("") }
     var token by remember { mutableStateOf("") }; var adult by rememberSaveable { mutableStateOf(false) }
+    var registrationError by remember { mutableStateOf<String?>(null) }
     val screen = state.screen; val enabled = !state.busy
     Title(when(screen) { AccountScreen.LOGIN -> "Вход"; AccountScreen.REGISTER -> "Новый аккаунт"; AccountScreen.VERIFY -> "Подтверждение почты"; AccountScreen.RESET -> "Новый пароль"; else -> "Восстановление доступа" })
     if (BuildConfig.API_ENVIRONMENT != "production" && screen !in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER)) {
@@ -237,7 +238,6 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = EmailVerificationCode.input(it) }
     }
     if (screen == AccountScreen.RESET) Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = EmailVerificationCode.input(it) }
-    val registrationIssues = AuthValidation.registrationIssues(email, name, password, confirm, adult)
     if (screen == AccountScreen.REGISTER) Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
         .toggleable(adult, enabled = enabled, role = Role.Checkbox) { adult = it }, verticalAlignment = Alignment.CenterVertically) {
         Checkbox(adult, null, enabled = enabled); Text("Подтверждаю, что мне исполнилось 18 лет", Modifier.weight(1f))
@@ -249,10 +249,16 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
             Link("Подтвердить почту", enabled && email.isNotBlank()) { model.navigate(AccountScreen.VERIFY, email.trim()) }
         }
         AccountScreen.REGISTER -> {
-            if (registrationIssues.isNotEmpty()) Text(registrationIssues.joinToString("\n"),
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("registration-requirements"))
-            Action("Зарегистрироваться", enabled && registrationIssues.isEmpty()) {
-                model.register(email, password, name, adult)
+            registrationError?.let { Text(it, color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }) }
+            Button(onClick = {
+                registrationError = AuthValidation.registrationError(email, name, password, confirm, adult)
+                if (registrationError == null) model.register(email, password, name, adult)
+            }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                enabled = enabled && AuthValidation.registrationReady(email, name, password, confirm, adult),
+                colors = ButtonDefaults.buttonColors(containerColor = ClubTokens.Amber, contentColor = ClubTokens.OnAmber,
+                    disabledContainerColor = Color(0xFF676B69), disabledContentColor = Color.White)) {
+                Text("Зарегистрироваться")
             }
         }
         AccountScreen.VERIFY -> {
