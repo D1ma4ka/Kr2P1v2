@@ -49,8 +49,15 @@ import ru.krapiva.app.designsystem.BeerHero
 import ru.krapiva.app.designsystem.*
 
 @Composable
-fun AccountApp(model: AccountViewModel = viewModel()) {
+fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<String,String>? = null, consumeReminder: () -> Unit = {}) {
     val state by model.state.collectAsStateWithLifecycle()
+    LaunchedEffect(reminderRequest,state.profile,state.busy) {
+        val request=reminderRequest
+        if(request!=null && state.profile!=null && !state.busy) {
+            if(request.first==state.profile!!.optString("userId") && request.second in setOf("DRAFTS","COLLECTIONS"))model.openDiary(request.second)
+            consumeReminder()
+        }
+    }
     val savedScreens = rememberSaveableStateHolder()
     val scroll = rememberScrollState()
     LaunchedEffect(state.screen) { scroll.scrollTo(0) }

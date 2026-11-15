@@ -85,6 +85,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
             if(state.offline) Text("Нет связи · сохранённая копия до 24 часов. Данные могли измениться.",modifier = Modifier.padding(horizontal = 16.dp),color = KraPivaColors.Muted)
             Box(Modifier.weight(1f)) {
                 when(state.page) {
+                    DiaryPage.NOTIFICATIONS -> ru.krapiva.app.offline.NotificationsScreen(api) { model.open(DiaryPage.valueOf(it)) }
                     DiaryPage.YEAR -> ru.krapiva.app.offline.YearScreen(api)
                     DiaryPage.DISCOVERY -> ru.krapiva.app.offline.DiscoveryScreen(api,onPosition,onCatalog)
                     DiaryPage.TASTE -> ru.krapiva.app.offline.TasteScreen(api)
@@ -115,7 +116,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
             state.statistics?.let { stats -> item { Summary(stats);Text("Получено значков: ${stats.getInt("earnedBadges")}",color = KraPivaColors.Muted) } }
             item {
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for((page,label) in listOf(DiaryPage.DIARY to "Мои записи",DiaryPage.UNIQUE to "Сорта",DiaryPage.WISHLIST to "Хочу попробовать",DiaryPage.STATISTICS to "Статистика",DiaryPage.DRAFTS to "Черновики",DiaryPage.COLLECTIONS to "Подборки",DiaryPage.TASTE to "Мой вкус",DiaryPage.DISCOVERY to "Открытия",DiaryPage.YEAR to "Мой год"))
+                    for((page,label) in listOf(DiaryPage.DIARY to "Мои записи",DiaryPage.UNIQUE to "Сорта",DiaryPage.WISHLIST to "Хочу попробовать",DiaryPage.STATISTICS to "Статистика",DiaryPage.DRAFTS to "Черновики",DiaryPage.COLLECTIONS to "Подборки",DiaryPage.TASTE to "Мой вкус",DiaryPage.DISCOVERY to "Открытия",DiaryPage.YEAR to "Мой год",DiaryPage.NOTIFICATIONS to "Уведомления"))
                         FilterChip(false,{model.open(page)},label = {Text(label)},enabled = !state.busy)
                 }
                 TextButton({onSocial(null)},enabled = !state.busy) {Text("Друзья и лента")}
