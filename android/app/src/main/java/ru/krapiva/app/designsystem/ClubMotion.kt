@@ -11,12 +11,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import kotlin.math.sin
 
-/** Shared glass for welcome/auth/loading; celebration backdrops keep their finite reveal. */
+/** Loading glass; celebration backdrops keep their finite reveal. Auth forms use the logo. */
 @Composable fun ClubBeer(
     modifier: Modifier = Modifier, backdrop: Boolean = false, still: Boolean = false,
     previewAngle: Float? = null, forceNoSensor: Boolean = false,
+    reveal: Boolean = true,
 ) {
-    val motion = rememberLiquidAnimation(still, previewAngle, forceNoSensor, reveal = true, continuous = !backdrop)
+    val motion = rememberLiquidAnimation(still, previewAngle, forceNoSensor, reveal = reveal, continuous = !backdrop)
     val cream = Color(0xFFFFEFCE)
     Canvas(modifier.semantics { contentDescription = if(backdrop) "Янтарное пиво, пена и пузырьки" else "Фирменный бокал KraPiva" }) {
         val w=size.width;val h=size.height

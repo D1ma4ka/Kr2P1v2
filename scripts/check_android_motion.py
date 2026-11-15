@@ -16,32 +16,26 @@ def adb(*args):
     return subprocess.check_output(["adb", *args], timeout=30)
 
 
-adb("shell", "am", "start", "-W", "-n", "ru.krapiva.app.debug/ru.krapiva.app.MainActivity")
+# Run the real loading composable in an instrumentation harness. Production loading
+# ends as soon as restoration completes and must never be delayed for screenshots.
+log = (OUT / "loading-instrumentation.log").open("wb")
+instrumentation = subprocess.Popen(["adb", "shell", "am", "instrument", "-w", "-e", "class",
+    "ru.krapiva.app.designsystem.LoadingMotionTest",
+    "ru.krapiva.app.debug.test/androidx.test.runner.AndroidJUnitRunner"], stdout=log, stderr=subprocess.STDOUT)
 deadline = time.monotonic() + 30
 rectangle = None
-registration_opened = False
 while time.monotonic() < deadline:
     adb("shell", "uiautomator", "dump", "/sdcard/p3-ui.xml")
     xml = adb("shell", "cat", "/sdcard/p3-ui.xml")
     nodes = list(ET.fromstring(xml).iter("node"))
-    # P6.1 finite Craft Club welcome replaces the old welcome hero; sensor hero remains
-    # in registration. Navigate through the actual visible CTA, then rediscover its bounds.
-    if not registration_opened:
-        button = next((n for n in nodes if n.get("text") == "Создать аккаунт" and n.get("enabled") == "true"), None)
-        if button is not None:
-            bounds = list(map(int, re.findall(r"\d+", button.get("bounds", ""))))
-            if len(bounds) == 4 and bounds[2] > bounds[0] and bounds[3] > bounds[1]:
-                adb("shell", "input", "tap", str((bounds[0]+bounds[2])//2), str((bounds[1]+bounds[3])//2))
-                registration_opened = True
-                continue
     for node in nodes:
-        if node.get("content-desc") == "Фирменный бокал KraPiva с пеной и хмелем":
+        if node.get("content-desc") == "Фирменный бокал KraPiva":
             rectangle = tuple(map(int, re.findall(r"\d+", node.get("bounds", ""))))
             break
     if rectangle:
         break
     time.sleep(1)
-assert rectangle and len(rectangle) == 4, "Visible registration sensor hero not found"
+assert rectangle and len(rectangle) == 4, "Visible loading sensor hero not found"
 
 
 def capture(name, x):
@@ -56,9 +50,9 @@ def capture(name, x):
         def surface(fraction):
             values = []
             for column in range(int(width * (fraction - .015)), int(width * (fraction + .015)) + 1):
-                for row in range(int(height * .25), int(height * .65)):
+                for row in range(int(height * .08), int(height * .55)):
                     red, green, blue = crop.getpixel((column, row))
-                    if abs(red - 245) < 25 and abs(green - 166) < 25 and abs(blue - 35) < 25:
+                    if red > 185 and 85 < green < 210 and blue < 120:
                         values.append(row)
                         break
             assert values, "Amber liquid surface not found"
@@ -72,3 +66,7 @@ right, _ = capture("right", 4)
 adb("emu", "sensor", "set", "acceleration", "0:9.81:0")
 assert left * right < 0 and abs(left - right) >= max(2, width * .02), (left, right)
 print(f"PASS actual accelerometer -> liquid/foam surface: left={left}px, right={right}px; hero={width}px")
+instrumentation.wait(timeout=45)
+log.close()
+result = (OUT / "loading-instrumentation.log").read_text()
+assert instrumentation.returncode == 0 and "OK (1 test)" in result, "Loading instrumentation failed; inspect its log"
