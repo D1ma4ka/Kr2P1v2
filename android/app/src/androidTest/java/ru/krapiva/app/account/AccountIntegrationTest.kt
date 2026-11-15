@@ -117,7 +117,7 @@ class AccountIntegrationTest {
             .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { click -> assertTrue(click()) }
         try { compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() } }
         catch(error: Throwable) { throw AssertionError("P3_VERIFY_STATE=${model.state.value.screen},busy=${model.state.value.busy},error=${model.state.value.error}",error) }
-        compose.onNodeWithText("E-mail").performTextReplacement(email)
+        compose.onNodeWithText("Почта или никнейм").performTextReplacement(email)
         compose.onNodeWithText("Пароль · От 12 символов").performTextInput(password)
         compose.onNodeWithText("Войти").performScrollTo().performClick()
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
@@ -225,7 +225,7 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Повторите пароль").performTextInput("New synthetic Android password!")
         compose.onNodeWithText("Сменить пароль").performScrollTo().performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("E-mail").performTextReplacement(email)
+        compose.onNodeWithText("Почта или никнейм").performTextReplacement(email)
         compose.onNodeWithText("Пароль · От 12 символов").performTextInput("New synthetic Android password!")
         compose.onNodeWithText("Войти").performScrollTo().performClick()
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }

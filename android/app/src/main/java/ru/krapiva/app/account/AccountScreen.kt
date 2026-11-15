@@ -232,7 +232,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         Text("Среда: ${BuildConfig.API_ENVIRONMENT} · ${BuildConfig.API_BASE_URL}", style = MaterialTheme.typography.bodySmall)
         if (BuildConfig.API_ENVIRONMENT == "development") Text("Локальная почта: name@example.invalid. Письма доступны в Mailpit на компьютере с сервером; во внешний ящик они не доставляются.", style = MaterialTheme.typography.bodySmall)
     }
-    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.RESET)) Input("E-mail", email, enabled, keyboard = KeyboardType.Email, singleLine = false) { email = it.replace("\n", "").replace("\r", "").take(254) }
+    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.RESET)) Input(if (screen == AccountScreen.LOGIN) "Почта или никнейм" else "E-mail", email, enabled, keyboard = if (screen == AccountScreen.LOGIN) KeyboardType.Text else KeyboardType.Email, singleLine = false) { email = it.replace("\n", "").replace("\r", "").take(254) }
     if (screen == AccountScreen.REGISTER) {
         Input("Никнейм", name, enabled) { name = it }
         Link("Проверить никнейм", enabled && UserHandle.valid(name)) { model.checkHandle(name) }
@@ -253,7 +253,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         AccountScreen.LOGIN -> {
             Action("Войти", enabled && email.isNotBlank() && password.isNotEmpty()) { model.login(email, password); password = "" }
             Link("Забыли пароль?", enabled) { model.navigate(AccountScreen.FORGOT) }
-            Link("Подтвердить почту", enabled && email.isNotBlank()) { model.navigate(AccountScreen.VERIFY, email.trim()) }
+            Link("Подтвердить почту", enabled && AuthValidation.email(email)) { model.navigate(AccountScreen.VERIFY, email.trim()) }
         }
         AccountScreen.REGISTER -> {
             registrationError?.let { Text(it, color = MaterialTheme.colorScheme.error,

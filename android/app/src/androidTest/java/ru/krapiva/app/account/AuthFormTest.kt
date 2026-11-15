@@ -96,7 +96,7 @@ class AuthFormTest {
         compose.onNodeWithText("Подтвердить").performScrollTo()
             .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { assertTrue(it()) }
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.LOGIN && !model.state.value.busy }
-        compose.onNodeWithText("E-mail").assertTextContains(email)
+        compose.onNodeWithText("Почта или никнейм").assertTextContains(email)
         compose.onNodeWithText("Пароль · От 12 символов").performScrollTo().performTextInput(password)
         compose.runOnIdle { keyboard?.hide() }
         compose.onNodeWithText("Войти").performScrollTo().performClick()

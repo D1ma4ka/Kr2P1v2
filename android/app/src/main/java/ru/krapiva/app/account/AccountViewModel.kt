@@ -131,7 +131,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         api.cache(profile); mutable.value = mutable.value.copy(profile = profile, notice = "Никнейм сохранён")
     }
     fun login(email: String, password: String) = task {
-        val session = api.json("v1/auth/login", "POST", JSONObject().put("email", email.trim()).put("password", password), false)
+        val session = api.json("v1/auth/login", "POST", JSONObject().put("identifier", email.trim()).put("password", password), false)
         catalogOwner.viewModelStore.clear(); api.accept(session); loadProfile(AccountScreen.HOME)
     }
     fun verify(token: String) = task {

@@ -24,8 +24,11 @@ export async function accountRoutes(app:FastifyInstance,pool:pg.Pool,mail:Accoun
   const handle=normalizeHandle(req.params.handle);await accounts.budget(req.ip,handle,'handle-check');
   return {available:!(await pool.query('SELECT 1 FROM users WHERE handle=$1',[handle])).rowCount};
  });
- app.post<{Body:{email:string;password:string}}>('/v1/auth/login',{schema:{body:s.object({email,password:{type:'string',minLength:1,maxLength:128}}),response:{...s.errors,200:pair}}},async req=>{
-  await accounts.budget(req.ip,req.body.email,'login');return accounts.login(req.body.email,req.body.password);
+ app.post<{Body:{email?:string;identifier?:string;password:string}}>('/v1/auth/login',{schema:{body:{
+  ...s.object({email,identifier:{type:'string',minLength:3,maxLength:254,pattern:'^[^\\s]+$'},password:{type:'string',minLength:1,maxLength:128}},['password']),
+  oneOf:[{required:['email']},{required:['identifier']}]},response:{...s.errors,200:pair}}},async req=>{
+  const identity=req.body.identifier??req.body.email!;
+  await accounts.budget(req.ip,identity.replace(/^@/,''),'login');return accounts.login(identity,req.body.password);
  });
  for(const [path,purpose] of [['resend','verify_email'],['forgot-password','reset_password']] as const) {
   app.post<{Body:{email:string}}>(`/v1/auth/${path}`,{schema:{body:s.object({email}),response:{...s.errors,202:accepted}}},async(req,reply)=>{

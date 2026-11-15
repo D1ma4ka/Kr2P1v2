@@ -103,8 +103,10 @@ export class Accounts {
   await client.query("INSERT INTO refresh_tokens(token_hash,user_id,session_id,expires_at) VALUES($1,$2,$3,now()+interval '30 days')",[tokenHash(refreshToken),userId,row.id]);
   return {userId,accessToken,refreshToken,expiresAt:row.expires_at};
  }
- async login(email:string,password:string) {
-  const candidate=(await this.pool.query('SELECT id,password_hash FROM users WHERE email=$1',[email.toLowerCase()])).rows[0];
+ async login(identity:string,password:string) {
+  const normalized=identity.toLowerCase();
+  const byEmail=normalized.includes('@')&&!normalized.startsWith('@');
+  const candidate=(await this.pool.query(`SELECT id,password_hash FROM users WHERE ${byEmail?'email':'handle'}=$1`,[byEmail?normalized:normalized.replace(/^@/,'')])).rows[0];
   if(!await checkPassword(password,candidate?.password_hash??null)) throw invalid();
   return transaction(this.pool,async client=>{
    const user=(await client.query("SELECT * FROM users WHERE id=$1 AND status='active' AND email_verified_at IS NOT NULL FOR UPDATE",[candidate.id])).rows[0];

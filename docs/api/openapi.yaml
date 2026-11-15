@@ -557,13 +557,22 @@ paths:
                   format: email
                   maxLength: 254
                   pattern: ^[^\s]+$
+                identifier:
+                  type: string
+                  minLength: 3
+                  maxLength: 254
+                  pattern: ^[^\s]+$
                 password:
                   type: string
                   minLength: 1
                   maxLength: 128
               required:
-                - email
                 - password
+              oneOf:
+                - required:
+                    - email
+                - required:
+                    - identifier
       responses:
         "200":
           description: Default Response

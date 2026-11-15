@@ -40,6 +40,15 @@ test('P8.3 HTTP/SQL/Mailpit: additive upgrade, legacy identity/session/history, 
   assert.equal((await call('/v1/auth/login',{email:'alpha@example.invalid',password})).status,200);
   const claim=await call('/v1/me/handle',{handle:'Legacy_Fan'},f.a.token,'PUT');assert.equal(claim.status,200);
   const profile=await claim.json() as any;assert.equal(profile.handle,'legacy_fan');assert.equal(profile.userId,f.a.id);assert.equal(profile.displayName,'Synthetic Alpha');
+  for(const identifier of ['alpha@example.invalid','Legacy_Fan','@LEGACY_FAN']) {
+   const login=await call('/v1/auth/login',{identifier,password});assert.equal(login.status,200);
+   assert.equal((await login.json() as any).userId,f.a.id);
+  }
+  for(const identifier of ['alpha@example.invalid','legacy_fan','@legacy_fan','nobody_here']) {
+   const invalid=await call('/v1/auth/login',{identifier,password:'Incorrect password!'});assert.equal(invalid.status,401);
+   assert.equal((await invalid.json() as any).error.code,'INVALID_CREDENTIALS');
+  }
+  assert.equal((await call('/v1/auth/login',{email:'alpha@example.invalid',identifier:'legacy_fan',password})).status,400);
   assert.equal((await call('/v1/me/handle',{handle:'LEGACY_FAN'},f.b.token,'PUT')).status,409);
   assert.equal((await call('/v1/me/handle',{handle:'another_name'},f.a.token,'PUT')).status,409);
   const update:any={version:profile.version,displayName:'Русское имя'};
