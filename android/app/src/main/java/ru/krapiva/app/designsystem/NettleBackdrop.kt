@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 
 /** Static vector decoration behind content. No input/semantics layer or animation work. */
 @Composable
-fun KraPivaBackdrop(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun KraPivaBackdrop(modifier: Modifier = Modifier, authPattern: Boolean = false, content: @Composable () -> Unit) {
     val dark = LocalThemeMode.current == ThemeMode.DARK
     val leaf = remember {
         Path().apply {
@@ -33,10 +33,12 @@ fun KraPivaBackdrop(modifier: Modifier = Modifier, content: @Composable () -> Un
     }
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Box {
-            if (dark) Canvas(Modifier.matchParentSize()) {
+            if (dark || authPattern) Canvas(Modifier.matchParentSize()) {
                 val tile = 164.dp.toPx()
                 val scale = density * .78f
-                val ink = Color(0xFF9CB79E).copy(alpha = .085f)
+                val ink = if (authPattern) {
+                    if (dark) Color(0xFFB0C9A5).copy(alpha = .18f) else Color(0xFF456A16).copy(alpha = .16f)
+                } else Color(0xFF9CB79E).copy(alpha = .085f)
                 clipRect {
                     for (row in -1..(size.height / tile).toInt() + 1) {
                         for (column in -1..(size.width / tile).toInt() + 1) {
