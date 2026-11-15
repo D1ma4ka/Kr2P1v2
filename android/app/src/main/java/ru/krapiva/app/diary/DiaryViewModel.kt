@@ -20,7 +20,7 @@ import java.time.Instant
 
 fun JSONArray.objects(): List<JSONObject> = (0 until length()).map { getJSONObject(it) }
 fun JSONArray.strings(): List<String> = (0 until length()).map { getString(it) }
-enum class DiaryPage { HOME, DIARY, UNIQUE, WISHLIST, STATISTICS, DETAIL, EDITOR, PICK, DRAFTS, COLLECTIONS }
+enum class DiaryPage { HOME, DIARY, UNIQUE, WISHLIST, STATISTICS, DETAIL, EDITOR, PICK, DRAFTS, COLLECTIONS, TASTE }
 data class DiaryFilters(val q: String = "", val styleId: String = "",val breweryId: String = "",val from: String = "",val to: String = "",val ratingMin: String = "",val ratingMax: String = "",val unrated: Boolean = false,val photo: String = "",val venueId: String = "",val venue: String = "",val sort: String = "date_desc") {
     fun query(page: DiaryPage,cursor: String? = null): String {
         val params = linkedMapOf("limit" to "20", "q" to q, "styleId" to styleId,"breweryId" to breweryId)
@@ -67,7 +67,7 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
     fun refresh(more: Boolean = false) = task { load(more) }
     private suspend fun load(more: Boolean = false) {
         val old = mutable.value
-        if(old.page in setOf(DiaryPage.COLLECTIONS)) return
+        if(old.page in setOf(DiaryPage.COLLECTIONS,DiaryPage.TASTE)) return
         if(old.page == DiaryPage.DRAFTS) { mutable.value = old.copy(items = api.drafts().objects()); return }
         val path = when(old.page) {
             DiaryPage.HOME -> "v1/me/home"
@@ -77,7 +77,7 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
             DiaryPage.STATISTICS -> "v1/me/statistics"
             DiaryPage.DETAIL -> "v1/checkins/${old.data!!.getString("id")}"
             DiaryPage.PICK -> "v1/positions?q=${Uri.encode(old.pickerQuery)}&limit=20" + (if(more)old.next?.let { "&cursor=${Uri.encode(it)}" } ?: "" else "")
-            DiaryPage.EDITOR, DiaryPage.DRAFTS, DiaryPage.COLLECTIONS -> return
+            DiaryPage.EDITOR, DiaryPage.DRAFTS, DiaryPage.COLLECTIONS, DiaryPage.TASTE -> return
         }
         val (data,offline) = api.catalogGet(path)
         when(old.page) {
