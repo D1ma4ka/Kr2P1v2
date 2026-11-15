@@ -55,13 +55,15 @@ class AuthFormTest {
         }
         compose.waitUntil(15_000) { model.state.value.screen == AccountScreen.WELCOME }
         compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
+        compose.onNodeWithText("Зарегистрироваться").assertIsNotEnabled()
         compose.onNodeWithText("E-mail").performTextReplacement(email)
         compose.onNodeWithText("Отображаемое имя").performTextInput("Synthetic OTP UI")
         compose.onNodeWithText("Пароль · От 12 символов").performScrollTo().performTextInput(password)
         compose.onNodeWithText("Повторите пароль").performScrollTo().performTextInput(password)
         compose.runOnIdle { keyboard?.hide() }
-        compose.onNode(isToggleable()).performScrollTo().performClick()
-        compose.onNodeWithText("Зарегистрироваться").performScrollTo().performClick()
+        compose.onNodeWithText("Зарегистрироваться").assertIsNotEnabled()
+        compose.onNodeWithText("Подтверждаю, что мне исполнилось 18 лет").performScrollTo().performClick()
+        compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsEnabled().performClick()
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.VERIFY && !model.state.value.busy }
         compose.onNodeWithText("E-mail").assertTextContains(email)
         val mailbox = "http://$host:58025"

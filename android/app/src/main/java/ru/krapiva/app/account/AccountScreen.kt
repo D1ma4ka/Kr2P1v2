@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -33,6 +34,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -201,18 +203,20 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
 }
 @Composable private fun AuthForm(state: AccountState, model: AccountViewModel) {
     var email by rememberSaveable { mutableStateOf(state.authEmail) }; var password by remember { mutableStateOf("") }
-    var confirm by remember { mutableStateOf("") }; var name by remember { mutableStateOf("") }
-    var token by remember { mutableStateOf("") }; var adult by remember { mutableStateOf(false) }
+    var confirm by remember { mutableStateOf("") }; var name by rememberSaveable { mutableStateOf("") }
+    var token by remember { mutableStateOf("") }; var adult by rememberSaveable { mutableStateOf(false) }
     val screen = state.screen; val enabled = !state.busy
     Title(when(screen) { AccountScreen.LOGIN -> "Вход"; AccountScreen.REGISTER -> "Новый аккаунт"; AccountScreen.VERIFY -> "Подтверждение почты"; AccountScreen.RESET -> "Новый пароль"; else -> "Восстановление доступа" })
     if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.VERIFY)) Input("E-mail", email, enabled, keyboard = KeyboardType.Email, singleLine = false) { email = it.replace("\n", "").replace("\r", "").take(254) }
     if (screen == AccountScreen.REGISTER) Input("Отображаемое имя", name, enabled) { name = it.take(80) }
-    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.RESET)) Input("Пароль · От 12 символов", password, enabled, password = true) { password = it.take(128) }
-    if (screen in setOf(AccountScreen.REGISTER, AccountScreen.RESET)) Input("Повторите пароль", confirm, enabled, password = true) { confirm = it.take(128) }
+    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.RESET)) Input("Пароль · От 12 символов", password, enabled, password = true) { password = it }
+    if (screen in setOf(AccountScreen.REGISTER, AccountScreen.RESET)) Input("Повторите пароль", confirm, enabled, password = true) { confirm = it }
     if (screen == AccountScreen.VERIFY) Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = EmailVerificationCode.input(it) }
     if (screen == AccountScreen.RESET) Input("Одноразовый код из письма", token, enabled) { token = it.trim().take(43) }
-    if (screen == AccountScreen.REGISTER) Row(verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(adult, { adult = it }, enabled = enabled); Text("Подтверждаю, что мне исполнилось 18 лет", Modifier.weight(1f))
+    val registrationIssues = AuthValidation.registrationIssues(email, name, password, confirm, adult)
+    if (screen == AccountScreen.REGISTER) Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
+        .toggleable(adult, enabled = enabled, role = Role.Checkbox) { adult = it }, verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(adult, null, enabled = enabled); Text("Подтверждаю, что мне исполнилось 18 лет", Modifier.weight(1f))
     }
     when(screen) {
         AccountScreen.LOGIN -> {
@@ -220,8 +224,12 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
             Link("Забыли пароль?", enabled) { model.navigate(AccountScreen.FORGOT) }
             Link("Подтвердить почту", enabled) { model.navigate(AccountScreen.VERIFY) }
         }
-        AccountScreen.REGISTER -> Action("Зарегистрироваться", enabled && adult && email.isNotBlank() && name.isNotBlank() && password.length >= 12 && confirm == password) {
-            model.register(email, password, name, adult); password = ""; confirm = ""
+        AccountScreen.REGISTER -> {
+            if (registrationIssues.isNotEmpty()) Text(registrationIssues.joinToString("\n"),
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("registration-requirements"))
+            Action("Зарегистрироваться", enabled && registrationIssues.isEmpty()) {
+                model.register(email, password, name, adult)
+            }
         }
         AccountScreen.VERIFY -> {
             Action("Подтвердить", enabled && EmailVerificationCode.isComplete(token) && email.isNotBlank()) { model.verifyCode(email,token); token = "" }
