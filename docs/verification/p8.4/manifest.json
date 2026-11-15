@@ -1,0 +1,19 @@
+{
+  "apk": "/workspace/Kr2P1v2/work/p84/KraPiva-P8.4-debug.apk",
+  "sizeBytes": 63900762,
+  "sha256": "bc92d4c1c7a908b0776457d5e9513d3486ec6b24c9d26468ce618eb5a149d892",
+  "versionName": "0.1.0-p8.4",
+  "applicationId": "ru.krapiva.app.debug",
+  "minSdk": 26,
+  "targetSdk": 35,
+  "jvmTests": 27,
+  "jvmFailures": 0,
+  "jvmErrors": 0,
+  "assembleDebug": "PASS",
+  "lintDebug": "PASS",
+  "instrumentedCompiled": "PASS",
+  "instrumentedExecuted": "NOT RUN (no device/KVM)",
+  "manualVisual": "PENDING",
+  "upgradeOverInstall": "PENDING; previous signing key unavailable",
+  "certificateSha256": "5c32687c6766016efd2302fca993416901ad7a841133dbc45f04b101b14f149c"
+}

@@ -1,8 +1,15 @@
-# P8.4 — начат аудит и план расширения
+# P8.4 — кандидат F1–F10 сохранён, ручная приёмка PENDING
 
 Рабочая ветка `codex/krapiva-p8.4-offline`, база P8.3 `da92ee5`.
-[Матрица и ход работ](stages/P8.4.md), [будущая синхронизация](P8.4_FUTURE_SYNC.md).
-F1–F10 ещё не завершены. Исторические результаты ниже сохранены.
+Каждая функция сохранена отдельным commit/push с проверкой remote SHA; есть
+промежуточные checkpoints. Без force-push/main merge/изменений backend.
+Android assembleDebug/lintDebug **PASS**, 27 JVM tests **PASS**,
+assembleDebugAndroidTest **PASS**. Instrumented executed/визуальная приёмка/
+update-over-install **PENDING**: нет устройства/KVM и прежнего debug signing key.
+Новые локальные данные AES-GCM + owner scope; SQLite v3→v4 additive.
+[Полный отчёт и матрица](stages/P8.4.md), [ручная приёмка и установка](P8.4_ACCEPTANCE.md),
+[будущая синхронизация](P8.4_FUTURE_SYNC.md), [метаданные APK](verification/p8.4/manifest.json).
+Исторические результаты ниже сохранены. П9 не начинался.
 
 ---
 

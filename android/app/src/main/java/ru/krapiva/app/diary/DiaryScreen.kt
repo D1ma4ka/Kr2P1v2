@@ -117,7 +117,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
             item {
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for((page,label) in listOf(DiaryPage.DIARY to "Мои записи",DiaryPage.UNIQUE to "Сорта",DiaryPage.WISHLIST to "Хочу попробовать",DiaryPage.STATISTICS to "Статистика",DiaryPage.DRAFTS to "Черновики",DiaryPage.COLLECTIONS to "Подборки",DiaryPage.TASTE to "Мой вкус",DiaryPage.DISCOVERY to "Открытия",DiaryPage.YEAR to "Мой год",DiaryPage.NOTIFICATIONS to "Уведомления"))
-                        FilterChip(false,{model.open(page)},label = {Text(label)},enabled = !state.busy)
+                        FilterChip(false,{model.open(page)},label = {Text(label)},enabled = !state.busy || page in setOf(DiaryPage.COLLECTIONS,DiaryPage.TASTE,DiaryPage.DISCOVERY,DiaryPage.YEAR,DiaryPage.NOTIFICATIONS,DiaryPage.DRAFTS))
                 }
                 TextButton({onSocial(null)},enabled = !state.busy) {Text("Друзья и лента")}
                 Text("Последние чекины",style = MaterialTheme.typography.titleLarge)

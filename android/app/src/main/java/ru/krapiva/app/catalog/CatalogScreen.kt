@@ -75,6 +75,10 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: Accou
     val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     fun search() { keyboard?.hide();focus.clearFocus();model.refresh() }
+    val recentLabels by produceState<Map<String,String>>(emptyMap(),state.recent,state.items) {
+        try { value=ru.krapiva.app.offline.availablePositionLabels(api) }
+        catch(e: Exception) { if(e is kotlinx.coroutines.CancellationException)throw e;value=emptyMap() }
+    }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -90,7 +94,7 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: Accou
                     }
                     if(state.recent.isNotEmpty()) {
                         Text("Недавно просмотренные · проверка доступности при открытии",color=KraPivaColors.Muted)
-                        state.recent.take(5).forEachIndexed { index,id -> TextButton({model.detail(id)},enabled=!state.busy){Text("Открыть недавнюю позицию ${index+1}")} }
+                        state.recent.take(5).forEachIndexed { index,id -> TextButton({model.detail(id)},enabled=!state.busy){Text(recentLabels[id] ?: "Недавняя позиция ${index+1} · проверить доступность")} }
                     }
                     if(state.queries.isNotEmpty()||state.recent.isNotEmpty())TextButton(model::clearHistory,enabled=!state.busy){Text("Очистить историю поиска и просмотров")}
                     StyleChips(state,model)

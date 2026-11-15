@@ -7,11 +7,12 @@ import ru.krapiva.app.diary.objects
 import ru.krapiva.app.diary.strings
 import java.time.Instant
 
-data class AvailableData(val checkins: List<PersonalCheckin>, val positions: List<JSONObject>, val wishlist: Set<String>)
+data class AvailableData(val checkins: List<PersonalCheckin>, val positions: List<JSONObject>, val wishlist: Set<String>, val confirmedBadges: List<Pair<String,Instant>> = emptyList())
 interface AvailableCardsSource { suspend fun snapshot(): AvailableData }
 class CachedPersonalSource(private val api: AccountApi): AvailableCardsSource {
     override suspend fun snapshot(): AvailableData {
         val owner=api.ownerId() ?: return AvailableData(emptyList(),emptyList(),emptySet())
+        val badges=mutableListOf<Pair<String,Instant>>()
         val records=mutableListOf<PersonalCheckin>();val cards=linkedMapOf<String,JSONObject>();val wishlist=mutableSetOf<String>()
         fun record(row: JSONObject) {
             if(row.text("userId") != owner || row.text("positionId") == null || row.text("id") == null) return
@@ -24,6 +25,10 @@ class CachedPersonalSource(private val api: AccountApi): AvailableCardsSource {
         }
         api.availableCache().forEach { (path,data) ->
             when {
+                path=="v1/me/badges" -> data.optJSONArray("items")?.objects()?.forEach { row ->
+                    val earned=row.text("earnedAt")?.let { runCatching{Instant.parse(it)}.getOrNull() }
+                    if(earned!=null)row.text("title")?.let { badges.add(it to earned) }
+                }
                 path.startsWith("v1/checkins?") -> data.optJSONArray("items")?.objects()?.forEach(::record)
                 path.startsWith("v1/checkins/") -> record(data)
                 path=="v1/me/home" -> data.optJSONObject("recent")?.optJSONArray("items")?.objects()?.forEach(::record)
@@ -33,6 +38,6 @@ class CachedPersonalSource(private val api: AccountApi): AvailableCardsSource {
             }
         }
         check(api.ownerId()==owner) { "Аккаунт изменился" }
-        return AvailableData(PersonalAnalytics.current(records),cards.values.toList(),wishlist)
+        return AvailableData(PersonalAnalytics.current(records),cards.values.toList(),wishlist,badges.distinct())
     }
 }

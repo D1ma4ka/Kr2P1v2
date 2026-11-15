@@ -18,10 +18,10 @@ object ShareImages {
         canvas.drawColor(Color.rgb(16,19,21))
         val accent=Paint(Paint.ANTI_ALIAS_FLAG).apply{color=Color.rgb(243,175,69)}
         canvas.drawRoundRect(36f,36f,1044f,1404f,32f,32f,Paint().apply{color=Color.rgb(29,34,38)})
-        canvas.drawRect(72f,190f,1008f,196f,accent)
+        canvas.drawRect(72f,270f,1008f,276f,accent)
         val logo=BitmapFactory.decodeResource(context.resources,ru.krapiva.app.R.drawable.krapiva_logo)
-        if(logo!=null){canvas.drawBitmap(logo,null,RectF(72f,70f,1008f,70f+936f*logo.height/logo.width),Paint(Paint.ANTI_ALIAS_FLAG));logo.recycle()}
-        var y=230f
+        if(logo!=null){canvas.drawBitmap(logo,null,RectF(72f,60f,772f,60f+700f*logo.height/logo.width),Paint(Paint.ANTI_ALIAS_FLAG));logo.recycle()}
+        var y=310f
         fun text(value: String,size:Float,maxLines:Int,color:Int=Color.rgb(244,238,228)) {
             val paint=TextPaint(Paint.ANTI_ALIAS_FLAG).apply{this.color=color;textSize=size;typeface=Typeface.create("sans-serif",Typeface.NORMAL)}
             val layout=StaticLayout.Builder.obtain(value,0,value.length,paint,936).setAlignment(Layout.Alignment.ALIGN_NORMAL)
@@ -35,7 +35,7 @@ object ShareImages {
             val left=(photo.width-sourceW)/2;val top=(photo.height-sourceH)/2
             canvas.drawBitmap(photo,Rect(left,top,left+sourceW,top+sourceH),RectF(72f,y,1008f,y+height),Paint(Paint.ANTI_ALIAS_FLAG));y+=height+24f
         }
-        lines.take(8).forEach { if(y<1260)text(it,34f,if(photo==null)2 else 1) }
+        lines.take(8).forEach { if(y<1220)text(it,34f,if(photo==null && y<1160)2 else 1) }
         y=1320f;text("KraPiva · личная коллекция",26f,1,Color.rgb(180,180,175))
         return result
     }

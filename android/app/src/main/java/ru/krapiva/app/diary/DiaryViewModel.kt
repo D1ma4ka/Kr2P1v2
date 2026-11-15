@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,14 +35,17 @@ data class DiaryState(val page: DiaryPage = DiaryPage.HOME,val items: List<JSONO
 class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> String,private val expired: () -> Unit): ViewModel() {
     private val mutable = MutableStateFlow(DiaryState())
     val state = mutable.asStateFlow()
+    private var requestGeneration = 0
+    private var requestJob: Job? = null
     private var lastRequest = -1
     var editorSnapshot: JSONObject? = null
     private val draftMutex = Mutex()
     private val uploads = mutableMapOf<String,String>()
     private fun task(block: suspend () -> Unit) {
         if (mutable.value.busy) return
+        val generation=++requestGeneration
         mutable.value = mutable.value.copy(busy = true,error = null,notice = null)
-        viewModelScope.launch { try { block() } catch(e: Exception) {
+        requestJob = viewModelScope.launch { try { block() } catch(e: Exception) {
             if (e is CancellationException) throw e
             if (e is ApiFailure && e.status == 401) expired()
             mutable.value = mutable.value.copy(error = when(e) {
@@ -51,7 +55,7 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
                 is IllegalArgumentException -> e.message ?: "Проверьте поля"
                 else -> "Не удалось выполнить действие. Повторите попытку."
             })
-        } finally { mutable.value = mutable.value.copy(busy = false) } }
+        } finally { if(generation==requestGeneration)mutable.value = mutable.value.copy(busy = false) } }
     }
     fun entry(token: Int,page: String,position: JSONObject?,venue: JSONObject?=null) {
         if(token == lastRequest) return
@@ -61,8 +65,12 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
     fun filters(value: DiaryFilters) { if(!mutable.value.busy) mutable.value = mutable.value.copy(filters = value) }
     fun pickerQuery(value: String) { mutable.value = mutable.value.copy(pickerQuery = value.take(120)) }
     fun open(page: DiaryPage,filters: DiaryFilters = DiaryFilters()) {
-        if(mutable.value.busy) return
-        mutable.value = DiaryState(page = page,filters = filters); refresh()
+        val local = page in setOf(DiaryPage.COLLECTIONS,DiaryPage.TASTE,DiaryPage.DISCOVERY,DiaryPage.YEAR,DiaryPage.NOTIFICATIONS,DiaryPage.DRAFTS)
+        if(mutable.value.busy) {
+            if(local && mutable.value.page == DiaryPage.HOME) {requestGeneration++;requestJob?.cancel()} else return
+        }
+        mutable.value = DiaryState(page = page,filters = filters)
+        if(!local || page==DiaryPage.DRAFTS)refresh()
     }
     fun refresh(more: Boolean = false) = task { load(more) }
     private suspend fun load(more: Boolean = false) {
@@ -118,10 +126,18 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
         persistDraft(data); mutable.value = mutable.value.copy(notice = "Черновик сохранён на устройстве · не отправлено")
     }
     private suspend fun persistDraft(data: JSONObject) = draftMutex.withLock { api.saveDraft(data) }
-    fun leaveEditor(action: () -> Unit) = task {
-        editorSnapshot?.let { persistDraft(JSONObject(it.toString()).put("status","saved_offline")) }
-        mutable.value = mutable.value.copy(busy = false)
-        action()
+    fun leaveEditor(action: () -> Unit) {
+        if(mutable.value.busy)return
+        mutable.value=mutable.value.copy(busy=true,error=null)
+        viewModelScope.launch {
+            try { editorSnapshot?.let { persistDraft(JSONObject(it.toString()).put("status","saved_offline")) } }
+            catch(e: Exception) {
+                if(e is CancellationException)throw e
+                mutable.value=mutable.value.copy(error="Не удалось сохранить черновик. Освободите место и повторите попытку.")
+                return@launch
+            } finally { mutable.value=mutable.value.copy(busy=false) }
+            action()
+        }
     }
     /** Persist on each edit; leaving waits for the final snapshot and reports disk failures. */
     fun autosaveDraft(data: JSONObject) {

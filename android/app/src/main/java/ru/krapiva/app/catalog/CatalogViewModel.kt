@@ -83,6 +83,7 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
     fun resetFilters() { filters(CatalogFilters()); refresh() }
     fun refresh(more: Boolean = false) = task {
         val old = mutable.value
+        if(!more && old.page in setOf(CatalogPage.POSITIONS,CatalogPage.BREWERIES,CatalogPage.STYLES,CatalogPage.PROPOSALS))mutable.value=mutable.value.copy(items=emptyList(),next=null)
         if(old.page == CatalogPage.POSITIONS && !more) {
             repository.history.search(old.filters)
             mutable.value = mutable.value.copy(queries=recentValues(old.queries,old.filters.q))

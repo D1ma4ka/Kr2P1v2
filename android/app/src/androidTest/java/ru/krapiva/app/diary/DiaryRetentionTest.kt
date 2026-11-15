@@ -62,6 +62,6 @@ class DiaryRetentionTest {
         compose.runOnIdle { root.logout() }
         compose.waitUntil(20_000) { root.state.value.profile == null && !root.state.value.busy }
         assertTrue(diary.viewModelScope.coroutineContext[Job]!!.isCancelled)
-        assertEquals(0,store.drafts(user).length());assertNull(store.session());store.close()
+        assertEquals(1,store.drafts(user).length());assertNull(store.session());store.close()
     }
 }

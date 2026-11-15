@@ -203,13 +203,13 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         // Logout is a local security action even when the network is down.
         clearSession()
         mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = if (serverFailure == null) {
-            "Вы вышли из аккаунта. Неопубликованные черновики сохранены на этом устройстве."
+            "Вы вышли из аккаунта. Черновики, подборки и другие локальные данные сохранены для вашего аккаунта на этом устройстве."
         } else {
             "Вы вышли из аккаунта на этом устройстве. Черновики сохранены; сервер обновится при следующем входе."
         })
     }
     fun clearLocally() = task { clearSession(false); mutable.value = AccountState(screen = AccountScreen.LOGIN,
-        notice = "Данные удалены с телефона, включая локальные черновики. Серверная сессия действует до истечения срока или сброса пароля.") }
+        notice = "Данные удалены с телефона, включая черновики, подборки, историю поиска и напоминания. Серверная сессия действует до истечения срока или сброса пароля.") }
     fun deleteAccount() = task {
         val response = api.json("v1/me/deletion-request", "POST", JSONObject())
         clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = response.getString("message"))

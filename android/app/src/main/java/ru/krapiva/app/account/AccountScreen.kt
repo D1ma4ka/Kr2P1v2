@@ -156,7 +156,7 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
                     when (state.screen) {
                         AccountScreen.RESTORING -> { Title(if (state.error != null && !state.busy) "Не удалось восстановить сессию" else "Восстанавливаем сессию")
                             if (!state.busy) { Action("Повторить", true, model::restore)
-                                Link("Очистить локальную сессию", true, model::clearLocally) } }
+                                ClearLocalAction("Очистить локальную сессию",true,model::clearLocally) } }
                         AccountScreen.WELCOME -> Welcome(state, model)
                         AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.VERIFY,
                         AccountScreen.FORGOT, AccountScreen.RESET -> AuthForm(state, model)
@@ -396,11 +396,20 @@ private fun visibilityLabel(value: String) = when(value) { "public" -> "Все �
     Text("Публичность полей и фото проверяется на сервере. Настройте её при редактировании профиля.")
     Link("Редактировать приватность", !state.busy && !state.offline) { model.navigate(AccountScreen.EDIT) }
     Action("Выйти из аккаунта", !state.busy, model::logout)
-    if (state.error != null || state.offline) Link("Очистить данные на этом телефоне", !state.busy, model::clearLocally)
+    if (state.error != null || state.offline) ClearLocalAction("Очистить данные на этом телефоне",!state.busy,model::clearLocally)
     Link("Запросить удаление аккаунта", !state.busy) { deleteDialog = true }
     Link("К профилю", !state.busy) { model.navigate(AccountScreen.PROFILE) }
     if (deleteDialog) AlertDialog(onDismissRequest = { deleteDialog = false }, title = { Text("Удалить аккаунт?") },
         text = { Text("Доступ и публичность отключатся сразу. Запрос на удаление личных материалов будет сохранён на сервере со сроком до 30 дней. Обязательные по закону записи могут сохраняться при законном основании.") },
         confirmButton = { TextButton({ deleteDialog = false; model.deleteAccount() }) { Text("Отправить запрос") } },
         dismissButton = { TextButton({ deleteDialog = false }) { Text("Отмена") } })
+}
+
+@Composable private fun ClearLocalAction(label:String,enabled:Boolean,clear:()->Unit) {
+    var confirm by remember {mutableStateOf(false)}
+    Link(label,enabled){confirm=true}
+    if(confirm)AlertDialog(onDismissRequest={confirm=false},title={Text("Очистить данные устройства?")},
+        text={Text("Удалятся локальные черновики, подборки, история поиска и напоминания всех аккаунтов на этом устройстве. Восстановление этих данных с сервера пока не предусмотрено. Серверные записи сохранятся.")},
+        confirmButton={TextButton({confirm=false;clear()}){Text("Удалить локальные данные")}},
+        dismissButton={TextButton({confirm=false}){Text("Отмена")}})
 }

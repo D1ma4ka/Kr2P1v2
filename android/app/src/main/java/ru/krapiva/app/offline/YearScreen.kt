@@ -39,7 +39,10 @@ import java.util.Locale
             AnalyticsBars("Оценки",s.histogram.filter{it.second>0}.map{DiaryNumbers.rating(it.first) to it.second})
             Text("Высоко оценённые позиции",style=MaterialTheme.typography.titleLarge)
             s.top.forEach{Text("${it.name} · ${DiaryNumbers.rating(it.quarters!!)}")}
-            Text("Достижения отображаются отдельно по подтверждённому серверному состоянию. Исторические даты присвоения в этот отчёт не подставляются.",color=KraPivaColors.Muted)
+            Text("Подтверждённые достижения этого года",style=MaterialTheme.typography.titleLarge)
+            val badges=data?.confirmedBadges.orEmpty().filter { it.second.atZone(ZoneId.of(chosenZone)).year==chosen }
+            if(badges.isEmpty())Text("В доступном кэше нет подтверждённых значков с датой получения в этом году. Откройте достижения при наличии связи.",color=KraPivaColors.Muted)
+            badges.forEach { Text(it.first) }
             Button({share=true},enabled=s.checkins>0){Text("Предпросмотр изображения года")}
             if(share)SharePreview("Мой $chosen в KraPiva",listOf("На основе доступных записей", "Часовой пояс: $chosenZone", "Чекинов: ${s.checkins} · позиций: ${s.uniquePositions}","Моя средняя: ${s.average?.let{String.format(Locale.forLanguageTag("ru"),"%.2f",it)} ?: "Нет оценок"}","Стиль: ${s.styles.firstOrNull()?.first ?: "Нет данных"}","Пивоварня: ${s.breweries.firstOrNull()?.first ?: "Нет данных"}"),onClose={share=false})
         }
