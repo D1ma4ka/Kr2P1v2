@@ -4,6 +4,7 @@ import org.json.JSONObject
 import ru.krapiva.app.account.AccountApi
 
 class CatalogRepository(private val api: AccountApi) {
+    val history = CatalogHistory(api)
     suspend fun read(path: String) = api.catalogGet(path)
     suspend fun lookup(code: String, kind: String) = api.json("v1/barcodes/lookup?code=${Uri.encode(code)}&kind=$kind")
     suspend fun propose(data: JSONObject) = api.json("v1/position-proposals", "POST", data)

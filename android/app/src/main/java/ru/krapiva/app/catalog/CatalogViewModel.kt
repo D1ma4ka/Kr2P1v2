@@ -21,6 +21,7 @@ data class CatalogFilters(val q: String = "", val sort: String = "newest", val b
 data class CatalogState(val page: CatalogPage = CatalogPage.POSITIONS, val items: List<JSONObject> = emptyList(),
     val next: String? = null, val detail: JSONObject? = null, val filters: CatalogFilters = CatalogFilters(),
     val busy: Boolean = false, val offline: Boolean = false, val error: String? = null, val notice: String? = null,
+    val queries: List<String> = emptyList(),val recent: List<String> = emptyList(),
     val code: String = "", val lookupState: String? = null, val lookupSource: String? = null,
     val pickerQuery: String = "", val proposal: JSONObject? = null)
 class CatalogViewModel(val repository: CatalogRepository, private val upload: suspend (Uri) -> String,
@@ -29,7 +30,14 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
     val state = mutable.asStateFlow()
     private val history = ArrayDeque<CatalogState>()
     private val uploads = mutableMapOf<String, String>()
-    init { refresh() }
+    init { viewModelScope.launch {
+        try { val saved = repository.history.read();mutable.value = mutable.value.copy(filters = repository.history.filters(saved),queries = saved.optJSONArray("queries")?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty(),recent = saved.optJSONArray("recent")?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty()) }
+        catch(e: Exception) { if(e is CancellationException)throw e;mutable.value=mutable.value.copy(error="История поиска недоступна") }
+        refresh()
+    } }
+    fun clearHistory() = task {
+        repository.history.clear();mutable.value = mutable.value.copy(queries=emptyList(),recent=emptyList())
+    }
     private fun task(action: suspend () -> Unit) {
         if (mutable.value.busy) return
         mutable.value = mutable.value.copy(busy = true, error = null, notice = null)
@@ -52,12 +60,12 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
     fun back(): Boolean {
         if (mutable.value.busy) return true
         val old = history.removeLastOrNull() ?: return false
-        mutable.value = old; return true
+        mutable.value = old.copy(queries=mutable.value.queries,recent=mutable.value.recent); return true
     }
     fun open(page: CatalogPage) {
         if (mutable.value.busy) return
         if (page == CatalogPage.SCANNER && mutable.value.page == page) mutable.value = CatalogState(page = page, filters = mutable.value.filters)
-        else enter(CatalogState(page = page, filters = mutable.value.filters))
+        else enter(CatalogState(page = page, filters = mutable.value.filters,queries=mutable.value.queries,recent=mutable.value.recent))
         if (page in setOf(CatalogPage.POSITIONS, CatalogPage.BREWERIES, CatalogPage.STYLES, CatalogPage.PROPOSALS)) refresh()
     }
     fun filters(value: CatalogFilters) { if (!mutable.value.busy) mutable.value = mutable.value.copy(filters = value) }
@@ -75,6 +83,10 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
     fun resetFilters() { filters(CatalogFilters()); refresh() }
     fun refresh(more: Boolean = false) = task {
         val old = mutable.value
+        if(old.page == CatalogPage.POSITIONS && !more) {
+            repository.history.search(old.filters)
+            mutable.value = mutable.value.copy(queries=recentValues(old.queries,old.filters.q))
+        }
         val cursor = if (more) old.next else null
         val path = when (old.page) {
             CatalogPage.POSITIONS -> "v1/positions?${old.filters.query(cursor)}"
@@ -94,7 +106,8 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
     }
     fun detail(id: String, brewery: Boolean = false) = task {
         val (data, offline) = repository.read("v1/${if (brewery) "breweries" else "positions"}/$id")
-        enter(CatalogState(page = if (brewery) CatalogPage.BREWERY else CatalogPage.POSITION, detail = data, offline = offline, filters = mutable.value.filters))
+        if(!brewery) repository.history.viewed(id)
+        enter(CatalogState(queries=mutable.value.queries,recent=if(brewery)mutable.value.recent else recentValues(mutable.value.recent,id),page = if (brewery) CatalogPage.BREWERY else CatalogPage.POSITION, detail = data, offline = offline, filters = mutable.value.filters))
     }
     fun proposal(existing: JSONObject? = null) {
         if (mutable.value.busy) return

@@ -72,15 +72,29 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
 }
 @Composable
 private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: AccountApi) {
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    fun search() { keyboard?.hide();focus.clearFocus();model.refresh() }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if(state.page != CatalogPage.POSITIONS) CatalogTitle(when (state.page) { CatalogPage.BREWERIES -> "Пивоварни"; CatalogPage.STYLES -> "Выбрать стиль"; CatalogPage.PROPOSALS -> "Мои предложения"; else -> "Каталог пива" })
                 if (state.page == CatalogPage.POSITIONS) {
-                    OutlinedTextField(state.filters.q,{ model.filters(state.filters.copy(q = it.take(120))) },label = { Text("Название, пивоварня или стиль") },enabled = !state.busy,singleLine = true,modifier = Modifier.fillMaxWidth(),shape = ClubTokens.CardShape,
+                    OutlinedTextField(state.filters.q,{ model.filters(state.filters.copy(q = it.take(120))) },label = { Text("Название, пивоварня или стиль") },enabled = !state.busy,singleLine = true,keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { search() }),modifier = Modifier.fillMaxWidth(),shape = ClubTokens.CardShape,
                         leadingIcon = { ClubGlyph(ClubIcon.SEARCH) },trailingIcon = { IconButton({ model.open(CatalogPage.SCANNER) },enabled = !state.busy) { ClubGlyph(ClubIcon.SCAN,description = "Сканировать штрихкод") } })
+                    if(state.queries.isNotEmpty()) {
+                        Text("История поиска",style=MaterialTheme.typography.titleMedium)
+                        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                            state.queries.forEach { query -> SuggestionChip({model.filters(state.filters.copy(q=query));search()},label={Text(query)},enabled=!state.busy) }
+                        }
+                    }
+                    if(state.recent.isNotEmpty()) {
+                        Text("Недавно просмотренные · проверка доступности при открытии",color=KraPivaColors.Muted)
+                        state.recent.take(5).forEachIndexed { index,id -> TextButton({model.detail(id)},enabled=!state.busy){Text("Открыть недавнюю позицию ${index+1}")} }
+                    }
+                    if(state.queries.isNotEmpty()||state.recent.isNotEmpty())TextButton(model::clearHistory,enabled=!state.busy){Text("Очистить историю поиска и просмотров")}
                     StyleChips(state,model)
-                    CatalogAction("Найти", !state.busy) { model.refresh() }
+                    CatalogAction("Найти", !state.busy) { search() }
                     Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton({ model.open(CatalogPage.SCANNER) },modifier = Modifier.weight(1f),enabled = !state.busy) { Text("Сканировать штрихкод") }
                         TextButton({ model.proposal() },modifier = Modifier.weight(1f),enabled = !state.busy) { Text("Предложить позицию") }
