@@ -136,7 +136,10 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
                             Text("CRAFT BEER COMMUNITY · 18+", style = MaterialTheme.typography.labelSmall, color = KraPivaColors.Amber) }
                     }
                 }
-                state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }) }
+                state.error?.let {
+                    val message = if (state.screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER)) visibleAuthError(it) else it
+                    Text(message, color = MaterialTheme.colorScheme.error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
+                }
                 state.notice?.let { Text(it, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
                 if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 key(state.screen) {
@@ -220,7 +223,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     var token by remember { mutableStateOf("") }; var adult by rememberSaveable { mutableStateOf(false) }
     val screen = state.screen; val enabled = !state.busy
     Title(when(screen) { AccountScreen.LOGIN -> "Вход"; AccountScreen.REGISTER -> "Новый аккаунт"; AccountScreen.VERIFY -> "Подтверждение почты"; AccountScreen.RESET -> "Новый пароль"; else -> "Восстановление доступа" })
-    if (BuildConfig.API_ENVIRONMENT != "production") {
+    if (BuildConfig.API_ENVIRONMENT != "production" && screen !in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER)) {
         Text("Среда: ${BuildConfig.API_ENVIRONMENT} · ${BuildConfig.API_BASE_URL}", style = MaterialTheme.typography.bodySmall)
         if (BuildConfig.API_ENVIRONMENT == "development") Text("Локальная почта: name@example.invalid. Письма доступны в Mailpit на компьютере с сервером; во внешний ящик они не доставляются.", style = MaterialTheme.typography.bodySmall)
     }
