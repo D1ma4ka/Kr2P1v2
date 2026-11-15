@@ -227,11 +227,15 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         Text("Среда: ${BuildConfig.API_ENVIRONMENT} · ${BuildConfig.API_BASE_URL}", style = MaterialTheme.typography.bodySmall)
         if (BuildConfig.API_ENVIRONMENT == "development") Text("Локальная почта: name@example.invalid. Письма доступны в Mailpit на компьютере с сервером; во внешний ящик они не доставляются.", style = MaterialTheme.typography.bodySmall)
     }
-    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.VERIFY, AccountScreen.RESET)) Input("E-mail", email, enabled, keyboard = KeyboardType.Email, singleLine = false) { email = it.replace("\n", "").replace("\r", "").take(254) }
+    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.RESET)) Input("E-mail", email, enabled, keyboard = KeyboardType.Email, singleLine = false) { email = it.replace("\n", "").replace("\r", "").take(254) }
     if (screen == AccountScreen.REGISTER) Input("Отображаемое имя", name, enabled) { name = it.take(80) }
     if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.RESET)) Input("Пароль · От 12 символов", password, enabled, password = true) { password = it }
     if (screen in setOf(AccountScreen.REGISTER, AccountScreen.RESET)) Input("Повторите пароль", confirm, enabled, password = true) { confirm = it }
-    if (screen == AccountScreen.VERIFY) Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = EmailVerificationCode.input(it) }
+    if (screen == AccountScreen.VERIFY) {
+        Text("На почту ${state.authEmail} отправлен 6-значный код подтверждения. Введи его ниже",
+            modifier = Modifier.fillMaxWidth().testTag("verification-email"), softWrap = true)
+        Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = EmailVerificationCode.input(it) }
+    }
     if (screen == AccountScreen.RESET) Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = EmailVerificationCode.input(it) }
     val registrationIssues = AuthValidation.registrationIssues(email, name, password, confirm, adult)
     if (screen == AccountScreen.REGISTER) Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
@@ -242,7 +246,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         AccountScreen.LOGIN -> {
             Action("Войти", enabled && email.isNotBlank() && password.isNotEmpty()) { model.login(email, password); password = "" }
             Link("Забыли пароль?", enabled) { model.navigate(AccountScreen.FORGOT) }
-            Link("Подтвердить почту", enabled) { model.navigate(AccountScreen.VERIFY) }
+            Link("Подтвердить почту", enabled && email.isNotBlank()) { model.navigate(AccountScreen.VERIFY, email.trim()) }
         }
         AccountScreen.REGISTER -> {
             if (registrationIssues.isNotEmpty()) Text(registrationIssues.joinToString("\n"),
@@ -252,8 +256,8 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
             }
         }
         AccountScreen.VERIFY -> {
-            Action("Подтвердить", enabled && EmailVerificationCode.isComplete(token) && email.isNotBlank()) { model.verifyCode(email,token); token = "" }
-            Link("Отправить письмо снова", enabled && email.isNotBlank()) { model.mail(email, false) }
+            Action("Подтвердить", enabled && EmailVerificationCode.isComplete(token) && state.authEmail.isNotBlank()) { model.verifyCode(state.authEmail,token); token = "" }
+            Link("Отправить письмо снова", enabled && state.authEmail.isNotBlank()) { model.mail(state.authEmail, false) }
             Text("Повторная отправка — не чаще раза в минуту. Код действует 10 минут; не более 5 попыток. После повторной отправки используйте новое письмо.", color = KraPivaColors.Muted)
         }
         AccountScreen.FORGOT -> Action("Получить код", enabled && email.isNotBlank()) { model.mail(email, true) }

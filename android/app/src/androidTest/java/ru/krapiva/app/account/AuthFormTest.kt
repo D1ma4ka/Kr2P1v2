@@ -74,7 +74,8 @@ class AuthFormTest {
         compose.onNodeWithText("Подтверждаю, что мне исполнилось 18 лет").performScrollTo().performClick()
         compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsEnabled().performClick()
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.VERIFY && !model.state.value.busy }
-        compose.onNodeWithText("E-mail").assertTextContains(email)
+        compose.onNodeWithTag("verification-email").assertTextContains(email)
+        compose.onNodeWithText("E-mail").assertDoesNotExist()
         val mailbox = "http://$host:58025"
         val messages = JSONObject(URL("$mailbox/api/v1/search?query=to:$email").readText()).getJSONArray("messages")
         val message = JSONObject(URL("$mailbox/api/v1/message/${messages.getJSONObject(0).getString("ID")}").readText()).getString("Text")
@@ -100,8 +101,8 @@ class AuthFormTest {
         lateinit var model: AccountViewModel
         compose.setContent { model = viewModel(); KraPivaTheme { AccountApp(model) } }
         compose.waitUntil(15_000) { model.state.value.screen == AccountScreen.WELCOME }
-        compose.runOnIdle { model.navigate(AccountScreen.VERIFY) }
-        compose.onNodeWithText("E-mail").performTextReplacement("ui@example.invalid")
+        compose.runOnIdle { model.navigate(AccountScreen.VERIFY, "ui@example.invalid") }
+        compose.onNodeWithText("E-mail").assertDoesNotExist()
         compose.onNodeWithText("Код из 6 цифр").performTextReplacement("00012")
         compose.onNodeWithText("Подтвердить").assertIsNotEnabled()
         compose.onNodeWithText("Код из 6 цифр").performTextReplacement(" 00-12 34 567")

@@ -57,7 +57,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
     init { restore() }
-    fun navigate(screen: AccountScreen) { if (!mutable.value.busy) mutable.value = mutable.value.copy(screen = screen, error = null, notice = null) }
+    fun navigate(screen: AccountScreen, authEmail: String = mutable.value.authEmail) { if (!mutable.value.busy) mutable.value = mutable.value.copy(screen = screen, authEmail = authEmail, error = null, notice = null) }
     private fun task(action: suspend () -> Unit) {
         if (mutable.value.busy) return
         mutable.value = mutable.value.copy(busy = true, error = null, notice = null)
