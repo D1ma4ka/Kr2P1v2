@@ -28,8 +28,8 @@ class AuthFormTest {
         for (theme in ThemeMode.entries) {
             compose.runOnIdle { mode = theme; model.navigate(AccountScreen.REGISTER) }
             compose.onNodeWithText("Пароль · От 12 символов").performScrollTo().assertIsDisplayed()
-            compose.onNodeWithText("Локальная тестовая среда", substring = true).assertDoesNotExist()
-            compose.onNodeWithText("@example.invalid", substring = true).assertDoesNotExist()
+            compose.onNodeWithText("Среда:", substring = true).assertExists()
+            compose.onNodeWithText("во внешний ящик они не доставляются", substring = true).assertExists()
             compose.onNodeWithTag("auth-beer").assertExists()
             TestEvidence.screenshot("auth-register-${theme.name.lowercase()}.png")
             compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsDisplayed()

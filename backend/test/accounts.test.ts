@@ -29,7 +29,7 @@ test('P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, sessio
   const search=await (await fetch(api+'/api/v1/search?query='+encodeURIComponent('to:'+email))).json() as {messages:{ID:string}[]};
   assert.ok(search.messages.length);
   const message=await (await fetch(api+'/api/v1/message/'+search.messages[0]!.ID)).json() as {Text:string};
-  return message.Text.match(reset?/Код: ([A-Za-z0-9_-]{43})/:/Код подтверждения: ([0-9]{6})\b/)![1]!;
+  return message.Text.match(reset?/Код восстановления: ([0-9]{6})\b/:/Код подтверждения: ([0-9]{6})\b/)![1]!;
  };
  const suffix=randomUUID().replaceAll('-',''), email=`a${suffix}@example.invalid`, other=`b${suffix}@example.invalid`,password='Synthetic password 2026!';
  const signup={email,password,displayName:'Synthetic P3',adultConfirmed:true};
@@ -82,8 +82,8 @@ test('P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, sessio
   assert.equal((await call('/v1/auth/forgot-password',{email})).status,202);
   const reset=await code(email,true);
   assert.equal((await call('/v1/auth/forgot-password',{email})).status,202);
-  assert.equal((await call('/v1/auth/reset-password',{token:reset,password:'New synthetic password!'})).status,204);
-  assert.equal((await call('/v1/auth/reset-password',{token:reset,password:'New synthetic password!'})).status,401);
+  assert.equal((await call('/v1/auth/reset-password-code',{email,code:reset,password:'New synthetic password!'})).status,204);
+  assert.equal((await call('/v1/auth/reset-password-code',{email,code:reset,password:'New synthetic password!'})).status,401);
   assert.equal((await call('/v1/me',undefined,fresh.accessToken)).status,401);
   assert.equal((await call('/v1/auth/refresh',{refreshToken:fresh.refreshToken})).status,401);
   assert.equal((await call('/v1/auth/login',{email,password})).status,401);
@@ -93,7 +93,7 @@ test('P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, sessio
   assert.equal((await call('/v1/users/'+user,undefined,second.accessToken)).status,404);
   const stored=(await db.pool.query('SELECT password_hash FROM users WHERE id=$1',[user])).rows[0].password_hash;
   assert.ok(stored.startsWith('scrypt-v1$'));assert.ok(!stored.includes(password));
-  assert.equal((await db.pool.query('SELECT 1 FROM account_tokens WHERE token_hash=$1',[tokenHash(reset)])).rowCount,1);
+  assert.equal((await db.pool.query('SELECT consumed_at FROM password_reset_codes WHERE user_id=$1',[user])).rows[0].consumed_at instanceof Date,true);
   await db.pool.query("INSERT INTO auth_budgets(key_hash,window_start,count) VALUES($1,date_trunc('hour',now()),60) ON CONFLICT(key_hash) DO UPDATE SET count=60",[tokenHash('ip:127.0.0.1')]);
   assert.equal((await call('/v1/auth/login',{email:other,password})).status,429);
  } finally {await app.close();await db.close();await rm(directory,{recursive:true,force:true});}

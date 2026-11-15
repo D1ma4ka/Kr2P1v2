@@ -207,12 +207,16 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     var token by remember { mutableStateOf("") }; var adult by rememberSaveable { mutableStateOf(false) }
     val screen = state.screen; val enabled = !state.busy
     Title(when(screen) { AccountScreen.LOGIN -> "Вход"; AccountScreen.REGISTER -> "Новый аккаунт"; AccountScreen.VERIFY -> "Подтверждение почты"; AccountScreen.RESET -> "Новый пароль"; else -> "Восстановление доступа" })
-    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.VERIFY)) Input("E-mail", email, enabled, keyboard = KeyboardType.Email, singleLine = false) { email = it.replace("\n", "").replace("\r", "").take(254) }
+    if (BuildConfig.API_ENVIRONMENT != "production") {
+        Text("Среда: ${BuildConfig.API_ENVIRONMENT} · ${BuildConfig.API_BASE_URL}", style = MaterialTheme.typography.bodySmall)
+        if (BuildConfig.API_ENVIRONMENT == "development") Text("Локальная почта: name@example.invalid. Письма доступны в Mailpit на компьютере с сервером; во внешний ящик они не доставляются.", style = MaterialTheme.typography.bodySmall)
+    }
+    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.VERIFY, AccountScreen.RESET)) Input("E-mail", email, enabled, keyboard = KeyboardType.Email, singleLine = false) { email = it.replace("\n", "").replace("\r", "").take(254) }
     if (screen == AccountScreen.REGISTER) Input("Отображаемое имя", name, enabled) { name = it.take(80) }
     if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.RESET)) Input("Пароль · От 12 символов", password, enabled, password = true) { password = it }
     if (screen in setOf(AccountScreen.REGISTER, AccountScreen.RESET)) Input("Повторите пароль", confirm, enabled, password = true) { confirm = it }
     if (screen == AccountScreen.VERIFY) Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = EmailVerificationCode.input(it) }
-    if (screen == AccountScreen.RESET) Input("Одноразовый код из письма", token, enabled) { token = it.trim().take(43) }
+    if (screen == AccountScreen.RESET) Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = EmailVerificationCode.input(it) }
     val registrationIssues = AuthValidation.registrationIssues(email, name, password, confirm, adult)
     if (screen == AccountScreen.REGISTER) Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
         .toggleable(adult, enabled = enabled, role = Role.Checkbox) { adult = it }, verticalAlignment = Alignment.CenterVertically) {
@@ -237,7 +241,13 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
             Text("Повторная отправка — не чаще раза в минуту. Код действует 10 минут; не более 5 попыток. После повторной отправки используйте новое письмо.", color = KraPivaColors.Muted)
         }
         AccountScreen.FORGOT -> Action("Получить код", enabled && email.isNotBlank()) { model.mail(email, true) }
-        AccountScreen.RESET -> Action("Сменить пароль", enabled && token.length == 43 && password.length >= 12 && confirm == password) { model.reset(token, password); token = ""; password = ""; confirm = "" }
+        AccountScreen.RESET -> {
+            Text("Код действует 10 минут; не более 5 попыток. После повторной отправки используйте новое письмо.")
+            if (password.isNotEmpty() && !AuthValidation.password(password)) Text(if (password.length > 128) "Пароль слишком длинный" else "Пароль: От 12 символов", color = MaterialTheme.colorScheme.error)
+            if (confirm.isNotEmpty() && confirm != password) Text("Пароли должны совпадать", color = MaterialTheme.colorScheme.error)
+            Action("Сменить пароль", enabled && AuthValidation.email(email) && EmailVerificationCode.isComplete(token) && AuthValidation.password(password) && confirm == password) { model.reset(email, token, password) }
+            Link("Отправить код снова", enabled && AuthValidation.email(email)) { model.mail(email, true); token = "" }
+        }
         else -> Unit
     }
     Link("Назад", enabled) { model.navigate(AccountScreen.WELCOME) }

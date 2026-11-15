@@ -34,20 +34,18 @@ export class Accounts {
   const token=randomBytes(32).toString('base64url');
   await client.query('UPDATE account_tokens SET consumed_at=coalesce(consumed_at,now()) WHERE user_id=$1 AND purpose=$2',[id,purpose]);
   await client.query(`INSERT INTO account_tokens(user_id,purpose,token_hash,expires_at) VALUES($1,$2,$3,now()+interval '30 minutes')`,[id,purpose,tokenHash(token)]);
-  let numeric='';
-  if(purpose==='verify_email') {
-   numeric=randomInt(0,1_000_000).toString().padStart(6,'0');
-   await client.query(`INSERT INTO email_verification_codes(user_id,code_hash,expires_at) VALUES($1,$2,now()+interval '10 minutes')
+  const numeric=randomInt(0,1_000_000).toString().padStart(6,'0');
+  const table=purpose==='verify_email'?'email_verification_codes':'password_reset_codes';
+  await client.query(`INSERT INTO ${table}(user_id,code_hash,expires_at) VALUES($1,$2,now()+interval '10 minutes')
     ON CONFLICT(user_id) DO UPDATE SET code_hash=excluded.code_hash,expires_at=excluded.expires_at,attempts=0,consumed_at=NULL,created_at=now()`,[id,await hashPassword(numeric)]);
-  }
   // A verification email contains one credential only. The legacy endpoint remains
   // available for previously issued tokens; new clients always use the six digits.
   const text=purpose==='verify_email'
    ? `Код подтверждения: ${numeric}\nВведите эти 6 цифр на экране подтверждения почты KraPiva.\nКод действует 10 минут; не более 5 попыток. Это не пароль аккаунта.`
-   : `Откройте KraPiva и вставьте одноразовый код в форму нового пароля.\nКод: ${token}\nСрок: 30 минут.`;
+   : `Код восстановления: ${numeric}\nВведите эти 6 цифр и ваш e-mail в форме нового пароля KraPiva.\nКод действует 10 минут; не более 5 попыток.`;
   try {await this.mail.send(email,purpose==='verify_email'?'KraPiva — подтверждение почты':'KraPiva — восстановление доступа',
    `${text}\nЕсли вы не запрашивали письмо, проигнорируйте его.`);}
-  catch {throw new ApiError(503,'MAIL_UNAVAILABLE','Почта временно недоступна; повторите позже');}
+  catch(error) {if(error instanceof ApiError) throw error;throw new ApiError(503,'MAIL_UNAVAILABLE','Почта временно недоступна; повторите позже');}
  }
  async request(email:string,purpose:'verify_email'|'reset_password') {
   await transaction(this.pool,async client=>{
@@ -71,21 +69,28 @@ export class Accounts {
     await client.query('UPDATE users SET password_hash=$2,updated_at=now() WHERE id=$1',[u.id,hash]);
     await client.query('UPDATE sessions SET revoked_at=coalesce(revoked_at,now()) WHERE user_id=$1',[u.id]);
     await client.query("UPDATE account_tokens SET consumed_at=coalesce(consumed_at,now()) WHERE user_id=$1 AND purpose='reset_password'",[u.id]);
+    await client.query('UPDATE password_reset_codes SET consumed_at=now() WHERE user_id=$1',[u.id]);
    }
   });
  }
- async consumeCode(email:string,code:string) {
+ async consumeCode(email:string,code:string,purpose:'verify_email'|'reset_password'='verify_email',password?:string) {
+  const table=purpose==='verify_email'?'email_verification_codes':'password_reset_codes';
   const success=await transaction(this.pool,async client=>{
    // Same user-first ordering as resend/legacy verification; serializes concurrent guesses.
-   const user=(await client.query("SELECT id FROM users WHERE email=$1 AND status='active' AND email_verified_at IS NULL FOR UPDATE",[email.toLowerCase()])).rows[0];
+   const user=(await client.query(`SELECT id FROM users WHERE email=$1 AND status='active' ${purpose==='verify_email'?'AND email_verified_at IS NULL':''} FOR UPDATE`,[email.toLowerCase()])).rows[0];
    if(!user) {await checkPassword(code,null);return false;}
-   const row=(await client.query('SELECT code_hash,attempts,consumed_at,expires_at>now() AS valid FROM email_verification_codes WHERE user_id=$1 FOR UPDATE',[user.id])).rows[0];
+   const row=(await client.query(`SELECT code_hash,attempts,consumed_at,expires_at>now() AS valid FROM ${table} WHERE user_id=$1 FOR UPDATE`,[user.id])).rows[0];
    if(!row||row.consumed_at||!row.valid||row.attempts>=5) {await checkPassword(code,null);return false;}
-   await client.query('UPDATE email_verification_codes SET attempts=attempts+1 WHERE user_id=$1',[user.id]);
+   await client.query(`UPDATE ${table} SET attempts=attempts+1 WHERE user_id=$1`,[user.id]);
    if(!await checkPassword(code,row.code_hash)) return false; // commit failed attempt, never rollback it
-   await client.query('UPDATE email_verification_codes SET consumed_at=now() WHERE user_id=$1',[user.id]);
-   await client.query("UPDATE account_tokens SET consumed_at=coalesce(consumed_at,now()) WHERE user_id=$1 AND purpose='verify_email'",[user.id]);
-   await client.query('UPDATE users SET email_verified_at=now(),updated_at=now() WHERE id=$1',[user.id]);
+   await client.query(`UPDATE ${table} SET consumed_at=now() WHERE user_id=$1`,[user.id]);
+   await client.query('UPDATE account_tokens SET consumed_at=coalesce(consumed_at,now()) WHERE user_id=$1 AND purpose=$2',[user.id,purpose]);
+   if(purpose==='verify_email') await client.query('UPDATE users SET email_verified_at=now(),updated_at=now() WHERE id=$1',[user.id]);
+   else {
+    if(password===undefined) throw new Error('Password required for reset');
+    await client.query('UPDATE users SET password_hash=$2,updated_at=now() WHERE id=$1',[user.id,await hashPassword(password)]);
+    await client.query('UPDATE sessions SET revoked_at=coalesce(revoked_at,now()) WHERE user_id=$1',[user.id]);
+   }
    return true;
   });
   if(!success) throw invalid();

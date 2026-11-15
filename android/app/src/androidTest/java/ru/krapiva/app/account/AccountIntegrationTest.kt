@@ -218,9 +218,9 @@ class AccountIntegrationTest {
         val resetCode = runBlocking {
             val messages = JSONObject(URL("http://10.0.2.2:58025/api/v1/search?query=to:$email").readText()).getJSONArray("messages")
             val message = JSONObject(URL("http://10.0.2.2:58025/api/v1/message/${messages.getJSONObject(0).getString("ID")}").readText())
-            Regex("Код: ([A-Za-z0-9_-]{43})").find(message.getString("Text"))!!.groupValues[1]
+            Regex("Код восстановления: ([0-9]{6})").find(message.getString("Text"))!!.groupValues[1]
         }
-        compose.onNodeWithText("Одноразовый код из письма").performTextInput(resetCode)
+        compose.onNodeWithText("Код из 6 цифр").performTextInput(resetCode)
         compose.onNodeWithText("Пароль · От 12 символов").performTextInput("New synthetic Android password!")
         compose.onNodeWithText("Повторите пароль").performTextInput("New synthetic Android password!")
         compose.onNodeWithText("Сменить пароль").performScrollTo().performClick()

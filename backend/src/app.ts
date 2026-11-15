@@ -63,7 +63,7 @@ export function buildApp(config: Config, pool?: pg.Pool, media?: MediaService, m
   if (pool) {
     const sender=mail??accountMailer({...process.env,NODE_ENV:config.environment});
     if(!mail) app.addHook('onClose',async()=>sender.close());
-    app.register(async auth=>accountRoutes(auth,pool,sender));
+    app.register(async auth=>accountRoutes(auth,pool,sender,config.environment!=='production'));
     app.register(async api => {
       api.get("/health/ready",{schema:{response:{...errors,200:object({status:{type:'string',enum:['ready']}})}}},async()=>{
         try {

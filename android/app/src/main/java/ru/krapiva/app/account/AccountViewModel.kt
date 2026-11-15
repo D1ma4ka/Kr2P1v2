@@ -118,9 +118,9 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     }
     fun refresh() = task { loadProfile() }
     fun register(email: String, password: String, name: String, adult: Boolean) = task {
-        api.json("v1/auth/register", "POST", JSONObject().put("email", email.trim()).put("password", password)
+        val result = api.json("v1/auth/register", "POST", JSONObject().put("email", email.trim()).put("password", password)
             .put("displayName", name.trim()).put("adultConfirmed", adult), false)
-        mutable.value = mutable.value.copy(authEmail = email.trim(),screen = AccountScreen.VERIFY, notice = "Проверьте почту и введите 6 цифр из письма. Срок — 10 минут.")
+        mutable.value = mutable.value.copy(authEmail = email.trim(),screen = AccountScreen.VERIFY, notice = result.getString("message") + " Введите 6 цифр из письма. Срок — 10 минут.")
     }
     fun login(email: String, password: String) = task {
         val session = api.json("v1/auth/login", "POST", JSONObject().put("email", email.trim()).put("password", password), false)
@@ -138,9 +138,9 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         val result = api.json("v1/auth/${if (reset) "forgot-password" else "resend"}", "POST", JSONObject().put("email", email.trim()), false)
         mutable.value = mutable.value.copy(authEmail = email.trim(),screen = if (reset) AccountScreen.RESET else AccountScreen.VERIFY, notice = result.getString("message"))
     }
-    fun reset(token: String, password: String) = task {
-        api.json("v1/auth/reset-password", "POST", JSONObject().put("token", token.trim()).put("password", password), false)
-        clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN, notice = "Пароль изменён. Войдите снова; прежние сессии отозваны.")
+    fun reset(email: String, code: String, password: String) = task {
+        api.json("v1/auth/reset-password-code", "POST", JSONObject().put("email", email.trim()).put("code", code).put("password", password), false)
+        clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN, authEmail = email.trim(), notice = "Пароль изменён. Войдите снова; прежние сессии отозваны.")
     }
     fun save(profile: JSONObject, avatar: Uri? = null, cover: Uri? = null) = task {
         val oldPhotos = listOfNotNull(mutable.value.profile?.optString("avatarAssetId"), mutable.value.profile?.optString("coverAssetId")).filter { it.isNotBlank() && it != "null" }.toSet()

@@ -22,6 +22,8 @@ services:
     environment:
       MP_DATABASE: /data/mailpit.db
       MP_MAX_MESSAGES: 500
+      # Local container peers need no reverse DNS; unavailable DNS can delay SMTP greetings.
+      MP_SMTP_DISABLE_RDNS: "true"
     ports: ["127.0.0.1:51025:1025", "127.0.0.1:58025:8025"]
     volumes: ["mail-data:/data"]
     healthcheck:

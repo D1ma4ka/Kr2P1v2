@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import {ApiError} from '../http/errors.js';
 export interface AccountMailer { send(to:string,subject:string,text:string):Promise<unknown>; close():void; }
 // No external delivery in dev/test. Production requires explicit owner configuration.
 export function accountMailer(env:NodeJS.ProcessEnv=process.env):AccountMailer {
@@ -12,7 +13,8 @@ export function accountMailer(env:NodeJS.ProcessEnv=process.env):AccountMailer {
   ...(!production?{ignoreTLS:true}:{auth:{user:env.SMTP_USER!,pass:env.SMTP_PASSWORD!}}),
   connectionTimeout:3000,greetingTimeout:3000,socketTimeout:5000,disableFileAccess:true,disableUrlAccess:true});
  return {send(to,subject,text) {
-  if(!production&&!/^[a-z0-9._+-]+@example\.invalid$/i.test(to)) throw Error('Use example.invalid with the local test mailbox');
+  if(!production&&!/^[a-z0-9._+-]+@example\.invalid$/i.test(to))
+   throw new ApiError(422,'LOCAL_MAILBOX_ONLY','Локальная почтовая среда: используйте адрес name@example.invalid и откройте письмо в Mailpit. Доставка во внешнюю почту не настроена.');
   return transport.sendMail({from:env.SMTP_FROM??'KraPiva <no-reply@example.invalid>',to,subject,text});
  },close:()=>transport.close()};
 }
