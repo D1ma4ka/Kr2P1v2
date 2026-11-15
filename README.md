@@ -8,6 +8,12 @@ A modern social platform for craft beer enthusiasts and bars
 совершеннолетних пользователей: каталог пивных позиций, дневник и социальная сеть
 с настоящим сервером и постоянной БД.
 
+15 ноября: продолжение **P8.3 A5–A10** поверх сохранённых A1–A4:
+пиво на welcome с датчиками, уникальные @handle и безопасная миграция 012,
+вход по email/handle/@handle, новые пароли от 8 символов и узор в обеих темах.
+Backend **42/42**, JVM **22/22**, debug/test APK и lint PASS.
+Device/visual acceptance **PENDING**. [Отчёт P8.3](docs/stages/P8.3.md).
+
 15 ноября: PATCH P8.2, ветка `codex/krapiva-p8.2`. Понятная валидация
 регистрации, шестизначное восстановление пароля, официальный логотип на auth
 и анимация пива на загрузке. Backend **40/40**, Android JVM **18/18**,
@@ -20,7 +26,7 @@ debug/test APK и lint PASS. Device/visual acceptance **PENDING**;
 Android UI/visual checks **NOT RUN**: программный эмулятор без KVM не загрузился.
 [Результат, изменённые файлы и APK](docs/stages/AUTH_THEME_MOTION.md).
 
-**P0–P8.1 сохранены. P8.2 automatic checks PASS; device/visual acceptance
+**P0–P8.1 и A1–A4 сохранены. P8.3 automatic checks PASS; device/visual acceptance
 PENDING. Текущая ветка `codex/krapiva-p8.2`; П9 не начинался.**
 P8.1 добавляет autosave офлайн-черновиков, сохранение черновиков владельца при
 logout и обязательную серверную проверку похожих позиций перед публикацией.

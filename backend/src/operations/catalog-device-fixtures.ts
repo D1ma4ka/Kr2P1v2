@@ -8,7 +8,8 @@ if(process.env.NODE_ENV!=='development'||!process.env.DATABASE_URL||new URL(proc
 const db=createPool(process.env.DATABASE_URL);
 try {
  const password='Synthetic Android P4 password!';const email=`p4${randomUUID()}@example.invalid`;
- const owner=(await db.query(`INSERT INTO users(email,display_name,password_hash,adult_confirmed_at,email_verified_at) VALUES($1,'Synthetic catalog Android',$2,now(),now()) RETURNING id`,[email,await hashPassword(password)])).rows[0].id as string;
+ const handle='fixture_'+randomUUID().replaceAll('-','').slice(0,12);
+ const owner=(await db.query(`INSERT INTO users(email,display_name,password_hash,adult_confirmed_at,email_verified_at,handle) VALUES($1,'Synthetic catalog Android',$2,now(),now(),$3) RETURNING id`,[email,await hashPassword(password),handle])).rows[0].id as string;
  await db.query('INSERT INTO user_profiles(user_id) VALUES($1)',[owner]);
  const mod=(await db.query("INSERT INTO users(email,display_name,adult_confirmed_at,email_verified_at,role) VALUES($1,'Synthetic catalog reviewer',now(),now(),'moderator') RETURNING id",[`p4mod${randomUUID()}@example.invalid`])).rows[0].id as string;
  const gtin='2900000000018';

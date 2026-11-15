@@ -1,6 +1,8 @@
 package ru.krapiva.app.account
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -23,7 +25,7 @@ import androidx.compose.ui.unit.dp
     var dismissed by rememberSaveable(profile.getString("userId")) { mutableStateOf(false) }
     if (!dismissed && (profile.isNull("handle") || profile.optString("handle").isBlank())) {
         AlertDialog(onDismissRequest={dismissed=true},title={Text("Твой никнейм")},
-            text={HandleEntry(state,model)},confirmButton={},
+            text={Column(Modifier.verticalScroll(rememberScrollState())) {HandleEntry(state,model)}},confirmButton={},
             dismissButton={TextButton({dismissed=true}){Text("Позже")}})
     }
 }

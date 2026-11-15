@@ -1,0 +1,62 @@
+{
+  "base_commit": "f7de21582f9cff8b4810e46f2a84d62dae6596c9",
+  "branch": "codex/krapiva-p8.2",
+  "apk": {
+    "path": "/workspace/Kr2P1v2/android/app/build/outputs/apk/debug/app-debug.apk",
+    "sha256": "d1885aa08cd7aa3b65dcf840ebbc522a8d3b5d21e51881b25d2c137081976559",
+    "size_bytes": 63285179,
+    "version_name": "0.1.0-p8.3",
+    "api_base_url": "http://127.0.0.1:53000/"
+  },
+  "backend": {
+    "passed": 42,
+    "failed": 0,
+    "skipped": 0,
+    "mail": "local Mailpit"
+  },
+  "jvm": {
+    "passed": 22,
+    "failed": 0,
+    "skipped": 0
+  },
+  "android_runtime": "NOT RUN; no connected device/KVM",
+  "offline_drafts": "AccountStore and diary source unchanged from base; device tests NOT RUN",
+  "source_sha256": {
+    ".github/workflows/p82-phone-apk.yml": "699ea118b6776a32dee3c6cc889234c1f9107ec617e44390f403e4d54e791b93",
+    "android/app/build.gradle.kts": "241d1474b5fdb554cdc608fbf4ba1f5250f04d1b6ea7c9d0c7067920d135df76",
+    "android/app/src/androidTest/java/ru/krapiva/app/P3AcceptanceSuite.kt": "eab9ae2ae8197efa9856b3853bcb3a26016a69b9a92d705a32c24e615d08d829",
+    "android/app/src/androidTest/java/ru/krapiva/app/account/AccountIntegrationTest.kt": "1352c05c57900c472dd02411d7b9f044a711f92b580961dbc2d31b552dca0e32",
+    "android/app/src/androidTest/java/ru/krapiva/app/account/AccountLayoutTest.kt": "a43e488fb8b358fde2b9f3ba3e2ca53f0ebcbf01c60cc41bb5555bb666c0a21f",
+    "android/app/src/androidTest/java/ru/krapiva/app/account/AuthFormTest.kt": "dca5d4499d43cf3445dc42b7cdfddeed048f1285b26836cc1e1ce25af9b0fa59",
+    "android/app/src/androidTest/java/ru/krapiva/app/account/AuthLayoutRegressionTest.kt": "83ab61f3487fbffa8cbcf0288a1a957ec6cdf6b7546dc320e9de7178c2e754e7",
+    "android/app/src/androidTest/java/ru/krapiva/app/designsystem/BeerHeroTest.kt": "0c0c3f66d3a1cd2756778011ac1d694d96979a829a2ce44151c3fe5193c96528",
+    "android/app/src/main/java/ru/krapiva/app/account/AccountScreen.kt": "9b6b873a380af59065f3ed04be75d73489072e5616dd2a47fc32fff16a715b86",
+    "android/app/src/main/java/ru/krapiva/app/account/AccountViewModel.kt": "065f9c1ee65abef1626dba4f559838180740f6532bc56333462206739c36650a",
+    "android/app/src/main/java/ru/krapiva/app/account/AuthValidation.kt": "74ea3e14fbcfdc9356ab7d16f14b3b9c09c80d51cf52335bc4e8a6bba10bb0fa",
+    "android/app/src/main/java/ru/krapiva/app/account/ClubProfile.kt": "fbd0211fe97e967de5cc028c245db229bc7336c4df688248fa6e8fca215c1113",
+    "android/app/src/main/java/ru/krapiva/app/account/HandleSetup.kt": "77e802b231606ce387dc4cfc45eb200996a616794398edb01bc73ef4cddf65bc",
+    "android/app/src/main/java/ru/krapiva/app/account/UserHandle.kt": "5f18ae74ea74b2339aa97f36b5fde1c1632fb5381449b7987b53929aa46e02d9",
+    "android/app/src/main/java/ru/krapiva/app/designsystem/ClubMotion.kt": "7b592d41332fa7a3b6b86950f30abfa7a3a0f0f9b582bf503644fb92d209086e",
+    "android/app/src/main/java/ru/krapiva/app/designsystem/NettleBackdrop.kt": "b5f84d368fd58e8abc50027565c5277d4b1e2565911c308bed4bb0f843e5eb63",
+    "android/app/src/main/java/ru/krapiva/app/social/SocialScreen.kt": "e69c578dd44adc912396aabc9320c022285a9f390c90d875e8b175aa1a5379ee",
+    "android/app/src/main/java/ru/krapiva/app/welcome/WelcomeBeerBackground.kt": "ee2509c50b8a6ca7815028d5ab4c79434925fd1d9167e87d492f37a73f0538e3",
+    "android/app/src/test/java/ru/krapiva/app/account/AuthValidationTest.kt": "b00d2d3bdf0879edc32ee1efa4219fc47baaa88314e081c15aabe80d2d8a2715",
+    "android/app/src/test/java/ru/krapiva/app/account/UserHandleTest.kt": "3db1b61367aebb879a83a5d53c4ea9f59929b2feb0081892cb3d5009bfd2872f",
+    "backend/migrations/012_user_handles.sql": "be50a46234aa396c0a2186c1482f3dd0ada9a2fd1966270a8a8210398f6370d3",
+    "backend/src/db/readiness.ts": "7cc87328a7b3e86d339aebcd3119a37218e22a0302bc49b5930bf0ee15dcdc7d",
+    "backend/src/http/routes.ts": "42cf906081859536aa42d112d579090e4b8c805096ba88f293eae28ec1667009",
+    "backend/src/http/schemas.ts": "0ba8ec08888f6eca9e441dd4db05baefd2ec774012f23620207640c2ac7e37d1",
+    "backend/src/identity/accounts.ts": "24125ae3a5defeb74925c37b4e6c869321fe9797ef362848cbf426ca201aeafd",
+    "backend/src/identity/handles.ts": "11a3e7949c8c90341031fa900619dbd3bc2e1f4c28abe2c0afefefeeae92ead2",
+    "backend/src/identity/routes.ts": "c86ee99d4df81ec297317f650456e320455101239150cdae449ce46cc892baa3",
+    "backend/src/operations/catalog-device-fixtures.ts": "2f4fa56a021b96b8bef6d29422ef436d753dc4661427ed33ec0da78b8ea27725",
+    "backend/src/profiles/repository.ts": "6648b53ff177c19954e75fa2046469203b4a680378f885103f206997c1e35826",
+    "backend/src/social/repository.ts": "9148a80dbab00b0422570098104fb9c09e273eb1cad4f37d70512950c446751d",
+    "backend/src/social/routes.ts": "843b35643657a4fa7a2794afd6a27e21db1612d92cf155050fb0439ab1b340d4",
+    "backend/test/accounts.test.ts": "f19b8fe9f70fc06b505053767541f00df2d8242388ed41863822714daed2b035",
+    "backend/test/handles.test.ts": "f6ae4817d2fa9e515dd78c7cec3c8414649b13842c59f840ab4899881ce40f1f",
+    "backend/test/migrations.test.ts": "d604fd7aad3f8b38ea53eeefaf6ac2df0c2c1acc58aa4d532b4ce0984064f224",
+    "backend/test/p7.test.ts": "51d97defbfab022b7881766b0c47c32e41f380a83c0d9921daa207195d53f12f",
+    "backend/test/social.test.ts": "ce514809e89e10e2ddbc6548a24cbb91c6b4ac183ba2d2eb99e769861e1553b6"
+  }
+}

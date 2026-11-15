@@ -9,7 +9,7 @@ class UserHandleTest {
             assertTrue(handle, UserHandle.valid(handle))
             assertEquals(handle.lowercase(java.util.Locale.ROOT), UserHandle.normalize(handle))
         }
-        for (handle in listOf("ab", "a".repeat(25), "1abc", "_abc", "abc_", "ab__cd", " abcd", "abcd ", "абв", "beer🍺", "@beer"))
+        for (handle in listOf("ab", "a".repeat(25), "1abc", "_abc", "abc_", "ab__cd", " abcd", "abcd ", "abcd\n", "ab\tcd", "абв", "beer🍺", "@beer"))
             assertFalse(handle, UserHandle.valid(handle))
     }
 }

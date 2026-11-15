@@ -1,4 +1,4 @@
-name: KraPiva P8.2 phone APK
+name: KraPiva P8.3 phone APK
 on:
   push:
     branches:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - name: Checkout P8.2 source
+      - name: Checkout P8.3 source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
@@ -40,16 +40,16 @@ jobs:
       - name: Verify and name the downloadable APK
         run: |
           mkdir -p phone-apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk phone-apk/KraPiva-P8.2-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs phone-apk/KraPiva-P8.2-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 phone-apk/KraPiva-P8.2-debug.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk phone-apk/KraPiva-P8.3-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs phone-apk/KraPiva-P8.3-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 phone-apk/KraPiva-P8.3-debug.apk
           cd phone-apk
-          sha256sum KraPiva-P8.2-debug.apk | tee SHA256SUMS.txt
+          sha256sum KraPiva-P8.3-debug.apk | tee SHA256SUMS.txt
           git -C .. rev-parse HEAD > source-commit.txt
       - name: Upload APK to the private repository's Actions artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: KraPiva-P8.2-phone-debug
+          name: KraPiva-P8.3-phone-debug
           path: phone-apk/
           if-no-files-found: error
           retention-days: 7

@@ -1,0 +1,51 @@
+✔ P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, session rotation, profile/media ACL and deletion request (1967.844018ms)
+✔ account failure paths: SMTP rollback, expired tokens and independent token rate budgets (387.590667ms)
+✔ real HTTP+SQL: two accounts, ACL, durable idempotency, cursor and concurrency, revocation and DB outage (926.852072ms)
+✔ GTIN checksum, EAN8/UPC/EAN13/GTIN14 padding and QR separation (0.799795ms)
+✔ P4 real HTTP/PostgreSQL: empty catalog, proposals, ACL, search, GTIN, duplicates, merge, media and rollback (921.468451ms)
+✔ P3 → P4 additive migration retains stable catalog IDs and rebuilds searchable projection (103.75797ms)
+✔ cursor calendar validation rejects normalized invalid dates before SQL (0.700199ms)
+✔ OpenAPI is valid and exactly matches registered HTTP schemas (575.174051ms)
+✔ P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media/tags, wishlist, ACL, versions and merge (891.626161ms)
+✔ P4 → P5 migration preserves historical checkins and legacy idempotency acknowledgements (127.468859ms)
+✔ database config bounds and TLS cannot be bypassed through URL parameters (0.97454ms)
+✔ readiness rejects missing schema, drift and inaccessible storage; media failures preserve recoverability (455.730363ms)
+✔ handle policy: ASCII, boundaries, normalization, service names and abusive names (0.945085ms)
+✔ P8.3 HTTP/SQL/Mailpit: additive upgrade, legacy identity/session/history, claims/search and concurrent signup (1507.294421ms)
+✔ configuration rejects malformed port, host and environment (3.056402ms)
+✔ real HTTP liveness, 404, response headers and socket shutdown (87.686181ms)
+✔ invalid JSON and oversized bodies fail without reflecting content (11.275191ms)
+✔ private media: real image normalization/EXIF removal, attachment ACL, limits, restart and deletion (919.466862ms)
+✔ real SMTP delivers only synthetic messages into local Mailpit (17.820102ms)
+✔ real PostgreSQL: concurrent/repeated migrations, checksums, rollback, relational invariants (237.356485ms)
+✔ P7 real directory API: provenance, roles, bbox, antimeridian, filters/cursor, bounded map and production test exclusion (955.348201ms)
+✔ P7 venue photo provenance/rights, shared approved edits, actual aggregates and hide/restore ACL (487.833241ms)
+▶ P7 ten data-driven badges: actual history, idempotent recalculation, ordered three pins, revocation and peer ACL
+  ✔ checkins reaches 1 from SQL facts (0.25ms)
+  ✔ positions reaches 3 from SQL facts (0.780234ms)
+  ✔ positions reaches 10 from SQL facts (0.074884ms)
+  ✔ styles reaches 3 from SQL facts (0.064839ms)
+  ✔ styles reaches 5 from SQL facts (0.038779ms)
+  ✔ breweries reaches 3 from SQL facts (0.054042ms)
+  ✔ breweries reaches 5 from SQL facts (0.079351ms)
+  ✔ notes reaches 3 from SQL facts (0.07257ms)
+  ✔ photos reaches 3 from SQL facts (0.041222ms)
+  ✔ venues reaches 2 from SQL facts (0.0328ms)
+✔ P7 ten data-driven badges: actual history, idempotent recalculation, ordered three pins, revocation and peer ACL (663.84647ms)
+✔ P7 reports cover comment, venue, position and user holds; dismissal and deleted content cannot be restored (416.369219ms)
+✔ P7 additive upgrade from 009 preserves existing IDs and never certifies old coordinates without provenance (139.547006ms)
+✔ P7 real reporting/moderation: public-only IDOR, idempotency, hide/restore media ACL, audit and admin roles (472.364928ms)
+✔ P8.2 real HTTP/SQL/Mailpit: existing hash, numeric reset, resend, expiry, atomic guesses and legacy compatibility (2428.017553ms)
+✔ entrypoint serves HTTP, omits sensitive input from logs and exits on SIGTERM (464.310672ms)
+✔ P6 real HTTP/PostgreSQL/SMTP: two registered accounts, friendship state machine, feed, comments, reactions, privacy and restart (1781.30583ms)
+✔ P6 concurrent privacy/unfriend serializes against social writes; comment cursors and suspension (484.21559ms)
+✔ P6.1 email-bound numeric verification: single use, expiry, atomic guess limit and resend invalidation (2253.758806ms)
+✔ real HTTP and Mailpit: one six-digit OTP, persisted email and authenticated profile after server restart (771.781691ms)
+ℹ tests 42
+ℹ suites 0
+ℹ pass 42
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22456.182453

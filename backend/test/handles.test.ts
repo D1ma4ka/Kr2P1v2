@@ -11,10 +11,13 @@ import {testDatabase} from './database.js';
 import {fixtures} from './fixtures.js';
 import {hashPassword} from '../src/identity/passwords.js';
 import {normalizeHandle} from '../src/identity/handles.js';
+import sharp from 'sharp';
+import {FileStorage} from '../src/media/storage.js';
+import {MediaService} from '../src/media/service.js';
 
 test('handle policy: ASCII, boundaries, normalization, service names and abusive names',()=>{
  for(const h of ['CraftLover','beer_fan','krapiva2026','a12','a'.repeat(24)])assert.equal(normalizeHandle(h),h.toLowerCase());
- for(const h of ['ab','a'.repeat(25),'1abc','_abc','abc_','ab__cd',' abcd','abcd ','абв','Kevin','beer🍺','a@b','@beer','admin','ADMIN','support','fuckyou'])assert.throws(()=>normalizeHandle(h));
+ for(const h of ['ab','a'.repeat(25),'1abc','_abc','abc_','ab__cd',' abcd','abcd ','abcd\n','abcd\r','ab\tcd','абв','Kevin','beer🍺','a@b','@beer','admin','ADMIN','support','fuckyou'])assert.throws(()=>normalizeHandle(h));
 });
 
 test('P8.3 HTTP/SQL/Mailpit: additive upgrade, legacy identity/session/history, claims/search and concurrent signup',async()=>{
@@ -27,16 +30,27 @@ test('P8.3 HTTP/SQL/Mailpit: additive upgrade, legacy identity/session/history, 
  await db.pool.query('INSERT INTO checkins(user_id,position_id,occurred_at) VALUES($1,$2,now())',[f.a.id,f.position]);
  await db.pool.query('INSERT INTO friendships(user_low,user_high) VALUES(least($1::uuid,$2::uuid),greatest($1::uuid,$2::uuid))',[f.a.id,f.b.id]);
  const before=(await db.pool.query('SELECT id,email,password_hash FROM users ORDER BY id')).rows;
+ const storage=new FileStorage(join(dir,'media'));await storage.initialize();
+ const media=new MediaService(db.pool,storage);
+ const image=await sharp({create:{width:24,height:24,channels:3,background:'#f3af45'}}).png().toBuffer();
+ const asset=await media.upload(f.a.id,image,'image/png');
+ const photoBefore=await media.get(f.a.id,asset.id);
+ await db.pool.query('INSERT INTO user_badges(user_id,rule_id,progress,earned_at,rule_version) SELECT $1,id,target,now(),version FROM badge_rules ORDER BY id LIMIT 1',[f.a.id]);
+ const badgesBefore=(await db.pool.query('SELECT * FROM user_badges WHERE user_id=$1 ORDER BY rule_id',[f.a.id])).rows;
  await migrate(db.pool);await migrate(db.pool);
  assert.deepEqual((await db.pool.query('SELECT id,email,password_hash FROM users ORDER BY id')).rows,before);
  assert.equal((await db.pool.query('SELECT count(*)::int AS n FROM checkins')).rows[0].n,1);
  assert.equal((await db.pool.query('SELECT count(*)::int AS n FROM friendships')).rows[0].n,1);
- const app=buildApp(readConfig({NODE_ENV:'test',LOG_LEVEL:'silent'}),db.pool);
+ assert.deepEqual((await db.pool.query('SELECT * FROM user_badges WHERE user_id=$1 ORDER BY rule_id',[f.a.id])).rows,badgesBefore);
+ assert.deepEqual(await media.get(f.a.id,asset.id),photoBefore);
+ const app=buildApp(readConfig({NODE_ENV:'test',LOG_LEVEL:'silent'}),db.pool,media);
  const address=await app.listen({host:'127.0.0.1',port:0});
  const call=(path:string,body?:unknown,token?:string,method=body===undefined?'GET':'POST')=>fetch(address+path,{method,headers:{...(body===undefined?{}:{'content-type':'application/json'}),...(token?{authorization:'Bearer '+token}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
  try {
   assert.equal((await call('/health/ready')).status,200);
   const old=await call('/v1/me',undefined,f.a.token);assert.equal(old.status,200);assert.equal((await old.json() as any).handle,null);
+  const downloaded=await call('/v1/media/'+asset.id,undefined,f.a.token);assert.equal(downloaded.status,200);
+  assert.deepEqual(Buffer.from(await downloaded.arrayBuffer()),photoBefore);
   assert.equal((await call('/v1/auth/login',{email:'alpha@example.invalid',password})).status,200);
   const claim=await call('/v1/me/handle',{handle:'Legacy_Fan'},f.a.token,'PUT');assert.equal(claim.status,200);
   const profile=await claim.json() as any;assert.equal(profile.handle,'legacy_fan');assert.equal(profile.userId,f.a.id);assert.equal(profile.displayName,'Synthetic Alpha');

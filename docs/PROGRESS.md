@@ -1,3 +1,23 @@
+# P8.3 A5–A10 · 15 ноября 2026
+
+Ветка `codex/krapiva-p8.2`, база `f7de215` с завершёнными A1–A4.
+Welcome использует оригинальный налив/пену/пузырьки, gravity/accelerometer и
+fallback с lifecycle/reduced motion. Миграция 012 добавляет уникальный nullable
+handle; UUID/hashes/сессии/история/фото/достижения сохранены. Старые аккаунты
+могут выбрать handle после входа либо продолжить через «Позже».
+Email/handle/@handle используют тот же scrypt и sessions. Новый пароль от 8
+Unicode символов, без изменения пробелов/регистра. Усилен узор обеих тем,
+порядок полей и A4 states сохранены. Код офлайн-черновиков P8.1 не менялся.
+
+Backend 42/42, JVM 22/22, debug/test APK, lint и foundation PASS.
+Device runtime/physical tilt/visual/keyboard/large font acceptance NOT RUN:
+устройства нет. Все instrumented проверки только скомпилированы.
+Production/внешняя почта не разворачивались, локальный Mailpit проверен.
+Каждый этап commit/push. [Отчёт, APK и продолжение](stages/P8.3.md).
+П9 не начат.
+
+---
+
 # PATCH P8.2 · 15 ноября 2026
 
 Ветка `codex/krapiva-p8.2` от последнего `fix/auth-theme-motion` (`5771075`).

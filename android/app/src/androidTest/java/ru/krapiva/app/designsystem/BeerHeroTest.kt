@@ -42,8 +42,8 @@ class BeerHeroTest {
     }
     @Test fun noSensorLoopMovesAndReducedMotionStaysStill() {
         compose.setContent { KraPivaTheme { Column {
-            ClubBeer(Modifier.testTag("fallback").size(112.dp), forceNoSensor = true)
-            ClubBeer(Modifier.testTag("static").size(112.dp), still = true)
+            ClubBeer(Modifier.testTag("fallback").size(112.dp), backdrop = true, animateBackdrop = true, forceNoSensor = true)
+            ClubBeer(Modifier.testTag("static").size(112.dp), backdrop = true, animateBackdrop = true, still = true)
         } } }
         val moving = compose.onNodeWithTag("fallback").captureToImage().asAndroidBitmap()
         val still = compose.onNodeWithTag("static").captureToImage().asAndroidBitmap()
@@ -84,7 +84,7 @@ class BeerHeroTest {
             }
         }
         compose.setContent { KraPivaTheme {
-            CompositionLocalProvider(LocalLifecycleOwner provides owner) { if (visible.value) ClubBeer(Modifier.size(112.dp)) }
+            CompositionLocalProvider(LocalLifecycleOwner provides owner) { if (visible.value) ClubBeer(Modifier.size(112.dp), backdrop = true, animateBackdrop = true) }
         } }
         expectSubscriptions(1, "resume")
         compose.runOnIdle { registry.currentState = Lifecycle.State.CREATED }
