@@ -16,8 +16,9 @@ import kotlin.math.sin
     modifier: Modifier = Modifier, backdrop: Boolean = false, still: Boolean = false,
     previewAngle: Float? = null, forceNoSensor: Boolean = false,
     reveal: Boolean = true,
+    animateBackdrop: Boolean = false,
 ) {
-    val motion = rememberLiquidAnimation(still, previewAngle, forceNoSensor, reveal = reveal, continuous = !backdrop)
+    val motion = rememberLiquidAnimation(still, previewAngle, forceNoSensor, reveal = reveal, continuous = !backdrop || animateBackdrop)
     val cream = Color(0xFFFFEFCE)
     Canvas(modifier.semantics { contentDescription = if(backdrop) "Янтарное пиво, пена и пузырьки" else "Фирменный бокал KraPiva" }) {
         val w=size.width;val h=size.height

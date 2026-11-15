@@ -122,6 +122,8 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         return
     }
     KraPivaBackdrop {
+        Box {
+        if (state.screen == AccountScreen.WELCOME) ru.krapiva.app.welcome.WelcomeBeerBackground(Modifier.matchParentSize())
         Column(Modifier.safeDrawingPadding().imePadding()) {
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val welcome = state.screen == AccountScreen.WELCOME
@@ -159,6 +161,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
             }
             }
             if (authenticated) navigation { it() }
+        }
         }
     }
     state.fullPhoto?.let { photo -> AlertDialog(onDismissRequest = model::closePhoto,
