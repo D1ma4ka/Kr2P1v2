@@ -15,5 +15,8 @@
   "instrumentedExecuted": "NOT RUN (no device/KVM)",
   "manualVisual": "PENDING",
   "upgradeOverInstall": "PENDING; previous signing key unavailable",
-  "certificateSha256": "5c32687c6766016efd2302fca993416901ad7a841133dbc45f04b101b14f149c"
+  "certificateSha256": "5c32687c6766016efd2302fca993416901ad7a841133dbc45f04b101b14f149c",
+  "sourceCommit": "03c5900a92989602df089d7a8c6fab499c5a6639",
+  "previousP83DownloadCertificateSha256": "f19a01e6580b5e231497d4050a64dd2e522b1a9f6c47fe531f76f9922d1fe5e0",
+  "sameCertificateAsP83Download": false
 }
