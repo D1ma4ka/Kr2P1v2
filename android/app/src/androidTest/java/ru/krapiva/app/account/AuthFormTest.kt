@@ -30,11 +30,14 @@ class AuthFormTest {
             compose.onNodeWithText("Пароль · От 12 символов").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("Среда:", substring = true).assertExists()
             compose.onNodeWithText("во внешний ящик они не доставляются", substring = true).assertExists()
-            compose.onNodeWithTag("auth-beer").assertExists()
+            compose.onNodeWithTag("auth-logo").assertExists()
+            compose.onNodeWithTag("auth-beer").assertDoesNotExist()
             TestEvidence.screenshot("auth-register-${theme.name.lowercase()}.png")
             compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsDisplayed()
             compose.runOnIdle { model.navigate(AccountScreen.LOGIN) }
-            compose.onNodeWithTag("auth-beer").assertExists()
+            compose.onNodeWithTag("auth-logo").assertExists()
+            compose.onNodeWithTag("auth-beer").assertDoesNotExist()
+            compose.onNodeWithText("Ответственное потребление", substring = true).assertDoesNotExist()
             compose.onNodeWithText("Войти").performScrollTo().assertIsDisplayed()
         }
     }

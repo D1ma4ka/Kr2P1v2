@@ -125,12 +125,13 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         Column(Modifier.safeDrawingPadding().imePadding()) {
             Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                if(state.screen != AccountScreen.WELCOME) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (state.screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.VERIFY, AccountScreen.FORGOT, AccountScreen.RESET, AccountScreen.RESTORING)) ClubBeer(Modifier.size(104.dp).testTag("auth-beer"),
-                        still = state.screen == AccountScreen.RESTORING && !state.busy)
-                    else Image(painterResource(R.drawable.ic_brand_mark), null, Modifier.size(48.dp))
-                    Column { Text("KraPiva", style = MaterialTheme.typography.headlineMedium, color = KraPivaColors.Cream)
-                        Text("CRAFT BEER COMMUNITY · 18+", style = MaterialTheme.typography.labelSmall, color = KraPivaColors.Amber) }
+                if(state.screen != AccountScreen.WELCOME) {
+                    if (state.screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.VERIFY, AccountScreen.FORGOT, AccountScreen.RESET, AccountScreen.RESTORING)) AuthBrand()
+                    else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Image(painterResource(R.drawable.ic_brand_mark), null, Modifier.size(48.dp))
+                        Column { Text("KraPiva", style = MaterialTheme.typography.headlineMedium, color = KraPivaColors.Cream)
+                            Text("CRAFT BEER COMMUNITY · 18+", style = MaterialTheme.typography.labelSmall, color = KraPivaColors.Amber) }
+                    }
                 }
                 state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }) }
                 state.notice?.let { Text(it, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
@@ -184,15 +185,22 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
 }
 @Composable private fun Welcome(state: AccountState, model: AccountViewModel) {
     Column(Modifier.fillMaxWidth(),horizontalAlignment = Alignment.CenterHorizontally,verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ClubBeer(Modifier.width(220.dp).height(260.dp))
-        ClubBrand()
+        AuthBrand()
         Text("Твоя пивная история",style = MaterialTheme.typography.headlineMedium,textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         Text("Вкус. Впечатления. Люди.",color = KraPivaColors.Amber)
         Text("Крафтовое сообщество · 18+",style = MaterialTheme.typography.bodyMedium,color = KraPivaColors.Muted)
     }
     Action("Создать аккаунт", !state.busy) { model.navigate(AccountScreen.REGISTER) }
     Action("Войти", !state.busy) { model.navigate(AccountScreen.LOGIN) }
-    Text("Ответственное потребление. Алкоголь вредит здоровью.", color = KraPivaColors.Muted)
+}
+/** Exact approved wordmark, on its original dark ground in both themes. */
+@Composable private fun AuthBrand() {
+    Surface(Modifier.fillMaxWidth(), color = Color(0xFF1B211E), shape = ClubTokens.CardShape) {
+        Image(painterResource(R.drawable.krapiva_logo), "Логотип KraPiva",
+            Modifier.padding(12.dp).fillMaxWidth().aspectRatio(940f / 240f).testTag("auth-logo"),
+            contentScale = ContentScale.Fit)
+    }
+    Text("Крафтовое сообщество · 18+", style = MaterialTheme.typography.labelSmall, color = KraPivaColors.Muted)
 }
 @Composable private fun Input(label: String, value: String, enabled: Boolean = true, password: Boolean = false,
     keyboard: KeyboardType = KeyboardType.Text, singleLine: Boolean = true, onChange: (String) -> Unit) {

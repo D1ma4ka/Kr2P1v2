@@ -31,6 +31,7 @@ class AccountLayoutTest {
         compose.onNodeWithText("Пароль · От 12 символов").performScrollTo().performTextInput("Layout synthetic password!")
         compose.onNodeWithText("Повторите пароль").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("auth-beer").assertExists()
+        compose.onNodeWithTag("auth-logo").assertExists()
+        compose.onNodeWithTag("auth-beer").assertDoesNotExist()
     }
 }
