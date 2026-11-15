@@ -64,10 +64,11 @@ class CollectionsRepository(private val api: AccountApi) : CollectionSyncSource 
         }
     }
     suspend fun reorder(id: String, positionId: String, delta: Int) = mutate(id) { row ->
-        val members = row.getJSONArray("members").objects().toMutableList()
+        val all = row.getJSONArray("members").objects()
+        val members = all.filter { !it.optBoolean("deleted") }.toMutableList()
         val index = members.indexOfFirst { it.getString("positionId") == positionId }
         require(index >= 0)
         val destination = (index+delta).coerceIn(0,members.lastIndex)
-        members.add(destination,members.removeAt(index));row.put("members",JSONArray(members))
+        members.add(destination,members.removeAt(index));row.put("members",JSONArray(members + all.filter { it.optBoolean("deleted") }))
     }
 }

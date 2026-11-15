@@ -192,6 +192,7 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: Accou
         Text("Источник: ${data.getString("source")}", color = KraPivaColors.Muted)
         data.text("imageSource")?.let { Text("Источник фото: $it", color = KraPivaColors.Muted) }
         if(state.page == CatalogPage.POSITION) key(data) {
+            ru.krapiva.app.offline.AddToCollection(api,data.getString("canonicalId"))
             ru.krapiva.app.diary.PositionDiaryActions(api,data.getString("canonicalId")) { onCheckin?.invoke(data) }
         }
         TextButton({ model.refresh() }, enabled = !state.busy) { Text("Обновить карточку") }

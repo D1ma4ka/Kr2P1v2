@@ -85,6 +85,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
             if(state.offline) Text("Нет связи · сохранённая копия до 24 часов. Данные могли измениться.",modifier = Modifier.padding(horizontal = 16.dp),color = KraPivaColors.Muted)
             Box(Modifier.weight(1f)) {
                 when(state.page) {
+                    DiaryPage.COLLECTIONS -> ru.krapiva.app.offline.CollectionsScreen(api,onPosition,onCatalog)
                     DiaryPage.EDITOR -> DiaryEditor(state,model,back,{ pendingNavigation = { model.new() };leave = true })
                     DiaryPage.DETAIL -> CheckinDetail(state,model,onPosition,onSocial,onVenue)
                     DiaryPage.STATISTICS -> StatisticsScreen(state,model)
@@ -111,7 +112,7 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
             state.statistics?.let { stats -> item { Summary(stats);Text("Получено значков: ${stats.getInt("earnedBadges")}",color = KraPivaColors.Muted) } }
             item {
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for((page,label) in listOf(DiaryPage.DIARY to "Мои записи",DiaryPage.UNIQUE to "Сорта",DiaryPage.WISHLIST to "Хочу попробовать",DiaryPage.STATISTICS to "Статистика",DiaryPage.DRAFTS to "Черновики"))
+                    for((page,label) in listOf(DiaryPage.DIARY to "Мои записи",DiaryPage.UNIQUE to "Сорта",DiaryPage.WISHLIST to "Хочу попробовать",DiaryPage.STATISTICS to "Статистика",DiaryPage.DRAFTS to "Черновики",DiaryPage.COLLECTIONS to "Подборки"))
                         FilterChip(false,{model.open(page)},label = {Text(label)},enabled = !state.busy)
                 }
                 TextButton({onSocial(null)},enabled = !state.busy) {Text("Друзья и лента")}
