@@ -13,6 +13,8 @@ import java.net.URL
 class ApiFailure(val status: Int, override val message: String) : Exception(message)
 class AccountApi(private val store: AccountStore) {
     private val refreshMutex = Mutex()
+    private val localMutex = Mutex()
+    fun ownerId(): String? = session?.optString("userId")
     @Volatile private var session: JSONObject? = null
     suspend fun restore(): Boolean = withContext(Dispatchers.IO) { session = store.session(); session != null }
     suspend fun accept(value: JSONObject) = withContext(Dispatchers.IO) {
@@ -92,6 +94,22 @@ class AccountApi(private val store: AccountStore) {
             val cached = store.cachedCatalog(user,path) ?: throw error
             cached to true
         }
+    }
+    suspend fun localDocument(name: String): JSONObject = withContext(Dispatchers.IO) {
+        val user = ownerId() ?: throw ApiFailure(401,"Требуется вход")
+        store.localDocument(user,name) ?: JSONObject()
+    }
+    suspend fun editLocalDocument(name: String, edit: (JSONObject) -> Unit): JSONObject = localMutex.withLock {
+        withContext(Dispatchers.IO) {
+            val user = ownerId() ?: throw ApiFailure(401,"Требуется вход")
+            val data = store.localDocument(user,name) ?: JSONObject()
+            edit(data)
+            store.saveLocalDocument(user,name,data)
+            data
+        }
+    }
+    suspend fun availableCache(): List<Pair<String,JSONObject>> = withContext(Dispatchers.IO) {
+        ownerId()?.let { store.availableCache(it) }.orEmpty()
     }
     suspend fun invalidateDiary() = withContext(Dispatchers.IO) { session?.getString("userId")?.let(store::invalidateDiary); Unit }
     suspend fun drafts(): org.json.JSONArray = withContext(Dispatchers.IO) { session?.getString("userId")?.let(store::drafts) ?: org.json.JSONArray() }

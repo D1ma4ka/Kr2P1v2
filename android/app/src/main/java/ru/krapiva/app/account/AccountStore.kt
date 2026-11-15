@@ -15,7 +15,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** Tokens never enter preferences, backups, logs or saved instance state. */
-class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.db", null, 3) {
+class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.db", null, 4) {
     private val sessionFile = AtomicFile(File(context.noBackupFilesDir, "session.enc"))
     private val key: SecretKey by lazy {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -49,15 +49,35 @@ class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.
     override fun onCreate(db: SQLiteDatabase) {
         createCatalog(db)
         createDrafts(db)
+        createLocalDocuments(db)
         db.execSQL("CREATE TABLE profile(user_id TEXT PRIMARY KEY, payload BLOB NOT NULL)")
         db.execSQL("CREATE TABLE photos(user_id TEXT NOT NULL, media_id TEXT NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(user_id,media_id))")
     }
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) { if (oldVersion < 2) createCatalog(db); if (oldVersion < 3) createDrafts(db) }
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) { if (oldVersion < 2) createCatalog(db); if (oldVersion < 3) createDrafts(db); if (oldVersion < 4) createLocalDocuments(db) }
     private fun createCatalog(db: SQLiteDatabase) {
         db.execSQL("CREATE TABLE catalog(user_id TEXT NOT NULL, path TEXT NOT NULL, payload BLOB NOT NULL, saved_at INTEGER NOT NULL, PRIMARY KEY(user_id,path))")
     }
     private fun createDrafts(db: SQLiteDatabase) {
         db.execSQL("CREATE TABLE diary_drafts(user_id TEXT NOT NULL,id TEXT NOT NULL,payload BLOB NOT NULL,saved_at INTEGER NOT NULL,PRIMARY KEY(user_id,id))")
+    }
+    private fun createLocalDocuments(db: SQLiteDatabase) {
+        db.execSQL("CREATE TABLE local_documents(user_id TEXT NOT NULL, name TEXT NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(user_id,name))")
+    }
+    @Synchronized fun localDocument(user: String, name: String): JSONObject? {
+        check(session()?.optString("userId") == user) { "Аккаунт изменился" }
+        return readableDatabase.rawQuery("SELECT payload FROM local_documents WHERE user_id=? AND name=?",arrayOf(user,name)).use {
+            if(it.moveToFirst()) JSONObject(decrypt(it.getBlob(0))) else null
+        }
+    }
+    @Synchronized fun saveLocalDocument(user: String, name: String, data: JSONObject) {
+        check(session()?.optString("userId") == user) { "Аккаунт изменился" }
+        writableDatabase.execSQL("INSERT OR REPLACE INTO local_documents(user_id,name,payload) VALUES(?,?,?)",arrayOf(user,name,encrypt(data.toString())))
+    }
+    @Synchronized fun availableCache(user: String): List<Pair<String,JSONObject>> {
+        check(session()?.optString("userId") == user) { "Аккаунт изменился" }
+        return readableDatabase.rawQuery("SELECT path,payload FROM catalog WHERE user_id=? AND saved_at>? ORDER BY saved_at ASC",arrayOf(user,(System.currentTimeMillis()-86_400_000).toString())).use {
+            buildList { while(it.moveToNext()) add(it.getString(0) to JSONObject(decrypt(it.getBlob(1)))) }
+        }
     }
     @Synchronized fun saveDraft(user: String, id: String, data: JSONObject) {
         if (session()?.optString("userId") != user) return
@@ -90,7 +110,10 @@ class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.
     }
     @Synchronized fun clear(preserveDrafts: Boolean = false) {
         sessionFile.delete()
-        if (!preserveDrafts) writableDatabase.delete("diary_drafts", null, null)
+        if (!preserveDrafts) {
+            writableDatabase.delete("diary_drafts", null, null)
+            writableDatabase.delete("local_documents", null, null)
+        }
         writableDatabase.delete("catalog", null, null)
         writableDatabase.delete("profile", null, null)
         writableDatabase.delete("photos", null, null)
