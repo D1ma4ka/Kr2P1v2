@@ -123,8 +123,11 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     }
     KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding().imePadding()) {
-            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            val welcome = state.screen == AccountScreen.WELCOME
+            Column(Modifier.fillMaxSize().verticalScroll(scroll)
+                .then(if (welcome) Modifier.heightIn(min = maxHeight) else Modifier).padding(24.dp),
+                verticalArrangement = if (welcome) Arrangement.SpaceBetween else Arrangement.spacedBy(16.dp)) {
                 if(state.screen != AccountScreen.WELCOME) {
                     if (state.screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.VERIFY, AccountScreen.FORGOT, AccountScreen.RESET, AccountScreen.RESTORING)) AuthBrand()
                     else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -150,6 +153,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
                         AccountScreen.CATALOG, AccountScreen.DIARY, AccountScreen.SOCIAL, AccountScreen.HOME, AccountScreen.VENUES, AccountScreen.BADGES -> Unit
                     }
                 }
+            }
             }
             if (authenticated) navigation { it() }
         }
@@ -188,10 +192,11 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         AuthBrand()
         Text("Твоя пивная история",style = MaterialTheme.typography.headlineMedium,textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         Text("Вкус. Впечатления. Люди.",color = KraPivaColors.Amber)
-        Text("Крафтовое сообщество · 18+",style = MaterialTheme.typography.bodyMedium,color = KraPivaColors.Muted)
     }
-    Action("Создать аккаунт", !state.busy) { model.navigate(AccountScreen.REGISTER) }
-    Action("Войти", !state.busy) { model.navigate(AccountScreen.LOGIN) }
+    Column(Modifier.fillMaxWidth().padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Action("Создать аккаунт", !state.busy) { model.navigate(AccountScreen.REGISTER) }
+        Action("Войти", !state.busy) { model.navigate(AccountScreen.LOGIN) }
+    }
 }
 /** Exact approved wordmark, on its original dark ground in both themes. */
 @Composable private fun AuthBrand() {
