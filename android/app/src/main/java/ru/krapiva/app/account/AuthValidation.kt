@@ -14,7 +14,7 @@ internal object AuthValidation {
         else registrationIssues(email, name, password, confirm, adult).firstOrNull()
     fun registrationIssues(email: String, name: String, password: String, confirm: String, adult: Boolean): List<String> = buildList {
         if (!email(email)) add("Введите корректный e-mail")
-        if (name.isBlank() || name.length > 80) add("Укажите отображаемое имя")
+        if (!UserHandle.valid(name)) add("Никнейм: 3–24 символа a-z, 0-9 и _, первая — буква; без __ и _ в конце")
         if (!password(password)) add(if (passwordLength(password) > 128) "Пароль слишком длинный" else "Пароль: От 12 символов")
         if (confirm != password || confirm.isEmpty()) add("Пароли должны совпадать")
         if (!adult) add("Подтвердите, что вам исполнилось 18 лет")

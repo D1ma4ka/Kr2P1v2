@@ -18,7 +18,8 @@ export const extraProfileFields = {
  avatarAssetId:{anyOf:[uuid,{type:'null'}]},coverAssetId:{anyOf:[uuid,{type:'null'}]},
  links:{type:'array',maxItems:10,uniqueItems:true,items:object({url:{type:'string',maxLength:2048,pattern:'^https://'},visibility})},
 };
-export const profileSchema = object({ userId: uuid, ...profileFields, ...extraProfileFields, version, updatedAt: timestamp });
+export const handle = {type:['string','null']};
+export const profileSchema = object({ userId: uuid, handle, ...profileFields, ...extraProfileFields, version, updatedAt: timestamp });
 export const checkinFields = {
   positionId: uuid, ratingQuarters: { anyOf: [{ type: "integer", minimum: 1, maximum: 20 }, { type: "null" }] },
   body: { type: "string", maxLength: 5000 }, occurredAt: timestamp, visibility,

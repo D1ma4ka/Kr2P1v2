@@ -12,6 +12,7 @@ import {diaryRoutes} from "../checkins/routes.js";
 import * as s from "./schemas.js";
 declare module "fastify" { interface FastifyRequest { userId: string; } }
 import {profile,updateProfile,type ProfileUpdate} from '../profiles/repository.js';
+import {normalizeHandle,handleConflict} from '../identity/handles.js';
 export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media?: MediaService, environment='production') {
   app.decorateRequest("userId", "");
   app.addHook("onRequest",async request => { request.userId = await authenticate(pool,request.headers.authorization); });
@@ -19,6 +20,13 @@ export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media
   const secure = { security: [{ bearerAuth: [] }], response: s.errors };
   app.get("/v1/me", { schema: { ...secure, response: { ...s.errors,200:s.profileSchema } } },async request => {
     return profile(pool,request.userId);
+  });
+  app.put<{Body:{handle:string}}>('/v1/me/handle',{schema:{...secure,
+    body:s.object({handle:{type:'string',minLength:3,maxLength:24}}),response:{...s.errors,200:s.profileSchema}}},async req=>{
+    const handle=normalizeHandle(req.body.handle);
+    const result=await pool.query("UPDATE users SET handle=$2,updated_at=now() WHERE id=$1 AND (handle IS NULL OR handle=$2) RETURNING id",[req.userId,handle]).catch(handleConflict);
+    if(!result.rowCount) {const {ApiError}=await import('./errors.js');throw new ApiError(409,'HANDLE_LOCKED','Никнейм уже выбран');}
+    return profile(pool,req.userId);
   });
   app.get<{Params:{id:string}}>("/v1/users/:id",{schema:{...secure,params:s.idParams,response:{...s.errors,200:s.profileSchema}}},
     request=>profile(pool,request.params.id,request.userId));

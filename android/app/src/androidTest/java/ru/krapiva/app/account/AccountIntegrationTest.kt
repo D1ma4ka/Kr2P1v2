@@ -92,7 +92,7 @@ class AccountIntegrationTest {
         screenshot("p3-welcome.png")
         compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
         compose.onNodeWithText("E-mail").performTextReplacement(email)
-        compose.onNodeWithText("Отображаемое имя").performTextInput("Synthetic Android")
+        compose.onNodeWithText("Никнейм").performTextInput("android_" + java.util.UUID.randomUUID().toString().replace("-", "").take(12))
         compose.onNodeWithText("Пароль · От 12 символов").performTextInput(password)
         compose.onNodeWithText("Повторите пароль").performTextInput(password)
         compose.onNode(isToggleable()).performScrollTo().performClick()
@@ -230,7 +230,7 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Войти").performScrollTo().performClick()
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
         compose.onNodeWithTag("nav-PROFILE").performClick()
-        compose.onNodeWithText("Synthetic Android").assertExists()
+        compose.onNodeWithText("android_" + java.util.UUID.randomUUID().toString().replace("-", "").take(12)).assertExists()
         compose.onNodeWithText("Тестовый город").assertExists()
         screenshot("p3-reset-login.png")
         store.close()

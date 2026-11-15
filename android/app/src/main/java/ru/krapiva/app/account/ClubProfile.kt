@@ -64,6 +64,7 @@ import ru.krapiva.app.diary.*
                         }
                         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(6.dp)) {
                             Text(p.getString("displayName"),style=MaterialTheme.typography.headlineSmall)
+                            if (!p.isNull("handle")) Text("@${p.getString("handle")}",color=KraPivaColors.Amber)
                             val location=listOfNotNull(p.text("city"),p.text("country")).joinToString(", ")
                             if(location.isNotBlank()) Text(location,color=KraPivaColors.Muted)
                             p.text("bio")?.let { Text(it,maxLines=3,color=KraPivaColors.Muted) }
@@ -75,6 +76,7 @@ import ru.krapiva.app.diary.*
                         OutlinedButton({ model.navigate(AccountScreen.EDIT) },Modifier.weight(1f).heightIn(min=48.dp),enabled=!state.busy&&!state.offline) { Text("Редактировать профиль") }
                         AmberAction("Чекин",{ model.openDiary("new") },enabled=!state.busy)
                     }
+                    if (p.isNull("handle")) HandleEntry(state,model)
                 }
                 item {
                     Row {TextButton({model.openVenues()}){Text("Места и карта")};TextButton({model.navigate(AccountScreen.BADGES)}){Text("Достижения")}}

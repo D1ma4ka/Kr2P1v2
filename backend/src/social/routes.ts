@@ -4,11 +4,11 @@ import * as s from '../http/schemas.js';
 import {checkin as diaryCheckin} from '../checkins/routes.js';
 import * as r from './repository.js';
 const count={type:'integer',minimum:0};
-const person={userId:s.uuid,displayName:{type:'string'},createdAt:s.timestamp};
+const person={userId:s.uuid,displayName:{type:'string'},handle:s.handle,createdAt:s.timestamp};
 const request={id:s.uuid,fromUserId:s.uuid,toUserId:s.uuid,status:{type:'string',enum:['pending','accepted','rejected','cancelled']},createdAt:s.timestamp};
 const query={limit:{type:'string',pattern:'^(?:[1-9]|[1-4][0-9]|50)$'},cursor:{type:'string',maxLength:2048,pattern:'^[A-Za-z0-9_-]+$'}};
-const socialCheckin=s.object({...diaryCheckin.properties,displayName:{type:'string'},likeCount:count,commentCount:count,liked:{type:'boolean'}});
-const comment=s.object({id:s.uuid,userId:s.uuid,displayName:{type:'string'},checkinId:s.uuid,body:{type:'string'},createdAt:s.timestamp});
+const socialCheckin=s.object({...diaryCheckin.properties,displayName:{type:'string'},handle:s.handle,likeCount:count,commentCount:count,liked:{type:'boolean'}});
+const comment=s.object({id:s.uuid,userId:s.uuid,displayName:{type:'string'},handle:s.handle,checkinId:s.uuid,body:{type:'string'},createdAt:s.timestamp});
 const nullableUuid={anyOf:[s.uuid,{type:'null'}]};
 export async function socialRoutes(app:FastifyInstance,pool:pg.Pool){
  const secure={security:[{bearerAuth:[]}],response:s.errors};

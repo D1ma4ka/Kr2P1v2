@@ -55,6 +55,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     val scroll = rememberScrollState()
     LaunchedEffect(state.screen) { scroll.scrollTo(0) }
     val authenticated = state.profile != null
+    if (authenticated) HandleSetup(state, model)
     BackHandler(enabled = state.screen !in setOf(AccountScreen.WELCOME, AccountScreen.HOME, AccountScreen.RESTORING)) {
         model.navigate(if (authenticated) AccountScreen.HOME else AccountScreen.WELCOME)
     }
@@ -232,7 +233,10 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
         if (BuildConfig.API_ENVIRONMENT == "development") Text("Локальная почта: name@example.invalid. Письма доступны в Mailpit на компьютере с сервером; во внешний ящик они не доставляются.", style = MaterialTheme.typography.bodySmall)
     }
     if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.RESET)) Input("E-mail", email, enabled, keyboard = KeyboardType.Email, singleLine = false) { email = it.replace("\n", "").replace("\r", "").take(254) }
-    if (screen == AccountScreen.REGISTER) Input("Отображаемое имя", name, enabled) { name = it.take(80) }
+    if (screen == AccountScreen.REGISTER) {
+        Input("Никнейм", name, enabled) { name = it }
+        Link("Проверить никнейм", enabled && UserHandle.valid(name)) { model.checkHandle(name) }
+    }
     if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.RESET)) Input("Пароль · От 12 символов", password, enabled, password = true) { password = it }
     if (screen in setOf(AccountScreen.REGISTER, AccountScreen.RESET)) Input("Повторите пароль", confirm, enabled, password = true) { confirm = it }
     if (screen == AccountScreen.VERIFY) {

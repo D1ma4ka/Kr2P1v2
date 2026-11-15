@@ -3,6 +3,7 @@ import type pg from 'pg';
 import {Accounts} from './accounts.js';
 import type {AccountMailer} from '../mail/accounts.js';
 import * as s from '../http/schemas.js';
+import {normalizeHandle} from './handles.js';
 const email={type:'string',format:'email',maxLength:254,pattern:'^[^\\s]+$'};
 const password={type:'string',minLength:12,maxLength:128};
 const token={type:'string',pattern:'^[A-Za-z0-9_-]{43}$'};
@@ -13,10 +14,15 @@ export async function accountRoutes(app:FastifyInstance,pool:pg.Pool,mail:Accoun
  const generic={message:localMail
   ? 'Если данные подходят, письмо отправлено в локальный Mailpit. Доставка во внешний почтовый ящик не настроена.'
   : 'Если данные подходят, письмо отправлено. Проверьте почту.'};
- app.post<{Body:{email:string;password:string;displayName:string;adultConfirmed:boolean}}>('/v1/auth/register',{
-  schema:{body:s.object({email,password,displayName:{type:'string',minLength:1,maxLength:80,pattern:'\\S'},adultConfirmed:{type:'boolean'}}),response:{...s.errors,202:accepted}}},async(req,reply)=>{
+ app.post<{Body:{email:string;password:string;displayName:string;adultConfirmed:boolean;handle?:string}}>('/v1/auth/register',{
+  schema:{body:s.object({email,password,displayName:{type:'string',minLength:1,maxLength:80,pattern:'\\S'},adultConfirmed:{type:'boolean'},handle:{type:'string',minLength:3,maxLength:24}},['email','password','displayName','adultConfirmed']),response:{...s.errors,202:accepted}}},async(req,reply)=>{
   await accounts.budget(req.ip,req.body.email,'register');
-  await accounts.signup(req.body.email,req.body.password,req.body.displayName,req.body.adultConfirmed);return reply.code(202).send(generic);
+  await accounts.signup(req.body.email,req.body.password,req.body.displayName,req.body.adultConfirmed,req.body.handle);return reply.code(202).send(generic);
+ });
+ app.get<{Params:{handle:string}}>('/v1/auth/handles/:handle',{
+  schema:{params:s.object({handle:{type:'string',minLength:3,maxLength:24}}),response:{...s.errors,200:s.object({available:{type:'boolean'}})}}},async req=>{
+  const handle=normalizeHandle(req.params.handle);await accounts.budget(req.ip,handle,'handle-check');
+  return {available:!(await pool.query('SELECT 1 FROM users WHERE handle=$1',[handle])).rowCount};
  });
  app.post<{Body:{email:string;password:string}}>('/v1/auth/login',{schema:{body:s.object({email,password:{type:'string',minLength:1,maxLength:128}}),response:{...s.errors,200:pair}}},async req=>{
   await accounts.budget(req.ip,req.body.email,'login');return accounts.login(req.body.email,req.body.password);

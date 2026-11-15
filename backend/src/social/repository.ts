@@ -8,11 +8,11 @@ type DB=pg.Pool|pg.PoolClient;
 export interface PageQuery {limit?:string;cursor?:string;q?:string;}
 const friends=`EXISTS(SELECT 1 FROM friendships f WHERE f.user_low=least(u.id,$1::uuid) AND f.user_high=greatest(u.id,$1::uuid))`;
 const profileVisible=`u.status='active' AND (u.id=$1 OR p.profile_visibility='public' OR p.profile_visibility='friends' AND ${friends})`;
-const person=`u.id AS "userId",u.display_name AS "displayName"`;
+const person=`u.id AS "userId",u.display_name AS "displayName",u.handle`;
 const time=(column:string)=>`to_char(${column} AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
 const requestCols=`id,from_user_id AS "fromUserId",to_user_id AS "toUserId",status,${time('created_at')} AS "createdAt"`;
-const commentCols=`co.id,co.author_user_id AS "userId",u.display_name AS "displayName",co.checkin_id AS "checkinId",co.body,${time('co.created_at')} AS "createdAt"`;
-const socialCols=`${d.cols},u.display_name AS "displayName",
+const commentCols=`co.id,co.author_user_id AS "userId",u.display_name AS "displayName",u.handle,co.checkin_id AS "checkinId",co.body,${time('co.created_at')} AS "createdAt"`;
+const socialCols=`${d.cols},u.display_name AS "displayName",u.handle,
  (SELECT count(*)::int FROM reactions rx JOIN users ru ON ru.id=rx.actor_user_id WHERE rx.checkin_id=c.id AND ru.status='active') AS "likeCount",
  EXISTS(SELECT 1 FROM reactions rx WHERE rx.checkin_id=c.id AND rx.actor_user_id=$1) AS liked,
  (SELECT count(*)::int FROM comments co JOIN users cu ON cu.id=co.author_user_id WHERE co.checkin_id=c.id AND co.deleted_at IS NULL AND co.hidden_at IS NULL AND cu.status='active') AS "commentCount"`;
@@ -29,7 +29,7 @@ function page(rows:any[],limit:number,hash:string,key='createdAt',id='id') {
 export async function search(pool:pg.Pool,user:string,q:PageQuery) {
  const {limit,hash,after}=paging(q,`people:${user}`);
  const rows=(await pool.query(`SELECT ${person},${time('u.created_at')} AS "createdAt" FROM users u JOIN user_profiles p ON p.user_id=u.id
- WHERE u.id<>$1 AND ${profileVisible} AND length(catalog_normalize($2))>=2 AND catalog_normalize(u.display_name) LIKE '%'||catalog_normalize($2)||'%'
+ WHERE u.id<>$1 AND ${profileVisible} AND length(catalog_normalize($2))>=2 AND (catalog_normalize(u.display_name) LIKE '%'||catalog_normalize($2)||'%' OR strpos(coalesce(u.handle,''),lower(ltrim($2,'@')))>0)
  AND ($3::timestamptz IS NULL OR (u.created_at,u.id)<($3,$4::uuid)) ORDER BY u.created_at DESC,u.id DESC LIMIT $5`,[user,q.q??'',after?.[0]??null,after?.[1]??null,limit+1])).rows;
  return page(rows,limit,hash,'createdAt','userId');
 }

@@ -73,7 +73,7 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
                     }
                     key(state.revision) {ru.krapiva.app.badges.PinnedBadges(api,p.getString("userId"))}
                     if(p.text("profileVisibility")=="public")ru.krapiva.app.moderation.ReportAction(api,"user",p.getString("userId"),expired)
-                    Text(p.getString("displayName"),style = MaterialTheme.typography.headlineSmall)
+                    Text(p.getString("displayName") + (p.text("handle")?.let {" · @$it"} ?: ""),style = MaterialTheme.typography.headlineSmall)
                     Text(listOfNotNull(p.text("firstName"),p.text("lastName"),p.text("city"),p.text("country")).joinToString(" · "))
                     p.text("bio")?.let { Text(it) };p.text("gender")?.let { Text(it) }
                     val handler = LocalUriHandler.current
@@ -111,13 +111,13 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
                     when(state.page) {
                         SocialPage.FEED,SocialPage.PROFILE -> SocialCheckin(item,api,state.revision,!state.busy,{ model.open(SocialPage.PROFILE,item.getString("userId")) },{ model.open(SocialPage.DETAIL,item.getString("id")) },{model.likePost(item.getString("id"),item.getBoolean("liked"))})
                         SocialPage.DETAIL -> DiaryCard {
-                            Text(item.getString("displayName"),style = MaterialTheme.typography.titleMedium)
+                            Text(item.getString("displayName") + (item.text("handle")?.let {" · @$it"} ?: ""),style = MaterialTheme.typography.titleMedium)
                             if(state.data?.text("visibility")=="public")ru.krapiva.app.moderation.ReportAction(api,"comment",item.getString("id"),expired)
                             Text(item.getString("body"));Text(DiaryDates.display(item.getString("createdAt")),color = KraPivaColors.Muted)
                             if(item.getString("userId") == userId) TextButton({ remove = item.getString("id") to false },enabled = !state.busy) { Text("Удалить комментарий") }
                         }
                         else -> DiaryCard {
-                            Text(item.getString("displayName"),style = MaterialTheme.typography.titleLarge)
+                            Text(item.getString("displayName") + (item.text("handle")?.let {" · @$it"} ?: ""),style = MaterialTheme.typography.titleLarge)
                             TextButton({ model.open(SocialPage.PROFILE,item.getString("userId")) },enabled = !state.busy) { Text("Открыть профиль") }
                             if(state.page == SocialPage.FRIENDS) TextButton({ remove = item.getString("userId") to true },enabled = !state.busy) { Text("Удалить из друзей") }
                             if(state.page == SocialPage.REQUESTS) {
@@ -147,7 +147,7 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
             if(avatar != null) ClubPhoto(api,avatar,"Аватар автора",Modifier.size(40.dp).clip(CircleShape).clickable(enabled = enabled,onClick = onUser))
             else IconButton(onUser,enabled = enabled) {ClubGlyph(ClubIcon.PERSON)}
             Column(Modifier.weight(1f)) {
-                TextButton(onUser,enabled = enabled,contentPadding = PaddingValues(0.dp)) { Text(row.getString("displayName"),style = MaterialTheme.typography.titleMedium,color = KraPivaColors.Cream) }
+                TextButton(onUser,enabled = enabled,contentPadding = PaddingValues(0.dp)) { Text(row.getString("displayName") + (row.text("handle")?.let {" · @$it"} ?: ""),style = MaterialTheme.typography.titleMedium,color = KraPivaColors.Cream) }
                 Text(DiaryDates.display(row.getString("createdAt")),color = KraPivaColors.Muted,style = MaterialTheme.typography.bodySmall)
             }
             if(onDetail != null) IconButton(onDetail,enabled = enabled) {ClubGlyph(ClubIcon.MORE,description = "Открыть обсуждение")}
@@ -173,7 +173,7 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
                 Spacer(Modifier.weight(1f))
                 ru.krapiva.app.catalog.WishlistMark(api,row.getString("positionId"),false)
             }
-            preview?.let {comment -> HorizontalDivider(color = KraPivaColors.Border);Text(comment.getString("displayName"),style = MaterialTheme.typography.titleMedium);Text(comment.getString("body"),maxLines = 2)}
+            preview?.let {comment -> HorizontalDivider(color = KraPivaColors.Border);Text(comment.getString("displayName") + (comment.text("handle")?.let {" · @$it"} ?: ""),style = MaterialTheme.typography.titleMedium);Text(comment.getString("body"),maxLines = 2)}
             TextButton(onDetail,enabled = enabled) {Text("Лайки: ${row.getInt("likeCount")} · комментарии: ${row.getInt("commentCount")}")}
         }
     }

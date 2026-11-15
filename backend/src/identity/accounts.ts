@@ -5,6 +5,7 @@ import {ApiError} from '../http/errors.js';
 import {tokenHash} from './sessions.js';
 import {hashPassword,checkPassword} from './passwords.js';
 import type {AccountMailer} from '../mail/accounts.js';
+import {normalizeHandle,handleConflict} from './handles.js';
 const invalid=()=>new ApiError(401,'INVALID_CREDENTIALS','Неверные данные входа или код');
 export class Accounts {
  constructor(private pool:pg.Pool,private mail:AccountMailer) {}
@@ -16,17 +17,18 @@ export class Accounts {
    if(result.rows[0].count>limit) throw new ApiError(429,'RATE_LIMITED','Слишком много попыток; повторите позже');
   }
  }
- async signup(email:string,password:string,displayName:string,adult:boolean) {
+ async signup(email:string,password:string,displayName:string,adult:boolean,rawHandle?:string) {
+  const handle=rawHandle===undefined?null:normalizeHandle(rawHandle);
   if(!adult) throw new ApiError(422,'ADULT_REQUIRED','KraPiva доступна только с 18 лет');
   const hash=await hashPassword(password);
   await transaction(this.pool,async client=>{
-   const result=await client.query(`INSERT INTO users(email,password_hash,display_name,adult_confirmed_at) VALUES($1,$2,$3,now())
-    ON CONFLICT(email) DO NOTHING RETURNING id`,[email.toLowerCase(),hash,displayName.trim()]);
+   const result=await client.query(`INSERT INTO users(email,password_hash,display_name,adult_confirmed_at,handle) VALUES($1,$2,$3,now(),$4)
+    ON CONFLICT(email) DO NOTHING RETURNING id`,[email.toLowerCase(),hash,displayName.trim(),handle]);
    if(!result.rows[0]) return;
    const id=result.rows[0].id;
    await client.query('INSERT INTO user_profiles(user_id) VALUES($1)',[id]);
    await this.sendToken(client,id,email,'verify_email');
-  });
+  }).catch(handleConflict);
  }
  private async sendToken(client:pg.PoolClient,id:string,email:string,purpose:'verify_email'|'reset_password') {
   const recent=await client.query("SELECT 1 FROM account_tokens WHERE user_id=$1 AND purpose=$2 AND created_at>now()-interval '1 minute'",[id,purpose]);

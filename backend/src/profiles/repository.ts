@@ -1,7 +1,7 @@
 import type pg from 'pg';
 import {transaction} from '../db/pool.js';
 import {ApiError,conflict,notFound} from '../http/errors.js';
-const columns=`p.user_id AS "userId",u.display_name AS "displayName",p.first_name AS "firstName",p.last_name AS "lastName",
+const columns=`p.user_id AS "userId",u.display_name AS "displayName",u.handle,p.first_name AS "firstName",p.last_name AS "lastName",
  p.country,p.city,p.bio,p.gender,p.gender_visibility AS "genderVisibility",p.profile_visibility AS "profileVisibility",
  p.avatar_asset_id AS "avatarAssetId",p.cover_asset_id AS "coverAssetId",p.version,p.updated_at AS "updatedAt"`;
 export interface ProfileUpdate {firstName:string|null;lastName:string|null;country:string|null;city:string|null;bio:string|null;

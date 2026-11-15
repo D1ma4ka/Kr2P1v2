@@ -35,6 +35,10 @@ paths:
                   pattern: \S
                 adultConfirmed:
                   type: boolean
+                handle:
+                  type: string
+                  minLength: 3
+                  maxLength: 24
               required:
                 - email
                 - password
@@ -53,6 +57,260 @@ paths:
                     type: string
                 required:
                   - message
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/auth/handles/{handle}:
+    get:
+      parameters:
+        - schema:
+            type: string
+            minLength: 3
+            maxLength: 24
+          in: path
+          name: handle
+          required: true
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  available:
+                    type: boolean
+                required:
+                  - available
         "400":
           description: Default Response
           content:
@@ -2639,6 +2897,9 @@ paths:
                   userId:
                     type: string
                     format: uuid
+                  handle:
+                    type: string
+                    nullable: true
                   firstName:
                     type: string
                     maxLength: 80
@@ -2718,6 +2979,364 @@ paths:
                     format: date-time
                 required:
                   - userId
+                  - handle
+                  - firstName
+                  - lastName
+                  - city
+                  - country
+                  - bio
+                  - gender
+                  - genderVisibility
+                  - profileVisibility
+                  - displayName
+                  - avatarAssetId
+                  - coverAssetId
+                  - links
+                  - version
+                  - updatedAt
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/me/handle:
+    put:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                handle:
+                  type: string
+                  minLength: 3
+                  maxLength: 24
+              required:
+                - handle
+      security: *a1
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  userId:
+                    type: string
+                    format: uuid
+                  handle:
+                    type: string
+                    nullable: true
+                  firstName:
+                    type: string
+                    maxLength: 80
+                    nullable: true
+                  lastName:
+                    type: string
+                    maxLength: 80
+                    nullable: true
+                  city:
+                    type: string
+                    maxLength: 120
+                    nullable: true
+                  country:
+                    type: string
+                    maxLength: 100
+                    nullable: true
+                  bio:
+                    type: string
+                    maxLength: 2000
+                    nullable: true
+                  gender:
+                    type: string
+                    maxLength: 80
+                    nullable: true
+                  genderVisibility:
+                    type: string
+                    enum:
+                      - private
+                      - friends
+                      - public
+                  profileVisibility:
+                    type: string
+                    enum:
+                      - private
+                      - friends
+                      - public
+                  displayName:
+                    type: string
+                    minLength: 1
+                    maxLength: 80
+                    pattern: \S
+                  avatarAssetId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  coverAssetId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  links:
+                    type: array
+                    maxItems: 10
+                    uniqueItems: true
+                    items:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        url:
+                          type: string
+                          maxLength: 2048
+                          pattern: ^https://
+                        visibility:
+                          type: string
+                          enum:
+                            - private
+                            - friends
+                            - public
+                      required:
+                        - url
+                        - visibility
+                  version:
+                    type: integer
+                    minimum: 1
+                    maximum: 2147483646
+                  updatedAt:
+                    type: string
+                    format: date-time
+                required:
+                  - userId
+                  - handle
                   - firstName
                   - lastName
                   - city
@@ -2985,6 +3604,9 @@ paths:
                   userId:
                     type: string
                     format: uuid
+                  handle:
+                    type: string
+                    nullable: true
                   firstName:
                     type: string
                     maxLength: 80
@@ -3064,6 +3686,7 @@ paths:
                     format: date-time
                 required:
                   - userId
+                  - handle
                   - firstName
                   - lastName
                   - city
@@ -3416,6 +4039,9 @@ paths:
                   userId:
                     type: string
                     format: uuid
+                  handle:
+                    type: string
+                    nullable: true
                   firstName:
                     type: string
                     maxLength: 80
@@ -3495,6 +4121,7 @@ paths:
                     format: date-time
                 required:
                   - userId
+                  - handle
                   - firstName
                   - lastName
                   - city
@@ -15967,12 +16594,16 @@ paths:
                           format: uuid
                         displayName:
                           type: string
+                        handle:
+                          type: string
+                          nullable: true
                         createdAt:
                           type: string
                           format: date-time
                       required:
                         - userId
                         - displayName
+                        - handle
                         - createdAt
                   nextCursor:
                     type: string
@@ -17335,12 +17966,16 @@ paths:
                           format: uuid
                         displayName:
                           type: string
+                        handle:
+                          type: string
+                          nullable: true
                         createdAt:
                           type: string
                           format: date-time
                       required:
                         - userId
                         - displayName
+                        - handle
                         - createdAt
                   nextCursor:
                     type: string
@@ -17616,6 +18251,9 @@ paths:
                           format: uuid
                         displayName:
                           type: string
+                        handle:
+                          type: string
+                          nullable: true
                         createdAt:
                           type: string
                           format: date-time
@@ -17638,6 +18276,7 @@ paths:
                       required:
                         - userId
                         - displayName
+                        - handle
                         - createdAt
                         - id
                         - fromUserId
@@ -18013,6 +18652,9 @@ paths:
                             type: string
                         displayName:
                           type: string
+                        handle:
+                          type: string
+                          nullable: true
                         likeCount:
                           type: integer
                           minimum: 0
@@ -18049,6 +18691,7 @@ paths:
                         - venueSource
                         - tagLabels
                         - displayName
+                        - handle
                         - likeCount
                         - commentCount
                         - liked
@@ -18428,6 +19071,9 @@ paths:
                             type: string
                         displayName:
                           type: string
+                        handle:
+                          type: string
+                          nullable: true
                         likeCount:
                           type: integer
                           minimum: 0
@@ -18464,6 +19110,7 @@ paths:
                         - venueSource
                         - tagLabels
                         - displayName
+                        - handle
                         - likeCount
                         - commentCount
                         - liked
@@ -19096,6 +19743,9 @@ paths:
                       type: string
                   displayName:
                     type: string
+                  handle:
+                    type: string
+                    nullable: true
                   likeCount:
                     type: integer
                     minimum: 0
@@ -19132,6 +19782,7 @@ paths:
                   - venueSource
                   - tagLabels
                   - displayName
+                  - handle
                   - likeCount
                   - commentCount
                   - liked
@@ -19486,6 +20137,9 @@ paths:
                       type: string
                   displayName:
                     type: string
+                  handle:
+                    type: string
+                    nullable: true
                   likeCount:
                     type: integer
                     minimum: 0
@@ -19522,6 +20176,7 @@ paths:
                   - venueSource
                   - tagLabels
                   - displayName
+                  - handle
                   - likeCount
                   - commentCount
                   - liked
@@ -19875,6 +20530,9 @@ paths:
                       type: string
                   displayName:
                     type: string
+                  handle:
+                    type: string
+                    nullable: true
                   likeCount:
                     type: integer
                     minimum: 0
@@ -19911,6 +20569,7 @@ paths:
                   - venueSource
                   - tagLabels
                   - displayName
+                  - handle
                   - likeCount
                   - commentCount
                   - liked
@@ -20191,6 +20850,9 @@ paths:
                           format: uuid
                         displayName:
                           type: string
+                        handle:
+                          type: string
+                          nullable: true
                         checkinId:
                           type: string
                           format: uuid
@@ -20203,6 +20865,7 @@ paths:
                         - id
                         - userId
                         - displayName
+                        - handle
                         - checkinId
                         - body
                         - createdAt
@@ -20490,6 +21153,9 @@ paths:
                     format: uuid
                   displayName:
                     type: string
+                  handle:
+                    type: string
+                    nullable: true
                   checkinId:
                     type: string
                     format: uuid
@@ -20502,6 +21168,7 @@ paths:
                   - id
                   - userId
                   - displayName
+                  - handle
                   - checkinId
                   - body
                   - createdAt

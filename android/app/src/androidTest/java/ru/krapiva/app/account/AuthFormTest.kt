@@ -66,7 +66,7 @@ class AuthFormTest {
         compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
         compose.onNodeWithText("Зарегистрироваться").assertIsNotEnabled()
         compose.onNodeWithText("E-mail").performTextReplacement(email)
-        compose.onNodeWithText("Отображаемое имя").performTextInput("Synthetic OTP UI")
+        compose.onNodeWithText("Никнейм").performTextInput("otp_ui_" + UUID.randomUUID().toString().replace("-", "").take(12))
         compose.onNodeWithText("Пароль · От 12 символов").performScrollTo().performTextInput(password)
         compose.onNodeWithText("Повторите пароль").performScrollTo().performTextInput(password)
         compose.runOnIdle { keyboard?.hide() }

@@ -119,8 +119,16 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     fun refresh() = task { loadProfile() }
     fun register(email: String, password: String, name: String, adult: Boolean) = task {
         val result = api.json("v1/auth/register", "POST", JSONObject().put("email", email.trim()).put("password", password)
-            .put("displayName", name.trim()).put("adultConfirmed", adult), false)
+            .put("displayName", UserHandle.normalize(name)).put("handle", UserHandle.normalize(name)).put("adultConfirmed", adult), false)
         mutable.value = mutable.value.copy(authEmail = email.trim(),screen = AccountScreen.VERIFY, notice = result.getString("message") + " Введите 6 цифр из письма. Срок — 10 минут.")
+    }
+    fun checkHandle(handle: String) = task {
+        val result = api.json("v1/auth/handles/${android.net.Uri.encode(UserHandle.normalize(handle))}", secure = false)
+        mutable.value = mutable.value.copy(notice = "@${UserHandle.normalize(handle)}: " + if (result.getBoolean("available")) "свободен. Окончательная проверка — при регистрации." else "Этот никнейм уже занят. Попробуй другой")
+    }
+    fun claimHandle(handle: String) = task {
+        val profile = api.json("v1/me/handle", "PUT", JSONObject().put("handle", UserHandle.normalize(handle)))
+        api.cache(profile); mutable.value = mutable.value.copy(profile = profile, notice = "Никнейм сохранён")
     }
     fun login(email: String, password: String) = task {
         val session = api.json("v1/auth/login", "POST", JSONObject().put("email", email.trim()).put("password", password), false)
