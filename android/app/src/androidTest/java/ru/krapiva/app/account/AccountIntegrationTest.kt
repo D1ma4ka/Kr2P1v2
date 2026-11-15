@@ -93,7 +93,7 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
         compose.onNodeWithText("E-mail").performTextReplacement(email)
         compose.onNodeWithText("Никнейм").performTextInput("android_" + java.util.UUID.randomUUID().toString().replace("-", "").take(12))
-        compose.onNodeWithText("Пароль · От 12 символов").performTextInput(password)
+        compose.onNodeWithText("Пароль — от 8 символов").performTextInput(password)
         compose.onNodeWithText("Повторите пароль").performTextInput(password)
         compose.onNode(isToggleable()).performScrollTo().performClick()
         compose.onNodeWithText("Зарегистрироваться").performScrollTo().performClick()
@@ -118,7 +118,7 @@ class AccountIntegrationTest {
         try { compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() } }
         catch(error: Throwable) { throw AssertionError("P3_VERIFY_STATE=${model.state.value.screen},busy=${model.state.value.busy},error=${model.state.value.error}",error) }
         compose.onNodeWithText("Почта или никнейм").performTextReplacement(email)
-        compose.onNodeWithText("Пароль · От 12 символов").performTextInput(password)
+        compose.onNodeWithText("Пароль — от 8 символов").performTextInput(password)
         compose.onNodeWithText("Войти").performScrollTo().performClick()
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
         compose.onNodeWithTag("nav-PROFILE").performClick()
@@ -221,12 +221,12 @@ class AccountIntegrationTest {
             Regex("Код восстановления: ([0-9]{6})").find(message.getString("Text"))!!.groupValues[1]
         }
         compose.onNodeWithText("Код из 6 цифр").performTextInput(resetCode)
-        compose.onNodeWithText("Пароль · От 12 символов").performTextInput("New synthetic Android password!")
+        compose.onNodeWithText("Пароль — от 8 символов").performTextInput("New synthetic Android password!")
         compose.onNodeWithText("Повторите пароль").performTextInput("New synthetic Android password!")
         compose.onNodeWithText("Сменить пароль").performScrollTo().performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Почта или никнейм").performTextReplacement(email)
-        compose.onNodeWithText("Пароль · От 12 символов").performTextInput("New synthetic Android password!")
+        compose.onNodeWithText("Пароль — от 8 символов").performTextInput("New synthetic Android password!")
         compose.onNodeWithText("Войти").performScrollTo().performClick()
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
         compose.onNodeWithTag("nav-PROFILE").performClick()

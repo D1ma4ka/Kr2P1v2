@@ -27,7 +27,7 @@ class AuthFormTest {
         compose.waitUntil(15_000) { model.state.value.screen == AccountScreen.WELCOME }
         for (theme in ThemeMode.entries) {
             compose.runOnIdle { mode = theme; model.navigate(AccountScreen.REGISTER) }
-            compose.onNodeWithText("Пароль · От 12 символов").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Пароль — от 8 символов").performScrollTo().assertIsDisplayed()
             assertNoDevelopmentMessages()
             compose.onNodeWithTag("auth-logo").assertExists()
             compose.onNodeWithTag("auth-beer").assertDoesNotExist()
@@ -67,7 +67,7 @@ class AuthFormTest {
         compose.onNodeWithText("Зарегистрироваться").assertIsNotEnabled()
         compose.onNodeWithText("E-mail").performTextReplacement(email)
         compose.onNodeWithText("Никнейм").performTextInput("otp_ui_" + UUID.randomUUID().toString().replace("-", "").take(12))
-        compose.onNodeWithText("Пароль · От 12 символов").performScrollTo().performTextInput(password)
+        compose.onNodeWithText("Пароль — от 8 символов").performScrollTo().performTextInput(password)
         compose.onNodeWithText("Повторите пароль").performScrollTo().performTextInput(password)
         compose.runOnIdle { keyboard?.hide() }
         compose.onNodeWithText("Зарегистрироваться").assertIsNotEnabled()
@@ -77,7 +77,7 @@ class AuthFormTest {
         repeat(2) { compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsEnabled().performClick() }
         compose.onNodeWithText("Пароли не совпадают").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("E-mail").assertTextContains(email)
-        compose.onNodeWithText("Пароль · От 12 символов").assertTextContains(password)
+        compose.onNodeWithText("Пароль — от 8 символов").assertTextContains(password)
         compose.onNodeWithText("Повторите пароль").assertTextContains("Different password!")
         compose.runOnIdle { assertEquals(AccountScreen.REGISTER, model.state.value.screen); assertFalse(model.state.value.busy) }
         compose.onNodeWithText("Повторите пароль").performScrollTo().performTextReplacement(password)
@@ -97,7 +97,7 @@ class AuthFormTest {
             .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { assertTrue(it()) }
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.LOGIN && !model.state.value.busy }
         compose.onNodeWithText("Почта или никнейм").assertTextContains(email)
-        compose.onNodeWithText("Пароль · От 12 символов").performScrollTo().performTextInput(password)
+        compose.onNodeWithText("Пароль — от 8 символов").performScrollTo().performTextInput(password)
         compose.runOnIdle { keyboard?.hide() }
         compose.onNodeWithText("Войти").performScrollTo().performClick()
         compose.waitUntil(30_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }

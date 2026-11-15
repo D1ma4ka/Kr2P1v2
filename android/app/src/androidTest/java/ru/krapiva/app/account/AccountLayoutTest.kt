@@ -28,7 +28,7 @@ class AccountLayoutTest {
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Создать аккаунт").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
         compose.onNodeWithText("E-mail").performScrollTo().performTextInput("layout@example.invalid")
-        compose.onNodeWithText("Пароль · От 12 символов").performScrollTo().performTextInput("Layout synthetic password!")
+        compose.onNodeWithText("Пароль — от 8 символов").performScrollTo().performTextInput("Layout synthetic password!")
         compose.onNodeWithText("Повторите пароль").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("auth-logo").assertExists()

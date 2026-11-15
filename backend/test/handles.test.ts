@@ -63,7 +63,10 @@ test('P8.3 HTTP/SQL/Mailpit: additive upgrade, legacy identity/session/history, 
   await assert.rejects(db.pool.query("UPDATE users SET handle='UPPERCASE' WHERE id=$1",[f.b.id]),{code:'23514'});
   const handle='craft_'+randomUUID().replaceAll('-','').slice(0,10);
   const emails=[0,1].map(i=>`handle-${i}-${randomUUID()}@example.invalid`);
-  const results=await Promise.all(emails.map((email,i)=>call('/v1/auth/register',{email,password,displayName:'New user',adultConfirmed:true,handle:i?handle.toUpperCase():handle})));
+  const registrationPassword='Aa 12_34';assert.equal(registrationPassword.length,8);
+  for(const invalidPassword of ['1234567','🍺'.repeat(7),'a'.repeat(129)])
+   assert.equal((await call('/v1/auth/register',{email:emails[0],password:invalidPassword,displayName:'New user',adultConfirmed:true,handle})).status,400);
+  const results=await Promise.all(emails.map((email,i)=>call('/v1/auth/register',{email,password:registrationPassword,displayName:'New user',adultConfirmed:true,handle:i?handle.toUpperCase():handle})));
   assert.deepEqual(results.map(r=>r.status).sort(),[202,409]);
   const loser=await results.find(r=>r.status===409)!.json() as any;assert.equal(loser.error.message,'Этот никнейм уже занят. Попробуй другой');
   assert.equal((await db.pool.query('SELECT count(*)::int AS n FROM users WHERE handle=$1',[handle])).rows[0].n,1);
@@ -75,7 +78,9 @@ test('P8.3 HTTP/SQL/Mailpit: additive upgrade, legacy identity/session/history, 
   const letter=await(await fetch(mailbox+'/api/v1/message/'+list.messages[0].ID)).json() as any;
   const code=letter.Text.match(/Код подтверждения: ([0-9]{6})/)[1];
   assert.equal((await call('/v1/auth/verify-code',{email,code})).status,204);
-  assert.equal((await call('/v1/auth/login',{email,password})).status,200);
+  assert.equal((await call('/v1/auth/login',{email,password:registrationPassword})).status,200);
+  assert.equal((await call('/v1/auth/login',{identifier:'@'+handle,password:registrationPassword.toLowerCase()})).status,401);
+  assert.equal((await call('/v1/auth/login',{identifier:handle,password:registrationPassword.replace(' ','')})).status,401);
   assert.equal((await db.pool.query('SELECT password_hash FROM users WHERE id=$1',[f.a.id])).rows[0].password_hash,original);
  } finally {await app.close();await db.close();await rm(dir,{recursive:true,force:true});}
 });

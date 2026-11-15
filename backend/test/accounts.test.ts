@@ -82,12 +82,12 @@ test('P3 real HTTP/SQL/SMTP: registration, single-use confirmation/reset, sessio
   assert.equal((await call('/v1/auth/forgot-password',{email})).status,202);
   const reset=await code(email,true);
   assert.equal((await call('/v1/auth/forgot-password',{email})).status,202);
-  assert.equal((await call('/v1/auth/reset-password-code',{email,code:reset,password:'New synthetic password!'})).status,204);
-  assert.equal((await call('/v1/auth/reset-password-code',{email,code:reset,password:'New synthetic password!'})).status,401);
+  assert.equal((await call('/v1/auth/reset-password-code',{email,code:reset,password:'New 123!'})).status,204);
+  assert.equal((await call('/v1/auth/reset-password-code',{email,code:reset,password:'New 123!'})).status,401);
   assert.equal((await call('/v1/me',undefined,fresh.accessToken)).status,401);
   assert.equal((await call('/v1/auth/refresh',{refreshToken:fresh.refreshToken})).status,401);
   assert.equal((await call('/v1/auth/login',{email,password})).status,401);
-  const final=(await call('/v1/auth/login',{email,password:'New synthetic password!'})).body;
+  const final=(await call('/v1/auth/login',{email,password:'New 123!'})).body;
   const deletion=await call('/v1/me/deletion-request',{},final.accessToken);assert.equal(deletion.status,202);assert.ok(deletion.body.eraseAfter);
   assert.equal((await call('/v1/me',undefined,final.accessToken)).status,401);
   assert.equal((await call('/v1/users/'+user,undefined,second.accessToken)).status,404);

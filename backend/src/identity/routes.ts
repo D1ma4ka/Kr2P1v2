@@ -5,7 +5,7 @@ import type {AccountMailer} from '../mail/accounts.js';
 import * as s from '../http/schemas.js';
 import {normalizeHandle} from './handles.js';
 const email={type:'string',format:'email',maxLength:254,pattern:'^[^\\s]+$'};
-const password={type:'string',minLength:12,maxLength:128};
+const password={type:'string',minLength:8,maxLength:128};
 const token={type:'string',pattern:'^[A-Za-z0-9_-]{43}$'};
 const accepted=s.object({message:{type:'string'}});
 const pair=s.object({userId:s.uuid,accessToken:token,refreshToken:token,expiresAt:s.timestamp});
