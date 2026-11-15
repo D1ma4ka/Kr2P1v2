@@ -105,7 +105,7 @@ fun AccountApp(model: AccountViewModel = viewModel()) {
     }
     if (state.screen == AccountScreen.CATALOG && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload, { model.navigate(AccountScreen.PROFILE) }, model::sessionExpired, onHome = model::openHome, onCheckin = { model.openDiary("new",it) }, requestedPosition = model.catalogPosition, consumePosition = model::consumeCatalogPosition, bottomBar = { navigation { it() } },onSettings = {model.navigate(AccountScreen.SETTINGS)})
+            ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload, { model.navigate(AccountScreen.PROFILE) }, model::sessionExpired, onHome = model::openHome, onCheckin = { model.openDiary("new",it) }, requestedPosition = model.catalogPosition, consumePosition = model::consumeCatalogPosition,onOwnCheckin = model::openOwnCheckin, bottomBar = { navigation { it() } },onSettings = {model.navigate(AccountScreen.SETTINGS)})
         }
         return
     }

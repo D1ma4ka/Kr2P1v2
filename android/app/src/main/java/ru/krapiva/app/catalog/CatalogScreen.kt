@@ -36,7 +36,7 @@ import androidx.compose.foundation.horizontalScroll
 import ru.krapiva.app.diary.objects
 
 @Composable
-fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String, onProfile: () -> Unit, expired: () -> Unit, providedModel: CatalogViewModel? = null, onHome: (() -> Unit)? = null, onCheckin: ((JSONObject?) -> Unit)? = null, requestedPosition: String? = null, consumePosition: () -> Unit = {}, bottomBar: @Composable () -> Unit = {},onSettings: () -> Unit = onProfile) {
+fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String, onProfile: () -> Unit, expired: () -> Unit, providedModel: CatalogViewModel? = null, onHome: (() -> Unit)? = null, onCheckin: ((JSONObject?) -> Unit)? = null, requestedPosition: String? = null, consumePosition: () -> Unit = {}, bottomBar: @Composable () -> Unit = {},onSettings: () -> Unit = onProfile,onOwnCheckin: (String) -> Unit = {}) {
     val model: CatalogViewModel = providedModel ?: viewModel(key = "catalog-$userId", factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T = CatalogViewModel(CatalogRepository(api), upload, expired) as T
     })
@@ -54,7 +54,7 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (state.page) {
                     CatalogPage.POSITIONS, CatalogPage.BREWERIES, CatalogPage.STYLES, CatalogPage.PROPOSALS -> CatalogList(state, model, api)
-                    CatalogPage.POSITION, CatalogPage.BREWERY -> Detail(state, model, api, onCheckin)
+                    CatalogPage.POSITION, CatalogPage.BREWERY -> Detail(state, model, api, onCheckin,onOwnCheckin)
                     CatalogPage.PROPOSAL -> ProposalForm(state, model)
                     CatalogPage.SCANNER -> ScannerScreen(state, model)
                 }
@@ -172,7 +172,7 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: Accou
         }
     }
 }
-@Composable private fun Detail(state: CatalogState, model: CatalogViewModel, api: AccountApi, onCheckin: ((JSONObject?) -> Unit)?) {
+@Composable private fun Detail(state: CatalogState, model: CatalogViewModel, api: AccountApi, onCheckin: ((JSONObject?) -> Unit)?,onOwnCheckin: (String) -> Unit) {
     val data = state.detail ?: return
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         CatalogImage(data, model.repository, state.offline, true)
@@ -193,6 +193,7 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: Accou
         data.text("imageSource")?.let { Text("Источник фото: $it", color = KraPivaColors.Muted) }
         if(state.page == CatalogPage.POSITION) key(data) {
             ru.krapiva.app.offline.AddToCollection(api,data.getString("canonicalId"))
+            PositionPersonalHistory(api,data.getString("canonicalId"),onOwnCheckin)
             ru.krapiva.app.diary.PositionDiaryActions(api,data.getString("canonicalId")) { onCheckin?.invoke(data) }
         }
         TextButton({ model.refresh() }, enabled = !state.busy) { Text("Обновить карточку") }
