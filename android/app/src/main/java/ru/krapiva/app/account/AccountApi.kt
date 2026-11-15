@@ -111,6 +111,10 @@ class AccountApi(private val store: AccountStore) {
     suspend fun availableCache(): List<Pair<String,JSONObject>> = withContext(Dispatchers.IO) {
         ownerId()?.let { store.availableCache(it) }.orEmpty()
     }
+    suspend fun rememberBadges(owner: String?, data: JSONObject) = withContext(Dispatchers.IO) {
+        if(owner != null && ownerId() == owner)store.cacheCatalog(owner,"v1/me/badges",data)
+        Unit
+    }
     suspend fun invalidateDiary() = withContext(Dispatchers.IO) { session?.getString("userId")?.let(store::invalidateDiary); Unit }
     suspend fun drafts(): org.json.JSONArray = withContext(Dispatchers.IO) { session?.getString("userId")?.let(store::drafts) ?: org.json.JSONArray() }
     suspend fun saveDraft(data: JSONObject) = withContext(Dispatchers.IO) { session?.getString("userId")?.let { store.saveDraft(it,data.getString("draftId"),data) }; Unit }
