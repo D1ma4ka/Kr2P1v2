@@ -1,3 +1,66 @@
+# Аварийная остановка · 20 ноября 2026 · продолжение аудита П8.4
+
+**STOP по новой команде владельца. Возобновлять только по следующей команде.**
+
+Ветка `audit/krapiva-qa-product-20261120`, база продукта `83403b47d3bdac67585cbda4181eea17923098c1`. Исходный checkpoint `e8078525cf35de07b18723d65c4fbc7ddeacd01e`; последний опубликованный до аварийного сохранения commit `7c0de2215baf8e52f25f83d0ac5db5cdc13d3db1`. Сам checkpoint с этой передачей можно найти по сообщению `QA: аварийный checkpoint после подготовки входа Android`. Его полный SHA возвращает команда:
+
+```sh
+git log -1 --format=%H --fixed-strings --grep='QA: аварийный checkpoint после подготовки входа Android'
+git ls-remote origin refs/heads/audit/krapiva-qa-product-20261120
+```
+
+**Завершено.** Сверены обе удалённые ветки. Различия исходного APK, базы продукта и checkpoint относятся к документации. Изолированные PostgreSQL и Mailpit подняты, backend собран и мигрирован, ready вернул 200. Для синтетического аккаунта прошли регистрация, получение кода через Mailpit, подтверждение и вход через HTTP с хоста. Подготовлены каталог и два приватных чекина, без оценки и с оценкой. Повтор отправки с одинаковым ключом вернул тот же ID, серверная главная показывает две записи. [Журнал](docs/audits/evidence/resume-api.txt).
+
+**Частично.** Исходный Actions APK скачать не удалось (Forbidden). Скачаны Gradle 8.11.1, JDK 21, SDK35 и системный образ API26. Локальная сборка дошла до задач Kotlin/Dex и остановлена до получения APK. Эмулятор без KVM появился в ADB, API 26 подтверждён, порт проброшен. Ни установка, ни ввод пароля в новом Android, ни получение главной приложением не подтверждены. Готовность API 33 не проверена.
+
+**Баги и остаток.** Новых багов — 0. Степени уверенности KP-QA-001–012 сохранены. Новых скриншотов и оснований менять UX и продуктовые рекомендации нет. Первая точка после новой команды — сверить HEAD и достроить debug APK, затем войти в настоящей форме Android и сопоставить новое событие login 200 в журнале с кадром главной. Дальше пять вкладок, F1–F10, KP-QA-001–005, офлайн/повтор, два владельца, камера, геолокация, доступность и доставка на API 33+. Сохраняются 42/42 исторических серверных теста. Готовность к внешнему тестированию пока не установлена.
+
+### Восстановление в сохранившемся окружении
+
+Рабочая копия `/workspace/Kr2P1v2`. Остановлены сервер Node, сборочные процессы, эмулятор, контейнер ADB, db и mailpit. Тома и AVD сохранены. После новой команды, из корня:
+
+```sh
+git status -sb
+git ls-remote origin refs/heads/audit/krapiva-qa-product-20261120
+source work/audit26/vars
+unset ANDROID_PREFS_ROOT ANDROID_SDK_HOME
+(cd android && "$audit_dir/gradle-8.11.1/bin/gradle" --no-daemon assembleDebug)
+sha256sum android/app/build/outputs/apk/debug/*.apk
+docker compose -p krapiva_qa_resume start db mailpit
+docker start krapiva_qa_adb
+```
+
+В отдельном терминале в корне запустить API и проверить готовность с хоста:
+
+```sh
+(cd backend && PORT=53000 node --env-file=../.env dist/src/main.js) >> work/audit26/server.log 2>&1
+```
+
+В другом терминале из корня:
+
+```sh
+curl -fsS http://127.0.0.1:53000/health/ready
+source work/audit26/vars
+ANDROID_I_WANT_MY_TCG=yes "$ANDROID_HOME/emulator/emulator" -avd qa26 -no-window -noaudio -no-snapshot -no-metrics -no-boot-anim -gpu swiftshader_indirect -accel off -cores 2 -port 5554
+```
+
+При доступном KVM использовать ускорение. Для сохранённого тестового AVD в ещё одном терминале из корня:
+
+```sh
+source work/audit26/vars
+adb -s emulator-5554 wait-for-device
+adb -s emulator-5554 shell getprop sys.boot_completed
+adb -s emulator-5554 reverse tcp:53000 tcp:53000
+adb -s emulator-5554 install -r android/app/build/outputs/apk/debug/app-debug.apk
+adb -s emulator-5554 shell am start -n ru.krapiva.app.debug/ru.krapiva.app.MainActivity
+```
+
+Дождаться значения 1 у sys.boot_completed перед установкой. Войти через «Войти» с данными из локального закрытого `work/audit26/login.json`, не печатать файл, ввод или ответы с токенами в журнал. Отделить новые запросы Android от ранее сделанных с хоста. Зафиксировать APK SHA и новый кадр после отображения данных. В свежей среде ignored-каталог, ключи, контейнеры и аккаунт могут отсутствовать. Тогда следовать исторической передаче ниже, создать новый стенд и пройти обычную регистрацию; для APK с адресом 127.0.0.1 обязателен adb reverse. Не удалять чужие установки или тома.
+
+---
+
+## Предыдущая передача (сохранена для истории)
+
 # Восстановление после аварийной остановки 20 ноября 2026
 
 **Статус STOP. Продолжать только после новой команды владельца.** Текущий этап — независимая приёмка Android П8.4 и продуктовый аудит. Изменены только материалы аудита и передачи. Реализация и исправления не разрешены.

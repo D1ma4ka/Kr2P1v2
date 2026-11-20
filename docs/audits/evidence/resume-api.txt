@@ -1,0 +1,15 @@
+20 ноября 2026. Локальный PostgreSQL/Mailpit и backend 83403b4.
+Выдержка из журнала backend, только метод, маршрут и статус. Все запросы сделаны с хоста.
+
+GET /health/ready 200
+POST /v1/auth/register 202
+POST /v1/auth/verify-code 204
+POST /v1/auth/login 200
+POST /v1/checkins 201
+POST /v1/checkins 201
+POST /v1/checkins 200
+GET /v1/me/home 200
+
+При подготовке двух приватных записей повтор второго POST с тем же ключом вернул первоначальный ID.
+Проверка ответа /v1/me/home: statistics.totalCheckins == 2. Обе проверки равенства прошли.
+Android UI в этой цепочке не участвовал.
