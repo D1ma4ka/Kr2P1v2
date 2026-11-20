@@ -1,0 +1,5 @@
+android/app/src/main/java/ru/krapiva/app/diary/DiaryEditor.kt:155  model.preparePublish(data(true))
+android/app/src/main/java/ru/krapiva/app/diary/DiaryScreen.kt:57  model.confirmPublish(candidate.getString("id"))
+android/app/src/main/java/ru/krapiva/app/diary/DiaryViewModel.kt:174  if(candidateId != null) data.put("positionId",candidateId)
+android/app/src/main/java/ru/krapiva/app/diary/DiaryViewModel.kt:199  if(id == null) body.put("positionId"
+backend/src/checkins/repository.ts:66  positionId:old.position_id
