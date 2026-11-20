@@ -196,7 +196,8 @@ PASS — выполнен указанный критерий в его слое
 | П6.1 | 14 утверждённых изображений, 7 пар, Light/Dark | docs/design/p61-approved и design system | Ресурсы есть. Визуальный паритет семи пар BLOCKED |
 | П8.1 | Локальные черновики, проверка похожих позиций | DiaryEditor + DiaryViewModel | PARTIAL: путь в коде; kill/retry не принят |
 | П8.2 | Ошибки регистрации и цифровой сброс | AuthForm, reset-code endpoint | PARTIAL: Mailpit/HTTP PASS; полный Android сценарий открыт |
-| П8.3 A1–A4 | Никнеймы, вход и миграция прежних пользователей | UserHandle, аккаунты и миграции | PARTIAL: handles.test и legacy identity PASS, ручной UI отдельно |
+| П8.3 A1–A4 | Приветствие, технические сообщения, адрес в VERIFY и состояния регистрации | AccountScreen/AuthForm | PARTIAL: структура проверена; восстановление формы и письмо на устройстве требуют проверки |
+| П8.3 A5–A10 | Motion на Welcome, никнеймы, вход и миграция прежних пользователей, минимум 8 символов и узор | UserHandle, аккаунты и миграции | PARTIAL: handles.test и legacy identity PASS, ручной UI отдельно |
 | П8.4 F1 | Редактор, четверти, фото, черновик | DiaryEditor | PARTIAL: формы и связь с моделью; KP-QA-009/012 |
 | П8.4 F2 | Подборки, перенос и порядок | CollectionsRepository/Screen | PARTIAL: checked source; KP-QA-007; изоляция на устройстве открыта |
 | П8.4 F3 | Вкус на доступной истории | PersonalAnalytics, TasteScreen | PARTIAL: фильтр владельца, TTL и nullable rating в исходниках |
