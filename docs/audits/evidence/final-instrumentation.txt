@@ -1,0 +1,199 @@
+Android API 26. Отдельный запуск каждого исходного JUnit-класса. Время хоста включает запуск instrumentation.
+
+LocalStorageTest
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+ru.krapiva.app.offline.LocalStorageTest:
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: test=upgradePreservesEncryptedDraftAndCollectionsRemainOwnerScoped
+INSTRUMENTATION_STATUS: class=ru.krapiva.app.offline.LocalStorageTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+Error in upgradePreservesEncryptedDraftAndCollectionsRemainOwnerScoped(ru.krapiva.app.offline.LocalStorageTest):
+java.lang.ClassCastException: ru.krapiva.app.account.AccountStore cannot be cast to java.lang.AutoCloseable
+	at ru.krapiva.app.offline.LocalStorageTest$upgradePreservesEncryptedDraftAndCollectionsRemainOwnerScoped$1.invokeSuspend(LocalStorageTest.kt:15)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:108)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:280)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:85)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:59)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:38)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source:1)
+	at ru.krapiva.app.offline.LocalStorageTest.upgradePreservesEncryptedDraftAndCollectionsRemainOwnerScoped(LocalStorageTest.kt:12)
+
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: test=upgradePreservesEncryptedDraftAndCollectionsRemainOwnerScoped
+INSTRUMENTATION_STATUS: class=ru.krapiva.app.offline.LocalStorageTest
+INSTRUMENTATION_STATUS: stack=java.lang.ClassCastException: ru.krapiva.app.account.AccountStore cannot be cast to java.lang.AutoCloseable
+	at ru.krapiva.app.offline.LocalStorageTest$upgradePreservesEncryptedDraftAndCollectionsRemainOwnerScoped$1.invokeSuspend(LocalStorageTest.kt:15)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:108)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:280)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:85)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:59)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:38)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source:1)
+	at ru.krapiva.app.offline.LocalStorageTest.upgradePreservesEncryptedDraftAndCollectionsRemainOwnerScoped(LocalStorageTest.kt:12)
+
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 0.354
+There was 1 failure:
+1) upgradePreservesEncryptedDraftAndCollectionsRemainOwnerScoped(ru.krapiva.app.offline.LocalStorageTest)
+java.lang.ClassCastException: ru.krapiva.app.account.AccountStore cannot be cast to java.lang.AutoCloseable
+	at ru.krapiva.app.offline.LocalStorageTest$upgradePreservesEncryptedDraftAndCollectionsRemainOwnerScoped$1.invokeSuspend(LocalStorageTest.kt:15)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:108)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:280)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:85)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:59)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:38)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source:1)
+	at ru.krapiva.app.offline.LocalStorageTest.upgradePreservesEncryptedDraftAndCollectionsRemainOwnerScoped(LocalStorageTest.kt:12)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+Host elapsed 5.4 s
+REVIEW OUTPUT
+
+ShareImageTest
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+ru.krapiva.app.offline.ShareImageTest:
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: test=realPngLongTitlesAndContentUriWithoutExternalStorage
+INSTRUMENTATION_STATUS: class=ru.krapiva.app.offline.ShareImageTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: test=realPngLongTitlesAndContentUriWithoutExternalStorage
+INSTRUMENTATION_STATUS: class=ru.krapiva.app.offline.ShareImageTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 2.544
+
+OK (1 test)
+
+
+INSTRUMENTATION_CODE: -1
+Host elapsed 7.6 s
+PASS
+
+RemindersTest
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+ru.krapiva.app.offline.RemindersTest:
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: test=optInInboxPersistsAndJobsCancelWithoutRealAccountData
+INSTRUMENTATION_STATUS: class=ru.krapiva.app.offline.RemindersTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+Error in optInInboxPersistsAndJobsCancelWithoutRealAccountData(ru.krapiva.app.offline.RemindersTest):
+java.lang.ClassCastException: ru.krapiva.app.account.AccountStore cannot be cast to java.lang.AutoCloseable
+	at ru.krapiva.app.offline.RemindersTest$optInInboxPersistsAndJobsCancelWithoutRealAccountData$1.invokeSuspend(RemindersTest.kt:19)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:108)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:280)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:85)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:59)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:38)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source:1)
+	at ru.krapiva.app.offline.RemindersTest.optInInboxPersistsAndJobsCancelWithoutRealAccountData(RemindersTest.kt:14)
+
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: test=optInInboxPersistsAndJobsCancelWithoutRealAccountData
+INSTRUMENTATION_STATUS: class=ru.krapiva.app.offline.RemindersTest
+INSTRUMENTATION_STATUS: stack=java.lang.ClassCastException: ru.krapiva.app.account.AccountStore cannot be cast to java.lang.AutoCloseable
+	at ru.krapiva.app.offline.RemindersTest$optInInboxPersistsAndJobsCancelWithoutRealAccountData$1.invokeSuspend(RemindersTest.kt:19)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:108)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:280)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:85)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:59)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:38)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source:1)
+	at ru.krapiva.app.offline.RemindersTest.optInInboxPersistsAndJobsCancelWithoutRealAccountData(RemindersTest.kt:14)
+
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 0.325
+There was 1 failure:
+1) optInInboxPersistsAndJobsCancelWithoutRealAccountData(ru.krapiva.app.offline.RemindersTest)
+java.lang.ClassCastException: ru.krapiva.app.account.AccountStore cannot be cast to java.lang.AutoCloseable
+	at ru.krapiva.app.offline.RemindersTest$optInInboxPersistsAndJobsCancelWithoutRealAccountData$1.invokeSuspend(RemindersTest.kt:19)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:108)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:280)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:85)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:59)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source:1)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:38)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source:1)
+	at ru.krapiva.app.offline.RemindersTest.optInInboxPersistsAndJobsCancelWithoutRealAccountData(RemindersTest.kt:14)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+Host elapsed 9.6 s
+REVIEW OUTPUT
+
+EditorOfflineTest
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+ru.krapiva.app.offline.EditorOfflineTest:
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: test=closeImmediatelyPersistsLatestFieldsWithoutBackend
+INSTRUMENTATION_STATUS: class=ru.krapiva.app.offline.EditorOfflineTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: numtests=1
+INSTRUMENTATION_STATUS: stream=
+Error in closeImmediatelyPersistsLatestFieldsWithoutBackend(ru.krapiva.app.offline.EditorOfflineTest):
+java.lang.ClassCastException: ru.krapiva.app.account.AccountStore cannot be cast to java.lang.AutoCloseable
+	at ru.krapiva.app.offline.EditorOfflineTest.closeImmediatelyPersistsLatestFieldsWithoutBackend(EditorOfflineTest.kt:41)
+
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: test=closeImmediatelyPersistsLatestFieldsWithoutBackend
+INSTRUMENTATION_STATUS: class=ru.krapiva.app.offline.EditorOfflineTest
+INSTRUMENTATION_STATUS: stack=java.lang.ClassCastException: ru.krapiva.app.account.AccountStore cannot be cast to java.lang.AutoCloseable
+	at ru.krapiva.app.offline.EditorOfflineTest.closeImmediatelyPersistsLatestFieldsWithoutBackend(EditorOfflineTest.kt:41)
+
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 33.267
+There was 1 failure:
+1) closeImmediatelyPersistsLatestFieldsWithoutBackend(ru.krapiva.app.offline.EditorOfflineTest)
+java.lang.ClassCastException: ru.krapiva.app.account.AccountStore cannot be cast to java.lang.AutoCloseable
+	at ru.krapiva.app.offline.EditorOfflineTest.closeImmediatelyPersistsLatestFieldsWithoutBackend(EditorOfflineTest.kt:41)
+
+FAILURES!!!
+Tests run: 1,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1
+Host elapsed 37.4 s
+REVIEW OUTPUT
