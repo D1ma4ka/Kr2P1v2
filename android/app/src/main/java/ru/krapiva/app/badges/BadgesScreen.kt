@@ -51,7 +51,30 @@ import ru.krapiva.app.designsystem.*
     }
     LaunchedEffect(owner) {owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {try {load();awaitCancellation()}finally {items=emptyList()}}}
     BackHandler(onBack=onBack)
-    val pins=items.filter {it.text("pinSlot")!=null}.sortedBy {it.getInt("pinSlot")}.map {it.getString("id")}
+    val pinned = items.filter {it.text("pinSlot")!=null}.sortedBy {it.getInt("pinSlot")}
+    val pins = pinned.map { it.getString("id") }
+    var replacement by rememberSaveable { mutableStateOf<String?>(null) }
+    replacement?.let { id ->
+        AlertDialog(
+            onDismissRequest = { replacement = null },
+            title = { Text("Какой значок заменить?") },
+            text = {
+                Column {
+                    pinned.forEachIndexed { slot, badge ->
+                        TextButton(
+                            {
+                                replacement = null
+                                scope.launch { load(pins.toMutableList().apply { set(slot, id) }) }
+                            },
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            enabled = !busy && !offline,
+                        ) { Text("${slot + 1}. ${badge.getString("title")}") }
+                    }
+                }
+            },
+            confirmButton = { TextButton({ replacement = null }) { Text("Отмена") } },
+        )
+    }
     KraPivaBackdrop {Column(Modifier.safeDrawingPadding()) {
         Row {TextButton(onBack){Text("Назад")};Text("Достижения",style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(12.dp))}
         if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -74,7 +97,23 @@ import ru.krapiva.app.designsystem.*
                     LinearProgressIndicator(progress={badgeFraction(badge.getInt("progress"),badge.getInt("target"))},modifier=Modifier.fillMaxWidth())
                     Text("Правило v${badge.getInt("version")}",style=MaterialTheme.typography.labelSmall,color=KraPivaColors.Muted)
                     if(earned) {
-                        TextButton({scope.launch {load(if(slot>=0)pins.filter {it!=id}else pins+id)}},modifier=Modifier.testTag("badge-pin-$id"),enabled=!busy&&!offline&&(slot>=0||pins.size<3)) {Text(if(slot>=0)"Открепить · место ${slot+1}" else if(pins.size==3)"Закреплены три значка" else "Закрепить")}
+                        TextButton(
+                            {
+                                when {
+                                    slot >= 0 -> scope.launch { load(pins.filter { it != id }) }
+                                    pins.size < 3 -> scope.launch { load(pins + id) }
+                                    else -> replacement = id
+                                }
+                            },
+                            modifier = Modifier.heightIn(min = 48.dp).testTag("badge-pin-$id"),
+                            enabled = !busy && !offline,
+                        ) {
+                            Text(when {
+                                slot >= 0 -> "Открепить · место ${slot + 1}"
+                                pins.size == 3 -> "Заменить закреплённый"
+                                else -> "Закрепить"
+                            })
+                        }
                         if(slot>=0)Row {
                             fun move(to: Int) {val ordered=pins.toMutableList();ordered.removeAt(slot);ordered.add(to,id);scope.launch {load(ordered)}}
                             TextButton({move(slot-1)},enabled=!busy&&!offline&&slot>0){Text("Выше")};TextButton({move(slot+1)},enabled=!busy&&!offline&&slot<pins.lastIndex){Text("Ниже")}
@@ -90,14 +129,16 @@ import ru.krapiva.app.designsystem.*
 }
 
 /** No progress of another user is requested: only intentionally pinned, earned badges. */
-@Composable fun PinnedBadges(api: AccountApi,userId: String) {
+@Composable fun PinnedBadges(api: AccountApi,userId: String,showEmpty: Boolean = false) {
     var rows by remember(userId) {mutableStateOf<List<JSONObject>>(emptyList())}
     var unavailable by remember(userId) {mutableStateOf(false)}
+    var loaded by remember(userId) {mutableStateOf(false)}
     val owner=LocalLifecycleOwner.current
-    LaunchedEffect(userId,owner) {owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {try {unavailable=false;rows=api.json("v1/users/$userId/badges").getJSONArray("items").objects().filter {it.text("pinSlot")!=null}.sortedBy {it.getInt("pinSlot")}}
+    LaunchedEffect(userId,owner) {owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {try {loaded=false;unavailable=false;rows=api.json("v1/users/$userId/badges").getJSONArray("items").objects().filter {it.text("pinSlot")!=null}.sortedBy {it.getInt("pinSlot")};loaded=true}
         catch(e: Exception){if(e is CancellationException)throw e;unavailable=true}
-        try {awaitCancellation()}finally {rows=emptyList()}
+        try {awaitCancellation()}finally {rows=emptyList();loaded=false}
     }}
     if(unavailable)Text("Закреплённые достижения недоступны",style=MaterialTheme.typography.bodySmall,color=KraPivaColors.Muted)
+    if(showEmpty && loaded && rows.isEmpty()) Text("Можно закрепить до трёх полученных значков",color=KraPivaColors.Muted)
     for(row in rows)Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {BadgeMedallion(true,pinned=true);Column {Text(row.getString("title"));Text(badgeCategory(row.optString("metric")),style=MaterialTheme.typography.bodySmall,color=KraPivaColors.Muted)}}
 }

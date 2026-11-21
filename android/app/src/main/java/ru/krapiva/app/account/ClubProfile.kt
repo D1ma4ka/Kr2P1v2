@@ -4,8 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -81,20 +79,23 @@ import ru.krapiva.app.diary.*
                     if (p.isNull("handle")) HandleEntry(state,model)
                 }
                 item {
-                    Row {TextButton({model.openVenues()}){Text("Места и карта")};TextButton({model.navigate(AccountScreen.BADGES)}){Text("Достижения")}}
-                    Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                        for((page,label) in listOf("COLLECTIONS" to "Подборки","TASTE" to "Мой вкус","DISCOVERY" to "Открытия","YEAR" to "Мой год","NOTIFICATIONS" to "Уведомления"))TextButton({model.openDiary(page)}){Text(label)}
+                    ClubCard(Modifier.fillMaxWidth()) {
+                        Text("Закреплённые значки", style = MaterialTheme.typography.titleLarge)
+                        ru.krapiva.app.badges.PinnedBadges(model.api,p.getString("userId"), showEmpty = true)
+                        OutlinedButton(
+                            { model.navigate(AccountScreen.BADGES) },
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) { Text("Выбрать значки") }
                     }
-                    ru.krapiva.app.badges.PinnedBadges(model.api,p.getString("userId"))
                 }
                 if(offline || state.offline) item { Text("Сохранённая копия · изменения требуют сети",color=KraPivaColors.Amber) }
                 item { ClubCard {
                     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly) {
                         val stats=home?.optJSONObject("statistics")
-                        for((value,label,action) in listOf(Triple(stats?.optInt("totalCheckins")?.toString() ?: "—","чекинов",{model.openDiary("DIARY")}),Triple(stats?.optInt("uniquePositions")?.toString() ?: "—","сортов",{model.openDiary("UNIQUE")}),Triple(friends ?: "—","друзей",model::openFriends))) {
+                        for((value,label,action) in listOf(Triple(stats?.optInt("totalCheckins")?.toString() ?: "—","чекинов",{model.openDiary("DIARY")}),Triple(stats?.optInt("uniquePositions")?.toString() ?: "—","позиций",{model.openDiary("UNIQUE")}),Triple(friends ?: "—","друзей",model::openFriends))) {
                             Column(Modifier.weight(1f).heightIn(min=64.dp).clickable(onClick=action),horizontalAlignment=Alignment.CenterHorizontally) {
                                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-                                    ClubGlyph(when(label) {"чекинов"->ClubIcon.GLASS;"сортов"->ClubIcon.BOTTLE;else->ClubIcon.PEOPLE},Modifier.size(22.dp))
+                                    ClubGlyph(when(label) {"чекинов"->ClubIcon.GLASS;"позиций"->ClubIcon.BOTTLE;else->ClubIcon.PEOPLE},Modifier.size(22.dp))
                                     Text(value,style=MaterialTheme.typography.headlineMedium)
                                 }
                                 Text(label,color=KraPivaColors.Muted)
@@ -103,6 +104,14 @@ import ru.krapiva.app.diary.*
                     }
                 } }
                 if(error) item { Text("Статистика недоступна. Откройте раздел и повторите запрос.",color=KraPivaColors.Muted) }
+                home?.optJSONObject("statistics")?.let { stats ->
+                    item { ProfileStatistics(stats) { model.openDiary("STATISTICS") } }
+                }
+                item {
+                    OutlinedButton(
+                        { model.openDiary() }, Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    ) { Text("Моё пиво и списки") }
+                }
                 item { Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                     FilterChip(!about,{about=false},label={Text("Мои записи")});FilterChip(about,{about=true},label={Text("О себе")})
                 } }
@@ -120,18 +129,15 @@ import ru.krapiva.app.diary.*
                 } else {
                     val rows=home?.optJSONObject("recent")?.optJSONArray("items")?.objects().orEmpty()
                     items(rows,key={it.getString("id")}) { row -> ClubCheckinCard(row,model.api,offline){model.openOwnCheckin(row.getString("id"))} }
-                    if(rows.isEmpty()) item { Text(if(home==null) "Записи ещё не загружены" else "Коллекция пока пуста. Сохрани первое впечатление.",color=KraPivaColors.Muted) }
+                    if(rows.isEmpty()) item { Text(if(home==null) "Записи ещё не загружены" else "Сохрани первое впечатление о пиве, чтобы увидеть его здесь.",color=KraPivaColors.Muted) }
                 }
-                item {
-                    TextButton({model.openDiary("DIARY")}) {Text("Все мои записи")}
-                    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                        TextButton({model.openDiary("STATISTICS")}) {Text("Статистика")}
-                        TextButton({model.openDiary("UNIQUE")}) {Text("Уникальные")}
-                        TextButton({model.openDiary("WISHLIST")}) {Text("Wishlist")}
+                if (!about && home != null) {
+                    item {
+                        OutlinedButton(
+                            { model.openDiary("DIARY") },
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) { Text("Вся история чекинов") }
                     }
-                    TextButton({model.openSocial()},enabled=!state.offline) {Text("Друзья и лента")}
-                    TextButton(model::refresh,enabled=!state.busy) {Text("Обновить")}
-                    TextButton({model.navigate(AccountScreen.SETTINGS)}) {Text("Настройки аккаунта")}
                 }
             }
             bottomBar()
