@@ -7,6 +7,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.AtomicFile
 import org.json.JSONObject
+import java.io.Closeable
 import java.io.File
 import java.security.KeyStore
 import javax.crypto.Cipher
@@ -14,8 +15,11 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/** Tokens never enter preferences, backups, logs or saved instance state. */
-class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.db", null, 4) {
+/**
+ * Tokens never enter preferences, backups, logs or saved instance state.
+ * Implement Closeable explicitly because Android 8.0's SQLiteOpenHelper does not.
+ */
+class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.db", null, 4), Closeable {
     private val sessionFile = AtomicFile(File(context.noBackupFilesDir, "session.enc"))
     private val key: SecretKey by lazy {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
