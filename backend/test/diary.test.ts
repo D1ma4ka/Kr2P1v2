@@ -29,7 +29,7 @@ test('P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media
  const styles=(await db.pool.query("INSERT INTO styles(name)VALUES('Synthetic X'),('Synthetic Y')RETURNING id")).rows;
  await db.pool.query('UPDATE beer_releases SET style_id=$1 WHERE id=$2',[styles[0].id,release]);
  const second=(await db.pool.query("INSERT INTO beer_positions(release_id,packaging,volume_ml,status,source)VALUES($1,'bottle',330,'verified','synthetic')RETURNING id",[release])).rows[0].id;
- const thirdRelease=(await db.pool.query("INSERT INTO beer_releases(brewery_id,name,style_id) SELECT brewery_id,'Synthetic third',$2 FROM beer_releases WHERE id=$1 RETURNING id",[release,styles[1].id])).rows[0].id;
+ const thirdRelease=(await db.pool.query("INSERT INTO beer_releases(brewery_id,name,style_id) SELECT brewery_id,name,$2 FROM beer_releases WHERE id=$1 RETURNING id",[release,styles[1].id])).rows[0].id;
  const third=(await db.pool.query("INSERT INTO beer_positions(release_id,status,source)VALUES($1,'verified','synthetic')RETURNING id",[thirdRelease])).rows[0].id;
  const tags=(await call('/v1/taste-tags')).items;assert.equal(tags.length,12);
  const photo=await media.upload(f.a.id,await sharp({create:{width:32,height:32,channels:3,background:'#ffad0a'}}).png().toBuffer(),'image/png');
@@ -39,8 +39,8 @@ test('P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media
  assert.equal((await call('/v1/me/checkin-requests/'+key)).checkinId,first.id);assert.equal((await call('/v1/me/checkin-requests/'+key,'GET',undefined,f.b.token)).checkinId,null);
  assert.equal((await create(f.position,17,extras,f.a.token,key,200)).id,first.id);
  await create(f.position,18,extras,f.a.token,key,409);
- const repeated=await create(f.position,19,{venueText:'Дом',occurredAt:'2026-11-07T11:00:00Z'});
- const s3=await call('/v1/me/statistics');assert.equal(s3.totalCheckins,2);assert.equal(s3.uniquePositions,1);assert.equal(first.servingFormat,'Кран');
+ const repeated=await create(f.position,19,{venueText:'Дом',servingFormat:'Бутылка',occurredAt:'2026-11-07T11:00:00Z'});
+ const s3=await call('/v1/me/statistics');assert.equal(s3.totalCheckins,2);assert.equal(s3.uniquePositions,1);assert.equal(first.servingFormat,'Кран');assert.equal(repeated.servingFormat,'Бутылка');
  const secondC=await create(second,null,{servingFormat:'Бутылка'});
  const aab=await call('/v1/me/statistics');assert.equal(aab.totalCheckins,3);assert.equal(aab.uniquePositions,1);
  assert.equal(secondC.servingFormat,'Бутылка');assert.notEqual(secondC.positionId,first.positionId);assert.equal(secondC.releaseId,first.releaseId);
