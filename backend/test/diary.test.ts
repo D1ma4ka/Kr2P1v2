@@ -28,7 +28,7 @@ test('P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media
  const release=(await db.pool.query('SELECT release_id FROM beer_positions WHERE id=$1',[f.position])).rows[0].release_id;
  const styles=(await db.pool.query("INSERT INTO styles(name)VALUES('Synthetic X'),('Synthetic Y')RETURNING id")).rows;
  await db.pool.query('UPDATE beer_releases SET style_id=$1 WHERE id=$2',[styles[0].id,release]);
- const second=(await db.pool.query("INSERT INTO beer_positions(release_id,packaging,volume_ml,status,source)VALUES($1,'can',330,'verified','synthetic')RETURNING id",[release])).rows[0].id;
+ const second=(await db.pool.query("INSERT INTO beer_positions(release_id,packaging,volume_ml,status,source)VALUES($1,'bottle',330,'verified','synthetic')RETURNING id",[release])).rows[0].id;
  const thirdRelease=(await db.pool.query("INSERT INTO beer_releases(brewery_id,name,style_id) SELECT brewery_id,'Synthetic third',$2 FROM beer_releases WHERE id=$1 RETURNING id",[release,styles[1].id])).rows[0].id;
  const third=(await db.pool.query("INSERT INTO beer_positions(release_id,status,source)VALUES($1,'verified','synthetic')RETURNING id",[thirdRelease])).rows[0].id;
  const tags=(await call('/v1/taste-tags')).items;assert.equal(tags.length,12);
@@ -40,13 +40,19 @@ test('P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media
  assert.equal((await create(f.position,17,extras,f.a.token,key,200)).id,first.id);
  await create(f.position,18,extras,f.a.token,key,409);
  const repeated=await create(f.position,19,{venueText:'Дом',occurredAt:'2026-11-07T11:00:00Z'});
- const s3=await call('/v1/me/statistics');assert.equal(s3.totalCheckins,2);assert.equal(s3.uniquePositions,1);
- const secondC=await create(second,null);const aab=await call('/v1/me/statistics');assert.equal(aab.totalCheckins,3);assert.equal(aab.uniquePositions,2);const thirdC=await create(third,17);
- let stats=await call('/v1/me/statistics');assert.equal(stats.totalCheckins,4);assert.equal(stats.uniquePositions,3);assert.equal(stats.ratedCheckins,3);assert.equal(stats.unratedCheckins,1);assert.equal(stats.ratingSumQuarters,'53');assert.ok(Math.abs(stats.averageRating-13.25/3)<1e-12);
- assert.equal(stats.histogram.find((x:any)=>x.ratingQuarters===17).count,2);assert.deepEqual(stats.styles.map((x:any)=>x.count).sort(),[1,2]);
- await db.pool.query("UPDATE beer_positions SET status='rejected' WHERE id=$1",[third]);await call('/v1/positions/'+third+'/statistics','GET',undefined,f.a.token,404);assert.equal((await call('/v1/me/statistics')).uniquePositions,3);
+ const s3=await call('/v1/me/statistics');assert.equal(s3.totalCheckins,2);assert.equal(s3.uniquePositions,1);assert.equal(first.servingFormat,'Кран');
+ const secondC=await create(second,null,{servingFormat:'Бутылка'});
+ const aab=await call('/v1/me/statistics');assert.equal(aab.totalCheckins,3);assert.equal(aab.uniquePositions,1);
+ assert.equal(secondC.servingFormat,'Бутылка');assert.notEqual(secondC.positionId,first.positionId);assert.equal(secondC.releaseId,first.releaseId);
+ assert.equal((await call('/v1/checkins?releaseId='+release)).items.length,3);
+ const tasted=await call('/v1/me/unique-positions');assert.equal(tasted.items.length,1);
+ assert.equal(tasted.items[0].releaseId,release);assert.equal(tasted.items[0].checkins,3);
+ const home=await call('/v1/me/home');assert.equal(home.statistics.uniquePositions,1);const thirdC=await create(third,17);
+ let stats=await call('/v1/me/statistics');assert.equal(stats.totalCheckins,4);assert.equal(stats.uniquePositions,2);assert.equal(stats.ratedCheckins,3);assert.equal(stats.unratedCheckins,1);assert.equal(stats.ratingSumQuarters,'53');assert.ok(Math.abs(stats.averageRating-13.25/3)<1e-12);
+ assert.equal(stats.histogram.find((x:any)=>x.ratingQuarters===17).count,2);assert.deepEqual(stats.styles.map((x:any)=>x.count).sort(),[1,1]);
+ await db.pool.query("UPDATE beer_positions SET status='rejected' WHERE id=$1",[third]);await call('/v1/positions/'+third+'/statistics','GET',undefined,f.a.token,404);assert.equal((await call('/v1/me/statistics')).uniquePositions,2);
  await db.pool.query("UPDATE beer_positions SET status='verified' WHERE id=$1",[third]);
- const drill=await call('/v1/me/unique-positions?styleId='+styles[0].id);assert.equal(drill.items.length,2);
+ const drill=await call('/v1/me/unique-positions?styleId='+styles[0].id);assert.equal(drill.items.length,1);
  for(const sort of ['date_desc','date_asc','rating_desc','rating_asc']){
  let cursor:string|null=null;const seen=new Set<string>();do{const page=await call('/v1/checkins?limit=1&sort='+sort+(cursor?'&cursor='+cursor:''));for(const item of page.items){assert.ok(!seen.has(item.id));seen.add(item.id);}cursor=page.nextCursor;}while(cursor);assert.equal(seen.size,4);
  }
@@ -72,6 +78,10 @@ test('P5 real HTTP/SQL: A/A/B counts, A13/A14 charts, filters/cursors, own media
  // Own stats do not disclose another user's private counts; visible aggregates require both privacy gates.
  await create(f.position,1,{},f.b.token);let visible=await call('/v1/positions/'+f.position+'/statistics');assert.equal(visible.totalCheckins,2);assert.equal(visible.personalCheckins,2);
  await db.pool.query("UPDATE user_profiles SET profile_visibility='public' WHERE user_id=$1",[f.a.id]);
+ await db.pool.query("UPDATE checkins SET visibility='public' WHERE id=ANY($1::uuid[])",[[first.id,secondC.id]]);
+ const publicStats=await call('/v1/users/'+f.a.id+'/statistics','GET',undefined,f.b.token);
+ assert.equal(publicStats.totalCheckins,2);assert.equal(publicStats.uniquePositions,1);
+ await db.pool.query("UPDATE checkins SET visibility='private' WHERE id=ANY($1::uuid[])",[[first.id,secondC.id]]);
  await call('/v1/checkins/'+first.id,'PATCH',{ratingQuarters:17,body:first.body,occurredAt:first.occurredAt,visibility:'public',version:1});
  // Profile and checkin friends gates are independent, and direct media follows them.
  await db.pool.query("UPDATE user_profiles SET profile_visibility='friends' WHERE user_id=$1",[f.a.id]);

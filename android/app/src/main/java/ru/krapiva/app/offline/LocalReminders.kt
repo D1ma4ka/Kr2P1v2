@@ -7,6 +7,7 @@ import android.content.*
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.PersistableBundle
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -32,7 +33,7 @@ class ReminderRepository(private val api:AccountApi) {
         api.editLocalDocument("notifications-v1"){data->
             check(data.optBoolean("enabled")){"Включите напоминания"}
             val rows=data.optJSONArray("items") ?: JSONArray()
-            require(rows.objects().count{!it.optBoolean("deleted")}<100){"Удалите ненужные уведомления (лимит 100)"}
+            require(rows.objects().count { !it.optBoolean("deleted") && !it.optBoolean("cancelled") } < 100){"Удалите ненужные уведомления (лимит 100)"}
             val now=Instant.now().toString()
             rows.put(JSONObject().put("id",id).put("ownerUserId",api.ownerId()).put("kind",kind)
                 .put("dueAt",dueAt).put("createdAt",now).put("updatedAt",now).put("localVersion",1)
@@ -47,7 +48,26 @@ class ReminderRepository(private val api:AccountApi) {
 }
 object ReminderJobs {
     private const val CHANNEL="personal_reminders"
-    fun allowed(context:Context)= (Build.VERSION.SDK_INT<33||ContextCompat.checkSelfPermission(context,Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED)&&NotificationManagerCompat.from(context).areNotificationsEnabled()
+    private fun channelManager(context: Context): NotificationManager =
+        context.getSystemService(NotificationManager::class.java).also { manager ->
+            manager.createNotificationChannel(NotificationChannel(CHANNEL, "Личные напоминания", NotificationManager.IMPORTANCE_DEFAULT))
+        }
+
+    fun allowed(context: Context): Boolean {
+        val manager = channelManager(context)
+        val permission = Build.VERSION.SDK_INT < 33 ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        return permission && NotificationManagerCompat.from(context).areNotificationsEnabled() &&
+            manager.getNotificationChannel(CHANNEL)?.importance != NotificationManager.IMPORTANCE_NONE
+    }
+
+    fun settingsIntent(context: Context): Intent {
+        channelManager(context)
+        val action = if (NotificationManagerCompat.from(context).areNotificationsEnabled())
+            Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS else Settings.ACTION_APP_NOTIFICATION_SETTINGS
+        return Intent(action).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            .putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL)
+    }
     fun schedule(context:Context,owner:String,id:String,kind:String,dueAt:Long) {
         val scheduler=context.getSystemService(JobScheduler::class.java)
         val occupied=scheduler.allPendingJobs.map{it.id}.toSet()
@@ -65,7 +85,6 @@ object ReminderJobs {
     fun notify(context:Context,owner:String,id:String,kind:String) {
         if(!allowed(context))return
         val manager=context.getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(NotificationChannel(CHANNEL,"Личные напоминания",NotificationManager.IMPORTANCE_DEFAULT))
         val intent=Intent(context,MainActivity::class.java).apply {
             flags=Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             data=android.net.Uri.parse("krapiva-local://reminder/$id")

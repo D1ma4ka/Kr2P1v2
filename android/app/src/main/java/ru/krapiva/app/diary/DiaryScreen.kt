@@ -139,6 +139,11 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
                     Text(item.getString("name"),style = MaterialTheme.typography.titleLarge);Text(item.getString("breweryName"));item.text("styleName")?.let { Text(it,color = KraPivaColors.Muted) }
                     if(state.page == DiaryPage.UNIQUE) Text("Чекинов: ${item.getInt("checkins")} · средняя ${DiaryNumbers.average(item.text("averageRating"))}")
                     TextButton({ onPosition(item.getString("id")) },enabled = !state.busy) { Text("Открыть позицию") }
+                    if (state.page == DiaryPage.UNIQUE) item.text("releaseId")?.let { releaseId ->
+                        TextButton({ model.open(DiaryPage.DIARY, DiaryFilters(releaseId = releaseId)) }, enabled = !state.busy) {
+                            Text("Все чекины этого пива")
+                        }
+                    }
                 }
                 DiaryPage.DRAFTS -> DiaryCard {
                     Text(item.optString("positionName","Черновик"));Text("Не отправлено",color = KraPivaColors.Amber);Text(item.optString("body"))

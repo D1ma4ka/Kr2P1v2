@@ -8,15 +8,15 @@ export const nullableUuid={anyOf:[s.uuid,{type:'null'}]};
 const ids={type:'array',items:s.uuid,uniqueItems:true};
 export const extended={servingFormat:s.nullableText(80),venueId:nullableUuid,venueText:s.nullableText(300),tagIds:{...ids,maxItems:12},mediaIds:{...ids,maxItems:4}};
 const labels={type:'array',items:{type:'string'}};
-export const checkin=s.object({...s.checkinSchema.properties,...extended,positionName:{type:'string'},breweryId:s.uuid,breweryName:{type:'string'},styleId:nullableUuid,styleName:s.nullableText(200),positionStatus:{type:'string'},venueName:s.nullableText(300),venueCity:s.nullableText(300),venueAddress:s.nullableText(1000),venueSource:s.nullableText(2000),tagLabels:labels});
+export const checkin=s.object({...s.checkinSchema.properties,...extended,releaseId:s.uuid,positionName:{type:'string'},breweryId:s.uuid,breweryName:{type:'string'},styleId:nullableUuid,styleName:s.nullableText(200),positionStatus:{type:'string'},venueName:s.nullableText(300),venueCity:s.nullableText(300),venueAddress:s.nullableText(1000),venueSource:s.nullableText(2000),tagLabels:labels});
 const count={type:'integer',minimum:0},average={anyOf:[{type:'number',minimum:0.25,maximum:5},{type:'null'}]};
 const breakdown=s.object({id:nullableUuid,name:s.nullableText(200),count});
 const stat=s.object({totalCheckins:count,uniquePositions:count,ratedCheckins:count,unratedCheckins:count,ratingSumQuarters:{type:'string',pattern:'^[0-9]+$'},averageRating:average,earnedBadges:count,
  histogram:{type:'array',items:s.object({ratingQuarters:{type:'integer',minimum:1,maximum:20},count})},styles:{type:'array',items:breakdown},breweries:{type:'array',items:breakdown}});
-const query={limit:{type:"string",pattern:"^(?:[1-9]|[1-4][0-9]|50)$"},cursor:{type:'string',maxLength:2048,pattern:'^[A-Za-z0-9_-]+$'},q:{type:'string',maxLength:120},styleId:s.uuid,breweryId:s.uuid,positionId:s.uuid,
+const query={limit:{type:"string",pattern:"^(?:[1-9]|[1-4][0-9]|50)$"},cursor:{type:'string',maxLength:2048,pattern:'^[A-Za-z0-9_-]+$'},q:{type:'string',maxLength:120},styleId:s.uuid,breweryId:s.uuid,positionId:s.uuid,releaseId:s.uuid,
  from:s.timestamp,to:s.timestamp,ratingMin:{type:'string',pattern:'^(?:[1-9]|1[0-9]|20)$'},ratingMax:{type:'string',pattern:'^(?:[1-9]|1[0-9]|20)$'},unrated:{type:'string',enum:['true','false']},hasPhoto:{type:'string',enum:['true','false']},venueId:s.uuid,venue:{type:'string',maxLength:300},sort:{type:'string',enum:['date_desc','date_asc','rating_desc','rating_asc']}};
 const uniqueQuery=s.object({limit:query.limit,cursor:query.cursor,q:query.q,styleId:{anyOf:[s.uuid,{type:'string',const:'unknown'}]},breweryId:s.uuid,sort:{type:'string',enum:['name','latest','rating']}},[]);
-const unique=s.object({id:s.uuid,name:{type:'string'},breweryId:s.uuid,breweryName:{type:'string'},styleId:nullableUuid,styleName:s.nullableText(200),status:{type:'string'},checkins:count,averageRating:average,sortName:{type:'string'},lastSeen:s.timestamp});
+const unique=s.object({id:s.uuid,releaseId:s.uuid,name:{type:'string'},breweryId:s.uuid,breweryName:{type:'string'},styleId:nullableUuid,styleName:s.nullableText(200),status:{type:'string'},checkins:count,averageRating:average,sortName:{type:'string'},lastSeen:s.timestamp});
 export async function diaryRoutes(app:FastifyInstance,pool:pg.Pool,allowTest=false){
  const secure={security:[{bearerAuth:[]}],response:s.errors};
  app.get<{Querystring:DiaryQuery}>('/v1/checkins',{schema:{...secure,querystring:s.object(query,[]),response:{...s.errors,200:s.page(checkin)}}},req=>r.listCheckins(pool,req.userId,Number(req.query.limit??20),req.query.cursor,req.query));

@@ -11,6 +11,19 @@ class PersonalAnalyticsTest {
         assertEquals(2,s.histogram.sumOf{it.second});assertEquals("Неизвестный стиль",s.styles.single().first)
         assertEquals(3,s.tags.single().second)
     }
+    @Test fun oneReleaseCountsOnceAcrossDraftAndBottlePositions() {
+        val rows = listOf(
+            row("1", "tap", 16, style = "IPA").copy(releaseId = "a"),
+            row("2", "bottle", 20, style = "IPA").copy(releaseId = "a"),
+            row("3", "other", null, style = "IPA").copy(releaseId = "b"),
+        )
+        val summary = PersonalAnalytics.summarize(rows, ZoneId.of("UTC"))
+        assertEquals(3, summary.checkins)
+        assertEquals(2, summary.uniquePositions)
+        assertEquals(listOf("IPA" to 2), summary.styles)
+        assertEquals(4.5, summary.average!!, 0.0001)
+    }
+
     @Test fun calendarYearUsesSelectedZoneAndLeapDay() {
         val records=listOf(row("1","a",null),row("2","b",20,"2024-02-29T12:00:00Z"))
         assertEquals(1,PersonalAnalytics.summarize(records,ZoneId.of("Europe/Istanbul"),2026).checkins)

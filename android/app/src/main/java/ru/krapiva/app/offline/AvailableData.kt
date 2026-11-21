@@ -18,7 +18,7 @@ class CachedPersonalSource(private val api: AccountApi): AvailableCardsSource {
             if(row.text("userId") != owner || row.text("positionId") == null || row.text("id") == null) return
             val time=runCatching { Instant.parse(row.getString("occurredAt")) }.getOrNull() ?: return
             records.add(PersonalCheckin(row.getString("id"),row.getString("positionId"),row.optString("positionName"),row.text("breweryName"),row.text("styleName"),
-                if(row.isNull("ratingQuarters"))null else row.getInt("ratingQuarters").takeIf { it in 1..20 },time,row.optLong("version"),row.optJSONArray("tagLabels")?.strings().orEmpty()))
+                if(row.isNull("ratingQuarters"))null else row.getInt("ratingQuarters").takeIf { it in 1..20 },time,row.optLong("version"),row.optJSONArray("tagLabels")?.strings().orEmpty(),row.text("releaseId")))
         }
         fun card(row: JSONObject) {
             if(row.text("name") != null && row.text("breweryName") != null && row.text("id") != null) cards[row.getString("id")]=row
@@ -38,6 +38,11 @@ class CachedPersonalSource(private val api: AccountApi): AvailableCardsSource {
             }
         }
         check(api.ownerId()==owner) { "Аккаунт изменился" }
-        return AvailableData(PersonalAnalytics.current(records),cards.values.toList(),wishlist,badges.distinct())
+        val knownReleases = records.filter { it.releaseId != null }.groupBy { it.positionId }
+            .mapValues { (_, versions) -> versions.maxBy { it.version }.releaseId }
+        val resolved = records.map { row ->
+            row.copy(releaseId = cards[row.positionId]?.text("releaseId") ?: knownReleases[row.positionId] ?: row.releaseId)
+        }
+        return AvailableData(PersonalAnalytics.current(resolved),cards.values.toList(),wishlist,badges.distinct())
     }
 }

@@ -37,7 +37,8 @@ import java.util.UUID
         try{repo.add(id,kind,due)}catch(e:Exception){ReminderJobs.cancel(context,owner,id);throw e}
         message="Напоминание запланировано. Android может отложить его в режиме энергосбережения."
     }}
-    val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){granted->if(granted)schedule()else message="Разрешение не выдано. Системное напоминание не запланировано."}
+    val permission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){granted->if (granted && ReminderJobs.allowed(context)) schedule()
+        else message = "Уведомления выключены в Android. Проверь разрешения и канал напоминаний."}
     LaunchedEffect(api){action{}}
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
         Text("Уведомления",style=MaterialTheme.typography.headlineMedium)
@@ -53,6 +54,10 @@ import java.util.UUID
             else if(ReminderJobs.allowed(context))schedule()
             else message="Уведомления отключены в Android. Разрешите их в настройках приложения и повторите."
         },enabled=!busy){Text("Запланировать выбранное напоминание")}
+        OutlinedButton({
+            runCatching { context.startActivity(ReminderJobs.settingsIntent(context)) }
+                .onFailure { message = "Не удалось открыть настройки Android." }
+        }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Настройки уведомлений Android") }
         TextButton({action{}},enabled=!busy){Text("Обновить центр уведомлений")}
         val rows=data.optJSONArray("items")?.objects().orEmpty().filter{!it.optBoolean("deleted")&&!it.optBoolean("cancelled")}.sortedByDescending{it.optLong("dueAt")}
         if(rows.isEmpty())Text("Нет уведомлений. Добавьте напоминание, когда оно понадобится.",color=KraPivaColors.Muted)

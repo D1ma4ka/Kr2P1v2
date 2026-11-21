@@ -49,6 +49,7 @@ class DiaryIntegrationTest {
             compose.onNode(hasScrollAction()).performScrollToNode(hasText("Synthetic Android Тёмный Ёж"))
             compose.onNodeWithText("Synthetic Android Тёмный Ёж").performClick();ready(model)
             compose.onNodeWithText("Оценка 0,25–5 · пусто = без оценки").performTextInput("4,25")
+            compose.onNodeWithText("Бутылка").performScrollTo().performClick()
             compose.onNodeWithText("Заметка о пиве").performTextInput("Synthetic diary цитрус")
             // Real native photo picker: cancel and select a generated own image.
             val values = ContentValues().apply { put(MediaStore.Images.Media.DISPLAY_NAME,"p5-synthetic.png");put(MediaStore.Images.Media.MIME_TYPE,"image/png");put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/KraPivaP5");put(MediaStore.Images.Media.IS_PENDING,1) }
@@ -65,17 +66,18 @@ class DiaryIntegrationTest {
             add?.click()
             assertTrue(device.wait(Until.hasObject(By.pkg(context.packageName)),15_000));compose.waitForIdle()
             compose.onNodeWithText("1 из 4").assertExists()
-            compose.onNodeWithText("Сохранить чекин на сервере").performScrollTo().performClick();ready(model)
+            compose.onNodeWithText("Проверить пиво и сохранить").performScrollTo().performClick();ready(model)
+            compose.onNode(hasText("Это другое пиво") or hasText("Подтвердить проверку")).performClick()
             compose.waitUntil(20_000) { model.state.value.page == DiaryPage.DETAIL && !model.state.value.busy }
             compose.onNodeWithTag("checkin-success").assertExists()
             compose.onNodeWithText("Посмотреть чекин").performScrollTo().performClick()
-            val first = model.state.value.data!!;assertEquals(17,first.getInt("ratingQuarters"));assertEquals(1,first.getJSONArray("mediaIds").length());compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Фото чекина").fetchSemanticsNodes().isNotEmpty() }
+            val first = model.state.value.data!!;assertEquals(17,first.getInt("ratingQuarters"));assertEquals("Бутылка",first.getString("servingFormat"));assertEquals(1,first.getJSONArray("mediaIds").length());compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Фото чекина").fetchSemanticsNodes().isNotEmpty() }
             shot("p5-checkin-photo.png")
             compose.onNodeWithContentDescription("Фото чекина").performScrollTo().performClick();compose.onNodeWithText("Фото чекина").assertExists();shot("p5-photo-view.png");compose.onNodeWithText("Закрыть").performClick()
             // A second real client writes A/B/C; refresh on Android must observe the same rows.
             runBlocking {
                 val secondClient = AccountApi(AccountStore(context));assertTrue(secondClient.restore())
-                for((position,rating) in listOf(fixture.getString("positionId") to 19,fixture.getString("secondPositionId") to null,fixture.getString("thirdPositionId") to 17)) secondClient.json("v1/checkins","POST",JSONObject().put("positionId",position).put("ratingQuarters",rating ?: JSONObject.NULL).put("body","Synthetic repeated checkin").put("occurredAt","2026-11-07T12:00:00Z").put("visibility","private"),requestId = UUID.randomUUID().toString())
+                for((position,rating) in listOf(fixture.getString("positionId") to 19,fixture.getString("secondPositionId") to null,fixture.getString("thirdPositionId") to 17)) secondClient.json("v1/checkins","POST",JSONObject().put("positionId",position).put("ratingQuarters",rating ?: JSONObject.NULL).put("body","Synthetic repeated checkin").put("servingFormat","Кран").put("occurredAt","2026-11-07T12:00:00Z").put("visibility","private"),requestId = UUID.randomUUID().toString())
             }
             compose.runOnIdle { model.open(DiaryPage.HOME) };ready(model);compose.onNodeWithText("Всего чекинов: 4").assertExists();compose.onNodeWithText("Уникальных позиций: 3").assertExists();shot("p5-home-counts.png")
             compose.runOnIdle { model.open(DiaryPage.STATISTICS) };ready(model);assertEquals("53",model.state.value.statistics!!.getString("ratingSumQuarters"));compose.onNodeWithText("Средняя оценка: 4,42").assertExists();shot("p5-style-statistics.png")
@@ -88,7 +90,7 @@ class DiaryIntegrationTest {
             compose.onNodeWithText("Редактировать чекин").performScrollTo().performClick();compose.waitUntil(20_000) { model.state.value.page == DiaryPage.EDITOR && !model.state.value.busy };ready(model)
             compose.onNodeWithText("Оценка 0,25–5 · пусто = без оценки").performTextReplacement("5")
             compose.onNodeWithText("Убрать фото из чекина").performScrollTo().performClick()
-            compose.onNodeWithText("Сохранить чекин на сервере").performScrollTo().performClick();ready(model);assertEquals(20,model.state.value.data!!.getInt("ratingQuarters"));assertEquals(0,model.state.value.data!!.getJSONArray("mediaIds").length())
+            compose.onNodeWithText("Сохранить изменения").performScrollTo().performClick();ready(model);assertEquals(first.getString("positionId"),model.state.value.data!!.getString("positionId"));assertEquals(20,model.state.value.data!!.getInt("ratingQuarters"));assertEquals(0,model.state.value.data!!.getJSONArray("mediaIds").length())
             // Wishlist across two API instances and removal.
             runBlocking { api.json("v1/me/wishlist/${fixture.getString("secondPositionId")}","PUT");api.invalidateDiary() }
             compose.runOnIdle { model.open(DiaryPage.WISHLIST) };ready(model);assertEquals(1,model.state.value.items.size);shot("p5-wishlist.png")

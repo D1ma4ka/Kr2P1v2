@@ -7,7 +7,7 @@ import java.time.YearMonth
 data class PersonalCheckin(
     val id: String, val positionId: String, val name: String, val brewery: String?,
     val style: String?, val quarters: Int?, val occurredAt: Instant, val version: Long,
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(), val releaseId: String? = null
 )
 data class TasteSummary(
     val checkins: Int, val uniquePositions: Int, val average: Double?,
@@ -22,11 +22,13 @@ object PersonalAnalytics {
         val rows=current(records).filter { year == null || it.occurredAt.atZone(zone).year == year }
         val rated=rows.mapNotNull { it.quarters?.takeIf { q -> q in 1..20 } }
         val months=rows.groupBy { YearMonth.from(it.occurredAt.atZone(zone)) }.toSortedMap()
-        return TasteSummary(rows.size,rows.map { it.positionId }.distinct().size,
+        val releases = rows.groupBy { it.releaseId?.let { id -> "release:$id" } ?: "position:${it.positionId}" }
+        val beers = releases.values.map { it.first() }
+        return TasteSummary(rows.size,releases.size,
             rated.takeIf { it.isNotEmpty() }?.average()?.div(4.0),
-            counts(rows.map { it.style ?: "Неизвестный стиль" }),counts(rows.mapNotNull { it.brewery }),
+            counts(beers.map { it.style ?: "Неизвестный стиль" }),counts(beers.mapNotNull { it.brewery }),
             (1..20).map { q -> q to rated.count { it == q } },counts(rows.flatMap { it.tags.distinct() }),
             if(rows.size >= 5 && months.size >= 2)months.mapValues { counts(it.value.mapNotNull { row -> row.style }) } else emptyMap(),
-            rows.filter { it.quarters != null }.groupBy { it.positionId }.values.map { it.maxBy { row -> row.quarters ?: 0 } }.sortedWith(compareByDescending<PersonalCheckin> { it.quarters }.thenBy { it.name }).take(5))
+            releases.values.mapNotNull { group -> group.filter { it.quarters != null }.maxByOrNull { it.quarters ?: 0 } }.sortedWith(compareByDescending<PersonalCheckin> { it.quarters }.thenBy { it.name }).take(5))
     }
 }

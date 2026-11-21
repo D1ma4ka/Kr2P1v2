@@ -21,7 +21,12 @@ class CatalogHistory(private val api: AccountApi) {
         }
     }
     suspend fun viewed(id: String) { api.editLocalDocument("catalog-history-v1") { data -> data.put("recent",JSONArray(recentValues(data.optJSONArray("recent")?.strings().orEmpty(),id))) } }
-    suspend fun clear() { api.editLocalDocument("catalog-history-v1") { it.put("queries",JSONArray()).put("recent",JSONArray()) } }
+    suspend fun clear() {
+        api.editLocalDocument("catalog-history-v1") { data ->
+            data.put("queries", JSONArray()).put("recent", JSONArray())
+            data.optJSONObject("filters")?.put("q", "")
+        }
+    }
     fun filters(data: JSONObject): CatalogFilters {
         val f=data.optJSONObject("filters") ?: return CatalogFilters()
         return CatalogFilters(f.optString("q"),f.optString("sort","newest"),f.optString("breweryId"),f.optString("breweryLabel"),f.optString("styleId"),f.optString("styleLabel"),f.optString("packaging"),f.optString("abvMin"),f.optString("abvMax"))

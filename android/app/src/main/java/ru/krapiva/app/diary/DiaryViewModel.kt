@@ -22,10 +22,10 @@ import java.time.Instant
 fun JSONArray.objects(): List<JSONObject> = (0 until length()).map { getJSONObject(it) }
 fun JSONArray.strings(): List<String> = (0 until length()).map { getString(it) }
 enum class DiaryPage { HOME, DIARY, UNIQUE, WISHLIST, STATISTICS, DETAIL, EDITOR, PICK, DRAFTS, COLLECTIONS, TASTE, DISCOVERY, YEAR, NOTIFICATIONS }
-data class DiaryFilters(val q: String = "", val styleId: String = "",val breweryId: String = "",val from: String = "",val to: String = "",val ratingMin: String = "",val ratingMax: String = "",val unrated: Boolean = false,val photo: String = "",val venueId: String = "",val venue: String = "",val sort: String = "date_desc") {
+data class DiaryFilters(val q: String = "", val styleId: String = "",val breweryId: String = "",val from: String = "",val to: String = "",val ratingMin: String = "",val ratingMax: String = "",val unrated: Boolean = false,val photo: String = "",val venueId: String = "",val venue: String = "",val sort: String = "date_desc",val releaseId: String = "") {
     fun query(page: DiaryPage,cursor: String? = null): String {
         val params = linkedMapOf("limit" to "20", "q" to q, "styleId" to styleId,"breweryId" to breweryId)
-        if (page == DiaryPage.DIARY) params.putAll(mapOf("from" to DiaryDates.boundary(from,false),"to" to DiaryDates.boundary(to,true),"ratingMin" to (DiaryNumbers.quarters(ratingMin)?.toString() ?: ""),"ratingMax" to (DiaryNumbers.quarters(ratingMax)?.toString() ?: ""),"unrated" to if(unrated) "true" else "","hasPhoto" to photo,"venueId" to venueId,"venue" to venue,"sort" to sort))
+        if (page == DiaryPage.DIARY) params.putAll(mapOf("from" to DiaryDates.boundary(from,false),"to" to DiaryDates.boundary(to,true),"ratingMin" to (DiaryNumbers.quarters(ratingMin)?.toString() ?: ""),"ratingMax" to (DiaryNumbers.quarters(ratingMax)?.toString() ?: ""),"unrated" to if(unrated) "true" else "","hasPhoto" to photo,"venueId" to venueId,"venue" to venue,"sort" to sort,"releaseId" to releaseId))
         else params["sort"] = if (sort in setOf("name","latest","rating")) sort else "name"
         cursor?.let { params["cursor"] = it }
         return params.filterValues { it.isNotBlank() }.entries.joinToString("&") { "${it.key}=${Uri.encode(it.value)}" }
@@ -173,6 +173,10 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
     fun removeDraft(id: String) = task { api.removeDraft(id); load() }
     fun dismissSuccess() { mutable.value = mutable.value.copy(success = false) }
     fun preparePublish(data: JSONObject) = task {
+        if (data.text("id") != null) {
+            publishChanges(data)
+            return@task
+        }
         persistDraft(JSONObject(data.toString()).put("status","saved_offline"))
         val name=data.text("positionName") ?: ""
         val brewery=data.text("breweryName") ?: ""
@@ -190,11 +194,11 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
     fun cancelPublishCheck() { mutable.value=mutable.value.copy(publishData=null,publishCandidates=null) }
     fun confirmPublish(candidateId: String? = null) {
         val data=mutable.value.publishData ?: return
-        if(candidateId != null) data.put("positionId",candidateId)
+        if (data.text("id") == null && candidateId != null) data.put("positionId", candidateId)
         mutable.value=mutable.value.copy(publishData=null,publishCandidates=null)
-        publish(data)
+        task { publishChanges(data) }
     }
-    private fun publish(data: JSONObject) = task {
+    private suspend fun publishChanges(data: JSONObject) {
         data.put("status","sending")
         api.saveDraft(data)
         try {
@@ -205,7 +209,7 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
             if(previous != null) {
                 val row = api.json("v1/checkins/$previous"); api.invalidateDiary(); data.put("status","published"); api.saveDraft(data)
                 mutable.value = DiaryState(page = DiaryPage.DETAIL,data = row,success = true,notice = "Этот запрос уже сохранён. Локальная копия оставлена в черновиках для сверки.")
-                return@task
+                return
             }
         }
         val photos = data.optJSONArray("localPhotos") ?: JSONArray()

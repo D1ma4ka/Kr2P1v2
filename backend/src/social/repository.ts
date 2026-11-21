@@ -99,8 +99,9 @@ export async function checkin(db:DB,user:string,id:string) {
  const row=(await db.query(`SELECT ${socialCols} ${socialFrom} WHERE c.id=$2 AND ${socialVisible}`,[user,id])).rows[0];if(!row)throw notFound();return row;
 }
 export async function publicStats(pool:pg.Pool,user:string,owner:string) {
- const row=(await pool.query(`SELECT count(c.id)::int AS "totalCheckins",count(DISTINCT c.position_id)::int AS "uniquePositions",count(c.rating_quarters)::int AS "ratedCheckins",(avg(c.rating_quarters)/4)::float8 AS "averageRating"
+ const row=(await pool.query(`SELECT count(c.id)::int AS "totalCheckins",count(DISTINCT bp.release_id)::int AS "uniquePositions",count(c.rating_quarters)::int AS "ratedCheckins",(avg(c.rating_quarters)/4)::float8 AS "averageRating"
  FROM users u JOIN user_profiles p ON p.user_id=u.id LEFT JOIN checkins c ON c.user_id=u.id AND ${d.active} AND ${d.visible}
+ LEFT JOIN beer_positions bp ON bp.id=c.position_id
  WHERE u.id=$2 AND ${profileVisible} GROUP BY u.id`,[user,owner])).rows[0];if(!row)throw notFound();return {...row,scope:'visible_to_viewer'};
 }
 // Lock the actual ACL rows before testing visibility. Concurrent privacy changes,

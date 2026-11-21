@@ -30,6 +30,7 @@ import ru.krapiva.app.catalog.text
 import ru.krapiva.app.designsystem.KraPivaColors
 import java.time.OffsetDateTime
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable internal fun DiaryEditor(state: DiaryState,model: DiaryViewModel,onClose: () -> Unit,onChangePosition: () -> Unit) {
     val initial = state.editor ?: return
     val id = initial.getString("draftId")
@@ -93,10 +94,16 @@ import java.time.OffsetDateTime
         }
         TextButton({ rating = "" },enabled = !state.busy,modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Без оценки") }
         OutlinedTextField(rating,{ rating = it },enabled = !state.busy,label = { Text("Оценка 0,25–5 · пусто = без оценки") },modifier = Modifier.fillMaxWidth(),singleLine = true)
-        DiaryTitle("Подача")
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Кран", "Банка", "Бутылка", "Бокал", "Дегустационный сет").forEach { option ->
-                FilterChip(serving == option,{ serving = option },enabled = !state.busy,label = { Text(option) })
+        DiaryTitle("Как подали пиво")
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (option in listOf("Банка", "Кран", "Бутылка", "Бокал", "Дегустационный сет")) {
+                FilterChip(
+                    selected = serving == option,
+                    onClick = { serving = if (serving == option) "" else option },
+                    label = { Text(option) },
+                    enabled = !state.busy,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                )
             }
         }
         OutlinedTextField(serving,{ serving = it.take(80) },enabled = !state.busy,label = { Text("Свой вариант подачи (необязательно)") },modifier = Modifier.fillMaxWidth())
@@ -151,7 +158,7 @@ import java.time.OffsetDateTime
         }
         error?.let { Text(it,color = KraPivaColors.Error) }
         Text("Черновик сохраняется на устройстве автоматически. Публикация — отдельное действие.",color = KraPivaColors.Muted)
-        DiaryButton("Проверить пиво и сохранить",!state.busy) {
+        DiaryButton(if (initial.text("id") == null) "Проверить пиво и сохранить" else "Сохранить изменения",!state.busy) {
             try { error = null;model.preparePublish(data(true)) } catch(e: Exception) { error = if(e is java.time.DateTimeException) "Укажите настоящую дату и время, например 2026-11-07 12:00" else e.message ?: "Проверьте поля" }
         }
         DiaryButton("Сохранить черновик на устройстве",!state.busy) { error = null;model.saveDraft(data(false)) }

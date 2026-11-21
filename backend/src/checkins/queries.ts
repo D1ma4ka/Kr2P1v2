@@ -1,11 +1,11 @@
 import {createHash} from 'node:crypto';
 import {ApiError} from '../http/errors.js';
 import {validCursorTimestamp} from '../http/pagination.js';
-export interface DiaryQuery {limit?:string;cursor?:string;q?:string;styleId?:string;breweryId?:string;positionId?:string;from?:string;to?:string;ratingMin?:string;ratingMax?:string;unrated?:string;hasPhoto?:string;venueId?:string;venue?:string;sort?:string;}
+export interface DiaryQuery {limit?:string;cursor?:string;q?:string;styleId?:string;breweryId?:string;positionId?:string;releaseId?:string;from?:string;to?:string;ratingMin?:string;ratingMax?:string;unrated?:string;hasPhoto?:string;venueId?:string;venue?:string;sort?:string;}
 export const active='c.deleted_at IS NULL AND c.hidden_at IS NULL';
 export const joins=`JOIN beer_positions bp ON bp.id=c.position_id JOIN beer_releases r ON r.id=bp.release_id
  JOIN breweries b ON b.id=r.brewery_id LEFT JOIN styles st ON st.id=r.style_id LEFT JOIN venues v ON v.id=c.venue_id`;
-export const cols=`c.id,c.user_id AS "userId",c.position_id AS "positionId",c.rating_quarters AS "ratingQuarters",c.body,c.visibility,c.version,
+export const cols=`c.id,c.user_id AS "userId",c.position_id AS "positionId",bp.release_id AS "releaseId",c.rating_quarters AS "ratingQuarters",c.body,c.visibility,c.version,
  to_char(c.occurred_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "occurredAt",
  to_char(c.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "createdAt",
  to_char(c.updated_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "updatedAt",
@@ -27,6 +27,7 @@ export function where(user:string,q:DiaryQuery) {
  if(q.styleId) add(`r.style_id=?`,q.styleId);
  if(q.breweryId) add(`b.id=?`,q.breweryId);
  if(q.positionId) add(`c.position_id=?`,q.positionId);
+ if(q.releaseId) add(`bp.release_id=?`,q.releaseId);
  for(const [key,operator] of [['from','>='],['to','<=']] as const) if(q[key]) {if(!validDate(q[key]!))throw new ApiError(400,'INVALID_DATE','Некорректная дата');add(`c.occurred_at${operator}?::timestamptz`,q[key]);}
  if(q.from&&q.to&&Date.parse(q.from)>Date.parse(q.to))throw new ApiError(400,'INVALID_RANGE','Начало позже окончания');
  if(q.ratingMin) add(`c.rating_quarters>=?::int`,Number(q.ratingMin));

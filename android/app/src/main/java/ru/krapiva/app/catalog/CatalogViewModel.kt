@@ -23,7 +23,7 @@ data class CatalogState(val page: CatalogPage = CatalogPage.POSITIONS, val items
     val busy: Boolean = false, val offline: Boolean = false, val error: String? = null, val notice: String? = null,
     val queries: List<String> = emptyList(),val recent: List<String> = emptyList(),
     val code: String = "", val lookupState: String? = null, val lookupSource: String? = null,
-    val pickerQuery: String = "", val proposal: JSONObject? = null)
+    val pickerQuery: String = "", val proposal: JSONObject? = null, val refreshOnBack: Boolean = false)
 class CatalogViewModel(val repository: CatalogRepository, private val upload: suspend (Uri) -> String,
     private val expired: () -> Unit) : ViewModel() {
     private val mutable = MutableStateFlow(CatalogState())
@@ -36,7 +36,22 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
         refresh()
     } }
     fun clearHistory() = task {
-        repository.history.clear();mutable.value = mutable.value.copy(queries=emptyList(),recent=emptyList())
+        repository.history.clear()
+        val cleared = history.map { previous ->
+            val hadQuery = previous.page == CatalogPage.POSITIONS && previous.filters.q.isNotBlank()
+            previous.copy(
+                filters = previous.filters.copy(q = ""),
+                items = if (hadQuery) emptyList() else previous.items,
+                next = if (hadQuery) null else previous.next,
+                queries = emptyList(),
+                recent = emptyList(),
+                refreshOnBack = previous.refreshOnBack || hadQuery,
+            )
+        }
+        history.clear()
+        history.addAll(cleared)
+        mutable.value = mutable.value.copy(filters = mutable.value.filters.copy(q = ""), queries = emptyList(), recent = emptyList())
+        load(more = false)
     }
     private fun task(action: suspend () -> Unit) {
         if (mutable.value.busy) return
@@ -57,10 +72,12 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
         }
     }
     private fun enter(next: CatalogState) { if (history.size >= 32) history.removeFirst(); history.addLast(mutable.value.copy(busy = false, error = null)); mutable.value = next }
-    fun back(): Boolean {
+    fun back(refreshResults: Boolean = true): Boolean {
         if (mutable.value.busy) return true
         val old = history.removeLastOrNull() ?: return false
-        mutable.value = old.copy(queries=mutable.value.queries,recent=mutable.value.recent); return true
+        mutable.value = old.copy(queries=mutable.value.queries,recent=mutable.value.recent,refreshOnBack=false)
+        if (refreshResults && old.refreshOnBack) refresh()
+        return true
     }
     fun open(page: CatalogPage) {
         if (mutable.value.busy) return
@@ -73,7 +90,7 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
     fun selectStyle(value: JSONObject) {
         if (mutable.value.busy) return
         val filters = mutable.value.filters.copy(styleId = value.getString("id"), styleLabel = value.getString("name"))
-        back(); mutable.value = mutable.value.copy(filters = filters); refresh()
+        back(refreshResults = false); mutable.value = mutable.value.copy(filters = filters); refresh()
     }
     fun selectBrewery() {
         val brewery = mutable.value.detail ?: return
@@ -81,7 +98,8 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
         enter(CatalogState(filters = filters)); refresh()
     }
     fun resetFilters() { filters(CatalogFilters()); refresh() }
-    fun refresh(more: Boolean = false) = task {
+    fun refresh(more: Boolean = false) = task { load(more) }
+    private suspend fun load(more: Boolean) {
         val old = mutable.value
         if(!more && old.page in setOf(CatalogPage.POSITIONS,CatalogPage.BREWERIES,CatalogPage.STYLES,CatalogPage.PROPOSALS))mutable.value=mutable.value.copy(items=emptyList(),next=null)
         if(old.page == CatalogPage.POSITIONS && !more) {
@@ -95,7 +113,7 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
             CatalogPage.BREWERIES, CatalogPage.STYLES -> "v1/${if (old.page == CatalogPage.BREWERIES) "breweries" else "styles"}?q=${Uri.encode(old.pickerQuery)}&limit=20" + (cursor?.let { "&cursor=${Uri.encode(it)}" } ?: "")
             CatalogPage.POSITION -> "v1/positions/${old.detail!!.getString("requestedId")}"
             CatalogPage.BREWERY -> "v1/breweries/${old.detail!!.getString("id")}"
-            else -> return@task
+            else -> return
         }
         val (data, offline) = repository.read(path)
         if (old.page in setOf(CatalogPage.POSITION, CatalogPage.BREWERY)) mutable.value = mutable.value.copy(detail = data, offline = offline)

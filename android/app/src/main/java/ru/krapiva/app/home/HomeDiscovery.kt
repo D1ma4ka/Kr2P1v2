@@ -1,5 +1,10 @@
 package ru.krapiva.app.home
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.provider.CalendarContract
+import java.time.Instant
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -152,6 +157,8 @@ internal fun DiscoveryContent(
         )
     }
     details?.let { entry ->
+        val context = LocalContext.current
+        var calendarError by remember(entry) { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { details = null },
             title = { Text(entry.getString("title")) },
@@ -164,7 +171,27 @@ internal fun DiscoveryContent(
                     entry.optJSONArray("badgeTitles")?.strings()?.takeIf { it.isNotEmpty() }?.let {
                         Text("Доступные значки · ${it.joinToString(", ")}")
                     }
-                    if (entry.has("eventId")) Text("Для получения значка модератор подтверждает посещение.")
+                    if (entry.has("eventId")) {
+                        Text("Для получения значка модератор подтверждает посещение.")
+                    } else {
+                        OutlinedButton({
+                            val calendar = Intent(Intent.ACTION_INSERT, CalendarContract.Events.CONTENT_URI)
+                                .putExtra(CalendarContract.Events.TITLE, entry.getString("title"))
+                                .putExtra(CalendarContract.Events.DESCRIPTION, entry.getString("description"))
+                                .putExtra(CalendarContract.Events.EVENT_LOCATION,
+                                    listOfNotNull(entry.text("venueName"), entry.text("city"), entry.text("address"))
+                                        .joinToString(", "))
+                                .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, Instant.parse(entry.getString("startsAt")).toEpochMilli())
+                                .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, Instant.parse(entry.getString("endsAt")).toEpochMilli())
+                            try {
+                                context.startActivity(calendar)
+                                calendarError = false
+                            } catch (_: ActivityNotFoundException) {
+                                calendarError = true
+                            }
+                        }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("В календарь") }
+                        if (calendarError) Text("Приложение календаря недоступно.", color = MaterialTheme.colorScheme.error)
+                    }
                 }
             },
             confirmButton = {

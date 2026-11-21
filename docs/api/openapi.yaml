@@ -11392,6 +11392,12 @@ paths:
           required: false
         - schema:
             type: string
+            format: uuid
+          in: query
+          name: releaseId
+          required: false
+        - schema:
+            type: string
             format: date-time
           in: query
           name: from
@@ -11531,6 +11537,9 @@ paths:
                             format: uuid
                           uniqueItems: true
                           maxItems: 4
+                        releaseId:
+                          type: string
+                          format: uuid
                         positionName:
                           type: string
                         breweryId:
@@ -11584,6 +11593,7 @@ paths:
                         - venueText
                         - tagIds
                         - mediaIds
+                        - releaseId
                         - positionName
                         - breweryId
                         - breweryName
@@ -11972,6 +11982,9 @@ paths:
                       format: uuid
                     uniqueItems: true
                     maxItems: 4
+                  releaseId:
+                    type: string
+                    format: uuid
                   positionName:
                     type: string
                   breweryId:
@@ -12025,6 +12038,7 @@ paths:
                   - venueText
                   - tagIds
                   - mediaIds
+                  - releaseId
                   - positionName
                   - breweryId
                   - breweryName
@@ -12106,6 +12120,9 @@ paths:
                       format: uuid
                     uniqueItems: true
                     maxItems: 4
+                  releaseId:
+                    type: string
+                    format: uuid
                   positionName:
                     type: string
                   breweryId:
@@ -12159,6 +12176,7 @@ paths:
                   - venueText
                   - tagIds
                   - mediaIds
+                  - releaseId
                   - positionName
                   - breweryId
                   - breweryName
@@ -12482,6 +12500,9 @@ paths:
                       format: uuid
                     uniqueItems: true
                     maxItems: 4
+                  releaseId:
+                    type: string
+                    format: uuid
                   positionName:
                     type: string
                   breweryId:
@@ -12535,6 +12556,7 @@ paths:
                   - venueText
                   - tagIds
                   - mediaIds
+                  - releaseId
                   - positionName
                   - breweryId
                   - breweryName
@@ -12918,6 +12940,9 @@ paths:
                       format: uuid
                     uniqueItems: true
                     maxItems: 4
+                  releaseId:
+                    type: string
+                    format: uuid
                   positionName:
                     type: string
                   breweryId:
@@ -12971,6 +12996,7 @@ paths:
                   - venueText
                   - tagIds
                   - mediaIds
+                  - releaseId
                   - positionName
                   - breweryId
                   - breweryName
@@ -14500,6 +14526,9 @@ paths:
                                 format: uuid
                               uniqueItems: true
                               maxItems: 4
+                            releaseId:
+                              type: string
+                              format: uuid
                             positionName:
                               type: string
                             breweryId:
@@ -14553,6 +14582,7 @@ paths:
                             - venueText
                             - tagIds
                             - mediaIds
+                            - releaseId
                             - positionName
                             - breweryId
                             - breweryName
@@ -14870,6 +14900,9 @@ paths:
                         id:
                           type: string
                           format: uuid
+                        releaseId:
+                          type: string
+                          format: uuid
                         name:
                           type: string
                         breweryId:
@@ -14902,6 +14935,7 @@ paths:
                           format: date-time
                       required:
                         - id
+                        - releaseId
                         - name
                         - breweryId
                         - breweryName
@@ -15215,6 +15249,9 @@ paths:
                         id:
                           type: string
                           format: uuid
+                        releaseId:
+                          type: string
+                          format: uuid
                         name:
                           type: string
                         breweryId:
@@ -15247,6 +15284,7 @@ paths:
                           format: date-time
                       required:
                         - id
+                        - releaseId
                         - name
                         - breweryId
                         - breweryName
@@ -18622,6 +18660,9 @@ paths:
                             format: uuid
                           uniqueItems: true
                           maxItems: 4
+                        releaseId:
+                          type: string
+                          format: uuid
                         positionName:
                           type: string
                         breweryId:
@@ -18688,6 +18729,7 @@ paths:
                         - venueText
                         - tagIds
                         - mediaIds
+                        - releaseId
                         - positionName
                         - breweryId
                         - breweryName
@@ -19041,6 +19083,9 @@ paths:
                             format: uuid
                           uniqueItems: true
                           maxItems: 4
+                        releaseId:
+                          type: string
+                          format: uuid
                         positionName:
                           type: string
                         breweryId:
@@ -19107,6 +19152,7 @@ paths:
                         - venueText
                         - tagIds
                         - mediaIds
+                        - releaseId
                         - positionName
                         - breweryId
                         - breweryName
@@ -19713,6 +19759,9 @@ paths:
                       format: uuid
                     uniqueItems: true
                     maxItems: 4
+                  releaseId:
+                    type: string
+                    format: uuid
                   positionName:
                     type: string
                   breweryId:
@@ -19779,6 +19828,7 @@ paths:
                   - venueText
                   - tagIds
                   - mediaIds
+                  - releaseId
                   - positionName
                   - breweryId
                   - breweryName
@@ -20107,6 +20157,9 @@ paths:
                       format: uuid
                     uniqueItems: true
                     maxItems: 4
+                  releaseId:
+                    type: string
+                    format: uuid
                   positionName:
                     type: string
                   breweryId:
@@ -20173,6 +20226,7 @@ paths:
                   - venueText
                   - tagIds
                   - mediaIds
+                  - releaseId
                   - positionName
                   - breweryId
                   - breweryName
@@ -20500,6 +20554,9 @@ paths:
                       format: uuid
                     uniqueItems: true
                     maxItems: 4
+                  releaseId:
+                    type: string
+                    format: uuid
                   positionName:
                     type: string
                   breweryId:
@@ -20566,6 +20623,7 @@ paths:
                   - venueText
                   - tagIds
                   - mediaIds
+                  - releaseId
                   - positionName
                   - breweryId
                   - breweryName
