@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 enum class ClubDestination(val label: String, val icon: ClubIcon) {
-    HOME("Главная", ClubIcon.HOME), CATALOG("Каталог", ClubIcon.CATALOG),
-    COLLECTION("Коллекция", ClubIcon.BOTTLE), FEED("Лента", ClubIcon.FEED), PROFILE("Профиль", ClubIcon.PERSON)
+    HOME("Главная", ClubIcon.HOME), CATALOG("Поиск", ClubIcon.SEARCH),
+    COLLECTION("Моё пиво", ClubIcon.BOTTLE), FEED("Лента", ClubIcon.FEED), PROFILE("Профиль", ClubIcon.PERSON)
 }
 enum class ClubIcon { HOME, CATALOG, BOTTLE, FEED, PERSON, PEOPLE, GLASS, LEAF, PLUS, HEART, COMMENT, REFRESH, CHEVRON, SETTINGS, SEARCH, SCAN, BOOKMARK, CHECK, MORE }
 

@@ -43,7 +43,7 @@ class DiaryIntegrationTest {
         val model = DiaryViewModel(api,{ uri -> runBlocking { val bytes = context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }; api.jsonBytesForTest(bytes) } },{ error("Session expired") })
         try {
             compose.setContent { KraPivaTheme { DiaryApp(api,store.session()!!.getString("userId"),1,"HOME",null,{ error("Supplied model") },{},{},{},{},model) } }
-            ready(model);waitForText("Коллекция");compose.onNodeWithText("Всего чекинов: 0").assertExists();shot("p5-home-empty.png")
+            ready(model);waitForText("Попробованное");compose.onNodeWithText("Всего чекинов: 0").assertExists();shot("p5-home-empty.png")
             // Open the actual editor through the home CTA and actual catalog selection.
             compose.onNodeWithText("Чекин").performClick();ready(model)
             compose.onNode(hasScrollAction()).performScrollToNode(hasText("Synthetic Android Тёмный Ёж"))

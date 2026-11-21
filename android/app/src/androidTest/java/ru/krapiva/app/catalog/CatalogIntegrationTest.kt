@@ -83,7 +83,7 @@ class CatalogIntegrationTest {
         }
         screenshot("p4-catalog.png")
         compose.onNode(hasScrollAction()).performScrollToIndex(0)
-        compose.onNodeWithText("Название, пивоварня или стиль").performTextInput("темный еж stout")
+        compose.onNodeWithText("Поиск пива").performTextInput("темный еж stout")
         compose.onNodeWithText("Найти").performClick()
         compose.waitUntil(15_000) { !model.state.value.busy }
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Synthetic Android Тёмный Ёж").fetchSemanticsNodes().isNotEmpty() }
@@ -95,12 +95,12 @@ class CatalogIntegrationTest {
         compose.waitUntil(10_000) { compose.onAllNodesWithText("Позиции пивоварни").fetchSemanticsNodes().isNotEmpty() }
         screenshot("p4-brewery.png")
         compose.onNodeWithText("Позиции пивоварни").performClick()
-        compose.waitUntil(10_000) { compose.onAllNodesWithText("Сканировать штрихкод").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(10_000) { compose.onAllNodesWithContentDescription("Сканировать штрихкод").fetchSemanticsNodes().isNotEmpty() }
         compose.waitUntil(15_000) {
-            !model.state.value.busy && compose.onAllNodes(hasText("Сканировать штрихкод") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+            !model.state.value.busy && compose.onAllNodes(hasContentDescription("Сканировать штрихкод") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         // Wait for the actual enabled UI, then confirm navigation before looking for native UI.
-        compose.onNodeWithText("Сканировать штрихкод").performScrollTo().assertIsEnabled().performClick()
+        compose.onNodeWithContentDescription("Сканировать штрихкод").performScrollTo().assertIsEnabled().performClick()
         compose.waitUntil(10_000) { model.state.value.page == CatalogPage.SCANNER }
         // Compose's test clock only advances through Compose test APIs. Flush the screen's
         // LaunchedEffect before a real-time UiAutomator wait, or the dialog is never launched.

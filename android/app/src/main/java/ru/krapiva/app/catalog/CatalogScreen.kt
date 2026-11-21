@@ -45,7 +45,7 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
     BackHandler { if (!model.back()) onProfile() }
     KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding().imePadding()) {
-            ClubHeader(if(state.page == CatalogPage.POSITIONS) "Каталог" else null,onSettings,if(state.page == CatalogPage.POSITIONS && onCheckin != null) ({ onCheckin(null) }) else null)
+            ClubHeader(if(state.page == CatalogPage.POSITIONS) "Пивная база" else null,onSettings,if(state.page == CatalogPage.POSITIONS && onCheckin != null) ({ onCheckin(null) }) else null)
             if(state.page != CatalogPage.POSITIONS) TextButton(onClick = { if(!model.back()) onProfile() },enabled = !state.busy) { Text("Назад") }
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Assertive }) }
@@ -75,35 +75,64 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: Accou
     val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     fun search() { keyboard?.hide();focus.clearFocus();model.refresh() }
-    val recentLabels by produceState<Map<String,String>>(emptyMap(),state.recent,state.items) {
-        try { value=ru.krapiva.app.offline.availablePositionLabels(api) }
-        catch(e: Exception) { if(e is kotlinx.coroutines.CancellationException)throw e;value=emptyMap() }
-    }
+    var showHistory by rememberSaveable { mutableStateOf(false) }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if(state.page != CatalogPage.POSITIONS) CatalogTitle(when (state.page) { CatalogPage.BREWERIES -> "Пивоварни"; CatalogPage.STYLES -> "Выбрать стиль"; CatalogPage.PROPOSALS -> "Мои предложения"; else -> "Каталог пива" })
                 if (state.page == CatalogPage.POSITIONS) {
-                    OutlinedTextField(state.filters.q,{ model.filters(state.filters.copy(q = it.take(120))) },label = { Text("Название, пивоварня или стиль") },enabled = !state.busy,singleLine = true,keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { search() }),modifier = Modifier.fillMaxWidth(),shape = ClubTokens.CardShape,
-                        leadingIcon = { ClubGlyph(ClubIcon.SEARCH) },trailingIcon = { IconButton({ model.open(CatalogPage.SCANNER) },enabled = !state.busy) { ClubGlyph(ClubIcon.SCAN,description = "Сканировать штрихкод") } })
-                    if(state.queries.isNotEmpty()) {
-                        Text("История поиска",style=MaterialTheme.typography.titleMedium)
-                        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                            state.queries.forEach { query -> SuggestionChip({model.filters(state.filters.copy(q=query));search()},label={Text(query)},enabled=!state.busy) }
-                        }
-                    }
-                    if(state.recent.isNotEmpty()) {
-                        Text("Недавно просмотренные · проверка доступности при открытии",color=KraPivaColors.Muted)
-                        state.recent.take(5).forEachIndexed { index,id -> TextButton({model.detail(id)},enabled=!state.busy){Text(recentLabels[id] ?: "Недавняя позиция ${index+1} · проверить доступность")} }
-                    }
-                    if(state.queries.isNotEmpty()||state.recent.isNotEmpty())TextButton(model::clearHistory,enabled=!state.busy){Text("Очистить историю поиска и просмотров")}
-                    StyleChips(state,model)
-                    CatalogAction("Найти", !state.busy) { search() }
-                    Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton({ model.open(CatalogPage.SCANNER) },modifier = Modifier.weight(1f),enabled = !state.busy) { Text("Сканировать штрихкод") }
-                        TextButton({ model.proposal() },modifier = Modifier.weight(1f),enabled = !state.busy) { Text("Предложить позицию") }
+                    OutlinedTextField(
+                        state.filters.q,
+                        { model.filters(state.filters.copy(q = it.take(120))) },
+                        label = { Text("Поиск пива") },
+                        enabled = !state.busy,
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { search() }),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = ClubTokens.CardShape,
+                        leadingIcon = { ClubGlyph(ClubIcon.SEARCH) },
+                        trailingIcon = {
+                            IconButton({ model.open(CatalogPage.SCANNER) }, enabled = !state.busy) {
+                                ClubGlyph(ClubIcon.SCAN, description = "Сканировать штрихкод")
+                            }
+                        },
+                    )
+                    Button({ search() }, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = !state.busy) {
+                        Text("Найти")
                     }
                     Filters(state, model)
+                    if (state.queries.isNotEmpty() || state.recent.isNotEmpty()) {
+                        OutlinedButton(
+                            { showHistory = !showHistory },
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) { Text(if (showHistory) "Скрыть историю" else "История и недавние") }
+                        if (showHistory) {
+                            val recentLabels by produceState<Map<String, String>>(emptyMap(), state.recent) {
+                                try { value = ru.krapiva.app.offline.availablePositionLabels(api) }
+                                catch (error: Exception) {
+                                    if (error is kotlinx.coroutines.CancellationException) throw error
+                                }
+                            }
+                            state.queries.forEach { query ->
+                                TextButton(
+                                    { model.filters(state.filters.copy(q = query)); search() },
+                                    Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                    enabled = !state.busy,
+                                ) { Text(query) }
+                            }
+                            state.recent.take(5).forEachIndexed { index, id ->
+                                TextButton(
+                                    { model.detail(id) },
+                                    Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                    enabled = !state.busy,
+                                ) { Text(recentLabels[id] ?: "Недавняя позиция ${index + 1}") }
+                            }
+                            TextButton(model::clearHistory, enabled = !state.busy) {
+                                Text("Очистить историю поиска и просмотров")
+                            }
+                        }
+                    }
                 } else if (state.page != CatalogPage.PROPOSALS) {
                     CatalogInput("Поиск по названию", state.pickerQuery, !state.busy, model::pickerQuery)
                     CatalogAction("Найти", !state.busy) { model.refresh() }
@@ -111,7 +140,9 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: Accou
                 if (state.page != CatalogPage.POSITIONS) TextButton({ model.refresh() }, enabled = !state.busy) { Text("Обновить") }
                 if (state.items.isEmpty() && !state.busy) {
                     Text(if (state.error != null) "Список не загружен. Повторите запрос." else "Ничего не найдено", style = MaterialTheme.typography.titleLarge)
-                    if (state.page == CatalogPage.POSITIONS) Text("Каталог пополняется после проверки источников. Предложите реальную позицию, если её ещё нет.", color = KraPivaColors.Muted)
+                    if (state.page == CatalogPage.POSITIONS && state.error == null) {
+                        OutlinedButton({ model.proposal() }, Modifier.heightIn(min = 48.dp)) { Text("Предложить позицию") }
+                    }
                 }
             }
         }
@@ -140,10 +171,14 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: Accou
 }
 @Composable private fun Filters(state: CatalogState, model: CatalogViewModel) {
     var expanded by rememberSaveable { mutableStateOf(false) }
-    TextButton({ expanded = !expanded }) { Text(if (expanded) "Скрыть фильтры" else "Фильтры и разделы") }
+    OutlinedButton({ expanded = !expanded }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        Text(if (expanded) "Скрыть фильтры" else "Фильтры и разделы")
+    }
     if (expanded) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         TextButton({ model.open(CatalogPage.BREWERIES) }, enabled = !state.busy) { Text("Пивоварни") }
         TextButton({ model.open(CatalogPage.PROPOSALS) }, enabled = !state.busy) { Text("Мои предложения") }
+        TextButton({ model.proposal() }, enabled = !state.busy) { Text("Предложить позицию") }
+        StyleChips(state, model)
         Text("Сортировка")
         for ((value, label) in listOf("newest" to "Сначала новые", "name" to "По названию", "abv" to "По крепости"))
             FilterChip(colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KraPivaColors.Amber.copy(alpha = .16f), selectedLabelColor = KraPivaColors.Amber), selected = state.filters.sort == value, enabled = !state.busy, onClick = { model.filters(state.filters.copy(sort = value)) }, label = { Text(label) })

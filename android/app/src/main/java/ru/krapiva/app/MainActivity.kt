@@ -3,12 +3,13 @@ package ru.krapiva.app
 import android.graphics.Color
 import android.os.Bundle
 import android.content.Intent
+import android.content.res.Configuration
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.SideEffect
 import ru.krapiva.app.designsystem.ThemePreference
-import ru.krapiva.app.designsystem.ThemeMode
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -28,21 +29,23 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         readReminder(intent)
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-        )
         val appearance = ThemePreference(this)
+        val systemDark = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+            Configuration.UI_MODE_NIGHT_YES
+        updateSystemBars(appearance.mode.isDark(systemDark))
         setContent {
             val mode = appearance.mode
-            SideEffect {
-                val style = if (mode == ThemeMode.DARK) SystemBarStyle.dark(Color.TRANSPARENT)
-                    else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
-            }
+            val dark = mode.isDark(isSystemInDarkTheme())
+            SideEffect { updateSystemBars(dark) }
             KraPivaTheme(mode, appearance::select) { AccountApp(reminderRequest=reminderRequest,consumeReminder={
                 reminderRequest=null;intent.removeExtra("reminderOwner");intent.removeExtra("reminderPage")
             }) }
         }
+    }
+
+    private fun updateSystemBars(dark: Boolean) {
+        val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT)
+        else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 }

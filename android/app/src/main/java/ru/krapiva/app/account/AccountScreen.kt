@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -386,12 +388,25 @@ private fun visibilityLabel(value: String) = when(value) { "public" -> "Все �
     Title("Оформление")
     val theme = LocalThemeMode.current
     val selectTheme = LocalThemeSelection.current
-    Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        for ((mode,label) in listOf(ThemeMode.DARK to "Тёмная",ThemeMode.LIGHT to "Светлая")) {
-            FilterChip(selected = theme == mode,onClick = { selectTheme(mode) },label = { Text(label) },modifier = Modifier.heightIn(min = 48.dp))
+    Column(Modifier.selectableGroup()) {
+        val options = listOf(
+            ThemeMode.SYSTEM to "Системная",
+            ThemeMode.LIGHT to "Светлая",
+            ThemeMode.DARK to "Тёмная",
+        )
+        for ((mode, label) in options) {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    .selectable(theme == mode, role = Role.RadioButton) { selectTheme(mode) }
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                RadioButton(selected = theme == mode, onClick = null)
+                Text(label)
+            }
         }
     }
-    Text("Тема сохраняется на этом устройстве",color = KraPivaColors.Muted)
     Title("Аккаунт и приватность")
     Text("Публичность полей и фото проверяется на сервере. Настройте её при редактировании профиля.")
     Link("Редактировать приватность", !state.busy && !state.offline) { model.navigate(AccountScreen.EDIT) }

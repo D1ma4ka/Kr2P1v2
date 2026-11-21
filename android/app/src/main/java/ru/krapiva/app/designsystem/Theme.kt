@@ -1,6 +1,7 @@
 package ru.krapiva.app.designsystem
 
 import android.content.Context
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -11,18 +12,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-enum class ThemeMode { DARK, LIGHT }
+enum class ThemeMode {
+    SYSTEM, LIGHT, DARK;
+
+    fun isDark(systemDark: Boolean): Boolean = when (this) {
+        SYSTEM -> systemDark
+        LIGHT -> false
+        DARK -> true
+    }
+
+    companion object {
+        fun fromPreference(value: String?): ThemeMode = entries.firstOrNull { it.name == value } ?: SYSTEM
+    }
+}
 
 /** Device preference only; never contains account data or credentials. */
 class ThemePreference(context: Context) {
     private val preferences = context.getSharedPreferences("appearance", Context.MODE_PRIVATE)
-    var mode by mutableStateOf(runCatching {
-        ThemeMode.valueOf(preferences.getString("theme", "DARK")!!)
-    }.getOrDefault(ThemeMode.DARK))
+    var mode by mutableStateOf(ThemeMode.fromPreference(preferences.getString("theme", null)))
         private set
     fun select(value: ThemeMode) { mode = value; preferences.edit().putString("theme", value.name).apply() }
 }
-val LocalThemeMode = staticCompositionLocalOf { ThemeMode.DARK }
+val LocalThemeMode = staticCompositionLocalOf { ThemeMode.SYSTEM }
+internal val LocalDarkPalette = staticCompositionLocalOf { true }
 val LocalThemeSelection = staticCompositionLocalOf<(ThemeMode) -> Unit> { {} }
 
 /** Legacy names retained so all P0–P6 screens follow the selected palette. */
@@ -35,7 +47,7 @@ object KraPivaColors {
     val Border: Color @Composable get() = MaterialTheme.colorScheme.outlineVariant
     val Error: Color @Composable get() = MaterialTheme.colorScheme.error
     val Hop = Color(0xFF78B936)
-    val HopLight: Color @Composable get() = if (LocalThemeMode.current == ThemeMode.DARK) Color(0xFF9ACD45) else Color(0xFF456A16)
+    val HopLight: Color @Composable get() = if (LocalDarkPalette.current) Color(0xFF9ACD45) else Color(0xFF456A16)
 }
 object ClubTokens {
     val Amber = Color(0xFFF3AF45)
@@ -85,9 +97,14 @@ private val Type = Typography(
     labelSmall = TextStyle(fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 16.sp),
 )
 @Composable
-fun KraPivaTheme(mode: ThemeMode = ThemeMode.DARK, onThemeChange: (ThemeMode) -> Unit = {}, content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalThemeMode provides mode, LocalThemeSelection provides onThemeChange) {
-        MaterialTheme(colorScheme = if (mode == ThemeMode.DARK) Dark else Light, typography = Type,
+fun KraPivaTheme(mode: ThemeMode = ThemeMode.SYSTEM, onThemeChange: (ThemeMode) -> Unit = {}, content: @Composable () -> Unit) {
+    val dark = mode.isDark(isSystemInDarkTheme())
+    CompositionLocalProvider(
+        LocalThemeMode provides mode,
+        LocalDarkPalette provides dark,
+        LocalThemeSelection provides onThemeChange,
+    ) {
+        MaterialTheme(colorScheme = if (dark) Dark else Light, typography = Type,
             shapes = Shapes(small = ClubTokens.ControlShape, medium = ClubTokens.CardShape, large = RoundedCornerShape(24.dp)), content = content)
     }
 }

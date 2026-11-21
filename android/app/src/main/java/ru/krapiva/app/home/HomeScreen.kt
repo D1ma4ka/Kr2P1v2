@@ -106,7 +106,7 @@ private fun HomeContent(state: HomeState, profile: JSONObject, avatar: Bitmap?, 
                 Row(Modifier.fillMaxWidth(),verticalAlignment = Alignment.CenterVertically) {
                     Metric(state.summary?.optInt("totalCheckins")?.toString() ?: "—","чекинов",ClubIcon.GLASS,Modifier.weight(1f),onCollection)
                     VerticalDivider(Modifier.height(36.dp),color = KraPivaColors.Border)
-                    Metric(state.summary?.optInt("uniquePositions")?.toString() ?: "—","сортов",ClubIcon.BOTTLE,Modifier.weight(1f),onCollection)
+                    Metric(state.summary?.optInt("uniquePositions")?.toString() ?: "—","позиций",ClubIcon.BOTTLE,Modifier.weight(1f),onCollection)
                     VerticalDivider(Modifier.height(36.dp),color = KraPivaColors.Border)
                     Metric(state.friends ?: "—","друзей",ClubIcon.PEOPLE,Modifier.weight(1f),onFriends)
                 }
@@ -120,7 +120,7 @@ private fun HomeContent(state: HomeState, profile: JSONObject, avatar: Bitmap?, 
             when {
                 state.loading && latest == null -> LoadingCard()
                 latest != null -> LatestCard(latest,api,state.offline) { onOwnCheckin(latest.getString("id")) }
-                state.error == null -> StatusCard("Начни свою коллекцию","Сохрани первое впечатление о пиве — здесь появится твоя последняя запись.","Создать чекин",onCheckin)
+                state.error == null -> StatusCard("Первый чекин","Сохрани первое впечатление о пиве, чтобы увидеть здесь свою запись.","Создать чекин",onCheckin)
             }
         }
         item {
