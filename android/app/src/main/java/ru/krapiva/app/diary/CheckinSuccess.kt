@@ -28,7 +28,8 @@ import ru.krapiva.app.designsystem.*
                 Text("Чекин сохранён!",Modifier.fillMaxWidth(),style = MaterialTheme.typography.headlineMedium,textAlign = TextAlign.Center)
                 Text(ClubPhrases.forCheckin(data.getString("id")),Modifier.fillMaxWidth(),color = KraPivaColors.Muted,textAlign = TextAlign.Center)
                 Row(verticalAlignment = Alignment.CenterVertically,horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ClubPhoto(api,data.optJSONArray("mediaIds")?.optString(0),"Фото сохранённого чекина",Modifier.size(84.dp),cacheOwn = true)
+                    val photo = data.optJSONArray("mediaIds")?.optString(0)?.takeIf { it.isNotBlank() }
+                    ClubPhoto(api, photo, "Фото сохранённого чекина", Modifier.size(84.dp), cacheOwn = true)
                     Column(Modifier.weight(1f)) {
                         Text(data.getString("positionName"),style = MaterialTheme.typography.titleLarge)
                         Text(if(data.isNull("ratingQuarters")) "Без оценки" else "Твоя оценка: ${DiaryNumbers.rating(data.getInt("ratingQuarters"))}",color = KraPivaColors.Muted)

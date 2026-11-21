@@ -3,10 +3,10 @@ import type pg from 'pg';
 import * as s from '../http/schemas.js';
 import * as r from './repository.js';
 const nullableDate={anyOf:[s.timestamp,{type:'null'}]},nullableNumber={type:['number','null']};
-export const venue=s.object({id:s.uuid,name:{type:'string'},type:{type:'string',enum:['bar','beer_shop']},city:{type:'string'},country:s.nullableText(100),address:s.nullableText(1000),source:{type:'string'},
+export const venue=s.object({id:s.uuid,name:{type:'string'},type:{type:'string',enum:['bar','beer_shop','brewery']},city:{type:'string'},country:s.nullableText(100),address:s.nullableText(1000),source:{type:'string'},
  latitude:nullableNumber,longitude:nullableNumber,coordinatesSource:s.nullableText(2000),coordinatesVerifiedAt:nullableDate,
  imageAssetId:{anyOf:[s.uuid,{type:'null'}]},imageSource:s.nullableText(2000),version:s.version,status:{type:'string'},testOnly:{type:'boolean'}});
-const query={...s.pageQuery.properties,cursor:{type:'string',maxLength:512,pattern:'^[A-Za-z0-9_-]+$'},q:{type:'string',maxLength:120},city:{type:'string',maxLength:120},type:{type:'string',enum:['bar','beer_shop']},bbox:{type:'string',maxLength:160}};
+const query={...s.pageQuery.properties,cursor:{type:'string',maxLength:512,pattern:'^[A-Za-z0-9_-]+$'},q:{type:'string',maxLength:120},city:{type:'string',maxLength:120},type:{type:'string',enum:['bar','beer_shop','brewery']},bbox:{type:'string',maxLength:160}};
 export const nearbyFields={
  latitude:{type:'number',minimum:-90,maximum:90},
  longitude:{type:'number',minimum:-180,maximum:180},

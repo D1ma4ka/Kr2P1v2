@@ -7,6 +7,14 @@ import androidx.compose.runtime.setValue
 import org.json.JSONObject
 
 data class Coordinates(val latitude: Double, val longitude: Double)
+data class DiscoveryCity(val name: String, val center: Coordinates?)
+
+internal fun venueTypeLabel(type: String): String = when (type) {
+    "bar" -> "Бар"
+    "beer_shop" -> "Пивной магазин"
+    "brewery" -> "Пивоварня"
+    else -> "Заведение"
+}
 
 internal val nearbyRadii = listOf(1, 3, 5, 10, 25, 50)
 

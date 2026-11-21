@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontStyle
@@ -40,12 +41,15 @@ import ru.krapiva.app.catalog.text
 import ru.krapiva.app.designsystem.*
 import ru.krapiva.app.diary.DiaryDates
 import ru.krapiva.app.diary.DiaryNumbers
+import ru.krapiva.app.places.DiscoveryCity
+import ru.krapiva.app.places.NearbyPreference
 
 @Composable
 fun HomeApp(api: AccountApi, profile: JSONObject, avatar: Bitmap?, onCheckin: () -> Unit,
     onCollection: () -> Unit, onOwnCheckin: (String) -> Unit, onSocial: (String?) -> Unit,
     onFriends: () -> Unit, onProfile: () -> Unit, onSettings: () -> Unit, expired: () -> Unit,
-    bottomBar: @Composable () -> Unit, providedModel: HomeViewModel? = null,onPlaces: ()->Unit={},onBadges: ()->Unit={}) {
+    bottomBar: @Composable () -> Unit, providedModel: HomeViewModel? = null,onPlaces: ()->Unit={},onBadges: ()->Unit={},
+    discoveryCity: DiscoveryCity? = null, onVenue: (String) -> Unit = {}) {
     val model = providedModel ?: viewModel<HomeViewModel>(key = "home-${profile.getString("userId")}",factory = object: ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T = HomeViewModel(api,expired) as T
     })
@@ -60,9 +64,18 @@ fun HomeApp(api: AccountApi, profile: JSONObject, avatar: Bitmap?, onCheckin: ()
         if(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) model.refresh()
         onDispose { owner.lifecycle.removeObserver(observer);model.hide() }
     }
+    val context = LocalContext.current
+    val radius = remember(context) { NearbyPreference(context) }.radius
+    var discoveryRefresh by remember { mutableIntStateOf(0) }
+    val discovery by rememberHomeDiscovery(api, discoveryCity, radius, discoveryRefresh)
+    val refresh: () -> Unit = {
+        model.refresh()
+        discoveryRefresh++
+    }
     KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding()) {
-            HomeContent(state,profile,avatar,api,onCheckin,onCollection,onOwnCheckin,onSocial,onFriends,onProfile,onSettings,model::refresh,model::like,Modifier.weight(1f),onPlaces,onBadges)
+            HomeContent(state,profile,avatar,api,onCheckin,onCollection,onOwnCheckin,onSocial,onFriends,onProfile,onSettings,refresh,model::like,
+                Modifier.weight(1f),onPlaces,onBadges,discovery,discoveryCity,radius,onVenue)
             bottomBar()
         }
     }
@@ -71,19 +84,19 @@ fun HomeApp(api: AccountApi, profile: JSONObject, avatar: Bitmap?, onCheckin: ()
 @Composable
 private fun HomeContent(state: HomeState, profile: JSONObject, avatar: Bitmap?, api: AccountApi,
     onCheckin: () -> Unit,onCollection: () -> Unit,onOwnCheckin: (String) -> Unit,onSocial: (String?) -> Unit,
-    onFriends: () -> Unit,onProfile: () -> Unit,onSettings: () -> Unit,onRefresh: () -> Unit,onLike: () -> Unit,modifier: Modifier,onPlaces: ()->Unit,onBadges: ()->Unit) {
+    onFriends: () -> Unit,onProfile: () -> Unit,onSettings: () -> Unit,onRefresh: () -> Unit,onLike: () -> Unit,modifier: Modifier,onPlaces: ()->Unit,onBadges: ()->Unit,
+    discovery: HomeDiscovery, discoveryCity: DiscoveryCity?, radius: Int, onVenue: (String) -> Unit) {
     val scroll = rememberLazyListState()
     LazyColumn(modifier.fillMaxWidth().testTag("club-home"),state = scroll,contentPadding = PaddingValues(horizontal = 16.dp,vertical = 12.dp),verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Row(Modifier.fillMaxWidth(),verticalAlignment = Alignment.CenterVertically,horizontalArrangement = Arrangement.SpaceBetween) {
                 ClubBrand()
-                // Settings is a real destination; no inert notification bell for future P7.
-                IconButton(onSettings,Modifier.testTag("home-settings")) { ClubGlyph(ClubIcon.SETTINGS,description = "Настройки") }
+                Row {
+                    IconButton(onRefresh, enabled = !state.loading) { ClubGlyph(ClubIcon.REFRESH, description = "Обновить") }
+                    IconButton(onSettings,Modifier.testTag("home-settings")) { ClubGlyph(ClubIcon.SETTINGS,description = "Настройки") }
+                }
             }
         }
-        item {Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-            TextButton(onPlaces){Text("Места и карта")};TextButton(onBadges){Text("Достижения")}
-        }}
         item {
             BoxWithConstraints {
                 val inline = maxWidth >= 360.dp && LocalDensity.current.fontScale <= 1.15f
@@ -137,12 +150,7 @@ private fun HomeContent(state: HomeState, profile: JSONObject, avatar: Bitmap?, 
                 else -> StatusCard("Здесь будут ваши друзья","Найди друзей, чтобы видеть их новые записи и обсуждать впечатления.","Найти друзей",onFriends)
             }
         }
-        item {
-            Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onCollection) { Text("Мои записи") }
-                TextButton(onRefresh,enabled = !state.loading) { ClubGlyph(ClubIcon.REFRESH,Modifier.size(16.dp),KraPivaColors.Amber);Spacer(Modifier.width(6.dp));Text("Обновить") }
-            }
-        }
+        item { DiscoveryContent(discovery, discoveryCity, radius, onPlaces, onVenue, onBadges) }
     }
 }
 @Composable private fun SectionHeading(text: String,modifier: Modifier = Modifier) {

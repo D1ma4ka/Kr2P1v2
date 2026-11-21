@@ -182,7 +182,7 @@ test('P7 reports cover comment, venue, position and user holds; dismissal and de
 test('P7 additive upgrade from 009 preserves existing IDs and never certifies old coordinates without provenance',async()=>{
  const db=await testDatabase(),dir=await mkdtemp(join(tmpdir(),'krapiva-p7-upgrade-'));
  try {
-  await cp('migrations',dir,{recursive:true});await rm(join(dir,'010_places_badges_moderation.sql'));await rm(join(dir,'011_password_reset_codes.sql'));await rm(join(dir,'012_user_handles.sql'));await migrate(db.pool,dir);
+  await cp('migrations',dir,{recursive:true});await rm(join(dir,'010_places_badges_moderation.sql'));await rm(join(dir,'011_password_reset_codes.sql'));await rm(join(dir,'012_user_handles.sql'));await rm(join(dir,'013_local_discovery.sql'));await migrate(db.pool,dir);
   const f=await fixtures(db.pool);
   const old=(await db.pool.query("INSERT INTO venues(name,type,city,source,status,latitude,longitude,coordinates_verified_at)VALUES('Old fixture','bar','Synthetic','test','verified',55,37,now())RETURNING id")).rows[0].id;
   const checkin=(await db.pool.query("INSERT INTO checkins(user_id,position_id,occurred_at,venue_id)VALUES($1,$2,now(),$3)RETURNING id",[f.a.id,f.position,old])).rows[0].id;
@@ -223,4 +223,52 @@ test('P7 real reporting/moderation: public-only IDOR, idempotency, hide/restore 
   await call('/v1/moderation/users/'+f.b.id+'/role','POST',{expectedRole:'moderator',role:'user',reason:'Synthetic role revoke'});
   await call('/v1/moderation/reports','GET',undefined,f.b.token,403);
  }finally{await c.close();}
+});
+
+test('Nearby discovery uses real venues and grants local badges only after moderated attendance',async()=>{
+ const c=await context(),{db,f,call}=c;
+ try {
+  await db.pool.query("UPDATE users SET role='moderator' WHERE id=$1",[f.a.id]);
+  const location=randomUUID(),eventId=randomUUID(),badgeId=randomUUID();
+  await call('/v1/moderation/venues/'+location,'PUT',venue('Synthetic taproom',{type:'brewery'}));
+  const now=Date.now();
+  const startsAt=new Date(now-3_600_000).toISOString(),endsAt=new Date(now+3_600_000).toISOString();
+  const event={version:0,venueId:location,title:'Synthetic event',description:'Isolated test event',
+    source:'Synthetic organizer confirmation',startsAt,endsAt,published:true};
+  await call('/v1/moderation/events/'+eventId,'PUT',event,f.b.token,403);
+  assert.equal((await call('/v1/moderation/events/'+eventId,'PUT',event)).version,1);
+  await call('/v1/moderation/local-badges/'+badgeId,'PUT',{
+    version:0,venueId:location,eventId,title:'Synthetic local badge',description:'Moderator confirms attendance',
+    startsAt,endsAt,active:true,
+  });
+  const nearby={latitude:55.75,longitude:37.61,radiusKm:1};
+  const discovery=await call('/v1/discover/nearby','POST',nearby,f.b.token);
+  assert.deepEqual(discovery.places.map((place:{id:string})=>place.id),[location]);
+  assert.equal(discovery.events[0].id,eventId);
+  assert.deepEqual(discovery.events[0].badgeTitles,['Synthetic local badge']);
+  assert.equal(discovery.badges[0].id,badgeId);
+  const outside=await call('/v1/discover/nearby','POST',{...nearby,longitude:38},f.b.token);
+  assert.deepEqual(outside,{places:[],events:[],badges:[]});
+  const ownerBadge=async()=> (await call('/v1/me/badges','GET',undefined,f.b.token)).items.find((row:{id:string})=>row.id===badgeId);
+  assert.equal((await ownerBadge()).earnedAt,null);
+  const createCheckin=async(occurredAt:string)=>call('/v1/checkins','POST',{
+    positionId:f.position,venueId:location,body:'Synthetic visitation test',visibility:'private',
+    occurredAt,ratingQuarters:null,
+  },f.b.token,201);
+  const wrong=await createCheckin(new Date(now-7_200_000).toISOString());
+  const eligible=await createCheckin(new Date(now-60_000).toISOString());
+  assert.equal((await ownerBadge()).earnedAt,null);
+  const attendance='/v1/moderation/local-badges/'+badgeId+'/attendance';
+  await call(attendance,'PUT',{checkinId:wrong.id,evidence:'Synthetic verification'},f.a.token,422);
+  await call(attendance,'PUT',{checkinId:eligible.id,evidence:'Synthetic verification'},f.b.token,403);
+  const evidence={checkinId:eligible.id,evidence:'Synthetic organizer check'};
+  await call(attendance,'PUT',evidence);
+  await call(attendance,'PUT',evidence);
+  assert.equal((await ownerBadge()).progress,1);
+  await call('/v1/me/badge-pins','PUT',{ids:[badgeId]},f.b.token);
+  await call('/v1/moderation/events/'+eventId,'PUT',{...event,version:1,published:false});
+  assert.equal((await ownerBadge()).earnedAt,null);
+  assert.equal((await ownerBadge()).pinSlot,null);
+  assert.deepEqual((await call('/v1/discover/nearby','POST',nearby)).events,[]);
+ } finally {await c.close();}
 });

@@ -100,7 +100,7 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
     }
     if(state.screen in setOf(AccountScreen.VENUES,AccountScreen.BADGES) && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            if(state.screen==AccountScreen.VENUES) ru.krapiva.app.places.PlacesApp(model.api,state.profile!!.getString("userId"),model.placesRequest,model.venueId,{model.navigate(model.placesReturn)},model::checkinAt,model::sessionExpired, chooseCityOnEntry = model.chooseCityOnPlacesEntry) {navigation {it()}}
+            if(state.screen==AccountScreen.VENUES) ru.krapiva.app.places.PlacesApp(model.api,state.profile!!.getString("userId"),model.placesRequest,model.venueId,{model.navigate(model.placesReturn)},model::checkinAt,model::sessionExpired, chooseCityOnEntry = model.chooseCityOnPlacesEntry, onDiscoveryCity = model::selectDiscoveryCity) {navigation {it()}}
             else ru.krapiva.app.badges.BadgesApp(model.api,{model.navigate(AccountScreen.PROFILE)},model::sessionExpired) {navigation {it()}}
         }
         return
@@ -111,7 +111,9 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
             ru.krapiva.app.home.HomeApp(model.api,state.profile!!,state.avatar,
                 { model.openDiary("new") },{ model.openDiary() },model::openOwnCheckin,model::openSocial,model::openFriends,
                 { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.SETTINGS) },model::sessionExpired,
-                bottomBar = { navigation { it() } },onPlaces={model.openVenues()},onBadges={model.navigate(AccountScreen.BADGES)})
+                bottomBar = { navigation { it() } }, onPlaces = { model.openVenues() },
+                onBadges = { model.navigate(AccountScreen.BADGES) }, discoveryCity = model.discoveryCity,
+                onVenue = { model.openVenues(it) })
             }
         }
         return

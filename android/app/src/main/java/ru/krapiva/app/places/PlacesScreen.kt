@@ -42,7 +42,8 @@ import ru.krapiva.app.diary.DiaryNumbers
 import ru.krapiva.app.moderation.ReportAction
 import kotlin.coroutines.resume
 
-@Composable fun PlacesApp(api: AccountApi,userId: String,request: Int,requestedId: String?,onBack: ()->Unit,onCheckin: (JSONObject)->Unit,expired: ()->Unit,chooseCityOnEntry: Boolean = false,bottomBar: @Composable ()->Unit) {
+@OptIn(ExperimentalLayoutApi::class)
+@Composable fun PlacesApp(api: AccountApi,userId: String,request: Int,requestedId: String?,onBack: ()->Unit,onCheckin: (JSONObject)->Unit,expired: ()->Unit,chooseCityOnEntry: Boolean = false, onDiscoveryCity: (DiscoveryCity?) -> Unit = {},bottomBar: @Composable ()->Unit) {
     val model=viewModel<PlacesViewModel>(key="places-$userId",factory=object: ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T=PlacesViewModel(api,expired) as T
     })
@@ -57,6 +58,7 @@ import kotlin.coroutines.resume
     var filters by rememberSaveable {mutableStateOf(false)}
     var cities by rememberSaveable(request) {mutableStateOf(chooseCityOnEntry)}
     var radiusPicker by rememberSaveable { mutableStateOf(false) }
+    var explainLocation by rememberSaveable { mutableStateOf(false) }
     var locationError by remember {mutableStateOf<String?>(null)}
     var locating by remember {mutableStateOf(false)}
     val context = LocalContext.current
@@ -72,12 +74,15 @@ import kotlin.coroutines.resume
             try {
                 val point = withTimeoutOrNull(15_000) { currentLocation(context) }
                 if (point == null) {
+                    model.clearDeviceLocation()
                     locationError = "Геопозиция недоступна. Проверь настройки Android или выбери город."
                 } else {
                     model.locate(Coordinates(point.latitude, point.longitude))
+                    onDiscoveryCity(null)
                 }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
+                model.clearDeviceLocation()
                 locationError = "Геопозиция недоступна. Попробуй снова или выбери город."
             } finally {
                 locating = false
@@ -91,7 +96,7 @@ import kotlin.coroutines.resume
     }
     fun useCurrentLocation() {
         if (hasLocationPermission(context)) locate()
-        else permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+        else explainLocation = true
     }
     LaunchedEffect(nearby.radius) { model.radius(nearby.radius) }
     LaunchedEffect(request) {
@@ -107,6 +112,15 @@ import kotlin.coroutines.resume
         }
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+    fun chooseCity(city: JSONObject) {
+        val name = city.getString("city")
+        val center = if (!city.isNull("latitude") && !city.isNull("longitude")) {
+            Coordinates(city.getDouble("latitude"), city.getDouble("longitude"))
+        } else null
+        model.chooseCity(city)
+        onDiscoveryCity(name.takeIf { it.isNotBlank() }?.let { DiscoveryCity(it, center) })
+        cities = false
     }
     BackHandler {if(state.selected!=null)model.back()else onBack()}
     KraPivaBackdrop {Column(Modifier.safeDrawingPadding()) {
@@ -129,8 +143,10 @@ import kotlin.coroutines.resume
             Column(Modifier.padding(horizontal=16.dp)) {
                 if(filters) {
                 OutlinedTextField(state.q,{model.filter(q=it)},label={Text("Название или адрес")},singleLine=true,modifier=Modifier.fillMaxWidth())
-                Row(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-                    for((value,label) in listOf("" to "Все","bar" to "Бары","beer_shop" to "Магазины"))FilterChip(state.type==value,{model.filter(type=value)},label={Text(label)})
+                FlowRow(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                    for ((value, label) in listOf("" to "Все", "bar" to "Бары", "beer_shop" to "Магазины", "brewery" to "Пивоварни")) {
+                        FilterChip(state.type == value, { model.filter(type = value) }, label = { Text(label) })
+                    }
                 }
                 }
                 if (state.camera == null && !locating && locationError == null) {
@@ -204,14 +220,26 @@ import kotlin.coroutines.resume
         }
         AlertDialog(onDismissRequest={cities=false;model.refresh()},title={Text("Город")},text={Column {
             OutlinedTextField(manual,{manual=it.take(120)},label={Text("Введите город вручную")})
-            LazyColumn(Modifier.heightIn(max=260.dp)) {items(state.cities,key={it.getString("city")}) {city->TextButton({model.chooseCity(city);cities=false}){Text("${city.getString("city")} · ${city.getInt("count")}")}}}
+            LazyColumn(Modifier.heightIn(max=260.dp)) {items(state.cities,key={it.getString("city")}) {city->TextButton({ chooseCity(city) }){Text("${city.getString("city")} · ${city.getInt("count")}")}}}
             Text("Города из справочника заведений")
         }},confirmButton={TextButton({
             val city = state.cities.firstOrNull { it.getString("city").equals(manual.trim(), ignoreCase = true) }
-            if (city != null) model.chooseCity(city)
-            else model.chooseCity(JSONObject().put("city", manual.trim()))
-            cities = false
-        }){Text("Выбрать")}},dismissButton={TextButton({model.chooseCity(JSONObject().put("city",""));cities=false}){Text("Все города")}})
+            chooseCity(city ?: JSONObject().put("city", manual.trim()))
+        }){Text("Выбрать")}},dismissButton={TextButton({chooseCity(JSONObject().put("city",""))}){Text("Все города")}})
+    }
+    if (explainLocation) {
+        AlertDialog(
+            onDismissRequest = { explainLocation = false },
+            title = { Text("Найти места рядом?") },
+            text = { Text("Геопозиция помогает открыть карту в нужном месте и посчитать расстояния. Можно выбрать город вручную.") },
+            confirmButton = {
+                TextButton({
+                    explainLocation = false
+                    permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                }) { Text("Продолжить") }
+            },
+            dismissButton = { TextButton({ explainLocation = false }) { Text("Отмена") } },
+        )
     }
     if (radiusPicker) {
         NearbyRadiusDialog(nearby.radius, { radiusPicker = false }) { radius ->
@@ -241,7 +269,7 @@ internal fun NearbyRadiusDialog(current: Int, onClose: () -> Unit, onSelect: (In
 
 @Composable private fun VenueSummary(row: JSONObject,api: AccountApi,full: Boolean) {
     Text(row.getString("name"),style=MaterialTheme.typography.titleLarge)
-    Text(if(row.getString("type")=="bar")"Бар" else "Пивной магазин",color=KraPivaColors.Amber)
+    Text(venueTypeLabel(row.getString("type")),color=KraPivaColors.Amber)
     if(row.optBoolean("testOnly"))Text("Тестовая запись · не подтверждает существование реального заведения",color=KraPivaColors.Error)
     Text(listOfNotNull(row.text("city"),row.text("address")).joinToString(" · "))
     if (row.has("distanceKm")) Text("${DiaryNumbers.average(row.text("distanceKm"))} км", color = KraPivaColors.Muted)

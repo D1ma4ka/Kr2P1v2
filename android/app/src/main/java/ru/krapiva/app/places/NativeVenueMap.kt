@@ -105,7 +105,7 @@ private fun mapStyle(): String = JSONObject().put("version",8).put("sources",JSO
             m.setStyle(Style.Builder().fromJson(mapStyle())) { style ->
                 style.addSource(GeoJsonSource("venues",FeatureCollection.fromFeatures(emptyList()),GeoJsonOptions().withCluster(true).withClusterRadius(52).withClusterMaxZoom(18)))
                 style.addLayer(CircleLayer("points","venues").withFilter(not(has("point_count"))).withProperties(
-                    circleRadius(10f),circleColor(match(get("type"),literal("beer_shop"),literal("#86baa4"),literal("#ffb63c"))),circleStrokeColor("#15231e"),circleStrokeWidth(2f)))
+                    circleRadius(10f),circleColor(match(get("type"),literal("beer_shop"),literal("#86baa4"),literal("brewery"),literal("#ae91d2"),literal("#ffb63c"))),circleStrokeColor("#15231e"),circleStrokeWidth(2f)))
                 style.addLayer(CircleLayer("clusters","venues").withFilter(has("point_count")).withProperties(circleRadius(22f),circleColor("#ffb63c")))
                 // Numeric labels are generated locally on demand. No third-party glyph service.
                 style.addLayer(SymbolLayer("counts","venues").withFilter(has("point_count")).withProperties(iconImage(concat(literal("count-"),toString(get("point_count")))),iconSize(.75f),iconAllowOverlap(true)))

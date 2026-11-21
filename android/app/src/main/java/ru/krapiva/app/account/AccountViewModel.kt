@@ -15,6 +15,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
+import ru.krapiva.app.places.DiscoveryCity
+import androidx.compose.runtime.mutableStateOf
 import java.io.IOException
 
 enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG, DIARY, SOCIAL, HOME, VENUES, BADGES }
@@ -37,6 +39,9 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     fun openHome() = navigate(AccountScreen.HOME)
     fun openOwnCheckin(id: String) = openDiary("detail:$id")
     fun openSocial(id: String? = null) { if (!mutable.value.busy) { socialRequest++; socialCheckinId = id; socialPage = ru.krapiva.app.social.SocialPage.FEED; navigate(AccountScreen.SOCIAL) } }
+    var discoveryCity by mutableStateOf<DiscoveryCity?>(null)
+        private set
+    fun selectDiscoveryCity(city: DiscoveryCity?) { discoveryCity = city }
     var placesRequest=0;private set
     var venueId: String? = null; private set
     var placesReturn = AccountScreen.HOME; private set
@@ -63,7 +68,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     }
     fun openPosition(id: String) { if (!mutable.value.busy) mutable.value = mutable.value.copy(screen = AccountScreen.CATALOG,catalogPosition = id,error = null,notice = null) }
     fun consumeCatalogPosition() { mutable.value = mutable.value.copy(catalogPosition = null) }
-    private suspend fun clearSession(preserveDrafts: Boolean = true) { catalogOwner.viewModelStore.clear(); diaryPosition = null; diaryVenue=null;venueId=null;socialCheckinId = null; consumeCatalogPosition(); api.clear(preserveDrafts) }
+    private suspend fun clearSession(preserveDrafts: Boolean = true) { catalogOwner.viewModelStore.clear(); discoveryCity = null; diaryPosition = null; diaryVenue=null;venueId=null;socialCheckinId = null; consumeCatalogPosition(); api.clear(preserveDrafts) }
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
     init { restore() }
