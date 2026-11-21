@@ -12,9 +12,11 @@ import ru.krapiva.app.account.ApiFailure
 import ru.krapiva.app.catalog.text
 import ru.krapiva.app.diary.objects
 
-data class MapCamera(val latitude: Double=0.0,val longitude: Double=0.0,val zoom: Double=1.0,val command: Int=0)
+data class MapCamera(val latitude: Double,val longitude: Double,val zoom: Double,val command: Int=0)
 data class PlacesState(val q: String="",val city: String="",val type: String="",val bounds: MapBounds?=null,
-    val camera: MapCamera=MapCamera(),val map: Boolean=true,val inArea: Boolean=true,val points: List<JSONObject> = emptyList(),
+    val camera: MapCamera?=null,val map: Boolean=true,val inArea: Boolean=true,
+    val origin: Coordinates? = null, val deviceLocation: Coordinates? = null, val radius: Int = 5,
+    val points: List<JSONObject> = emptyList(),
     val items: List<JSONObject> = emptyList(),val cities: List<JSONObject> = emptyList(),val next: String?=null,val truncated: Boolean=false,
     val selectionBusy: Boolean=false,val selected: JSONObject?=null,val detail: Boolean=false,val busy: Boolean=false,val error: String?=null,val providerError: String?=null)
 class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): ViewModel() {
@@ -47,7 +49,16 @@ class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): View
     }
     fun refresh(more: Boolean=false,debounce: Boolean=false) = launch(if(debounce)1200 else 0) { token ->
         val s=mutable.value
-        if(more) {
+        if (s.origin != null) {
+            val query = s.origin.request(s.radius).put("limit", 500)
+            if (s.q.isNotBlank()) query.put("q", s.q)
+            if (s.type.isNotBlank()) query.put("type", s.type)
+            val page = api.json("v1/venues/nearby", "POST", query)
+            val rows = page.getJSONArray("items").objects()
+            if (token == generation) mutable.value = mutable.value.copy(
+                items = rows, points = rows, truncated = page.getBoolean("truncated"), next = null,
+            )
+        } else if(more) {
             val page=api.json("v1/venues?${query(s,false,s.next)}")
             if(token==generation)mutable.value=mutable.value.copy(items=(s.items+page.getJSONArray("items").objects()).distinctBy {it.getString("id")},next=page.text("nextCursor"))
         } else {
@@ -62,22 +73,54 @@ class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): View
         mutable.value=mutable.value.copy(selectionBusy=false,q=q.take(120),city=city.take(120),type=type,inArea=inArea,items=emptyList(),points=emptyList(),next=null,selected=null,detail=false);refresh(debounce=true)
     }
     fun viewport(bounds: MapBounds,camera: MapCamera) {
-        val changed=mutable.value.bounds!=bounds
-        mutable.value=mutable.value.copy(bounds=bounds,camera=camera.copy(command=mutable.value.camera.command))
-        if(changed) {
+        val state = mutable.value
+        val changed = state.bounds != bounds
+        mutable.value = state.copy(bounds = bounds, camera = camera.copy(command = state.camera?.command ?: 0))
+        if(changed && state.origin == null) {
             mutable.value=mutable.value.copy(items=emptyList(),points=emptyList(),next=null)
             refresh(debounce=true)
         }
     }
     fun mode(map: Boolean) {mutable.value=mutable.value.copy(map=map)}
-    fun center(lat: Double,lon: Double,zoom: Double=14.0) { mutable.value=mutable.value.copy(map=true,camera=MapCamera(lat,lon,zoom,mutable.value.camera.command+1)) }
-    fun zoom(delta: Double) {val c=mutable.value.camera;center(c.latitude,c.longitude,(c.zoom+delta).coerceIn(1.0,20.0))}
+    fun center(lat: Double,lon: Double,zoom: Double=14.0) {
+        val state = mutable.value
+        mutable.value = state.copy(map = true, camera = MapCamera(lat, lon, zoom, (state.camera?.command ?: 0) + 1))
+    }
+    fun zoom(delta: Double) {
+        val camera = mutable.value.camera ?: return
+        center(camera.latitude,camera.longitude,(camera.zoom+delta).coerceIn(1.0,20.0))
+    }
+    fun radius(radius: Int) {
+        if (mutable.value.radius == radius) return
+        mutable.value = mutable.value.copy(radius = radius)
+        if (mutable.value.origin != null) refresh()
+    }
+    fun locate(coordinates: Coordinates) {
+        mutable.value = mutable.value.copy(origin = coordinates, deviceLocation = coordinates)
+        filter(city = "")
+        center(coordinates.latitude, coordinates.longitude, 13.0)
+    }
+    fun clearDeviceLocation() {
+        val state = mutable.value
+        if (state.deviceLocation == null) return
+        if (state.origin == state.deviceLocation) {
+            mutable.value = state.copy(deviceLocation = null, origin = null, camera = null, bounds = null)
+            filter(city = "", inArea = false)
+        } else {
+            mutable.value = state.copy(deviceLocation = null)
+        }
+    }
     fun providerError(message: String?) {mutable.value=mutable.value.copy(providerError=message)}
-    fun cities() = launch { token ->val rows=api.json("v1/venue-cities").getJSONArray("items").objects();if(token==generation)mutable.value=mutable.value.copy(cities=rows) }
+    fun cities(query: String = "") = launch {
+        val rows = api.json("v1/venue-cities?q=${Uri.encode(query.take(120))}").getJSONArray("items").objects()
+        if (it == generation) mutable.value = mutable.value.copy(cities = rows)
+    }
     fun chooseCity(city: JSONObject) {
-        val located=!city.isNull("latitude")&&!city.isNull("longitude")
-        filter(city=city.getString("city"),inArea=located)
-        if(located)center(city.getDouble("latitude"),city.getDouble("longitude"),11.0)else mode(false)
+        val located = !city.isNull("latitude") && !city.isNull("longitude")
+        val coordinates = if (located) Coordinates(city.getDouble("latitude"), city.getDouble("longitude")) else null
+        mutable.value = mutable.value.copy(origin = coordinates, camera = null, bounds = null)
+        filter(city = city.getString("city"), inArea = false)
+        if (coordinates != null) center(coordinates.latitude, coordinates.longitude, 11.0) else mode(false)
     }
     fun select(id: String,detail: Boolean=false) {
         selectionJob?.cancel();val token=++selectionGeneration;selectionId=id;selectionDetail=detail
@@ -91,7 +134,7 @@ class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): View
         }
     }
     fun showOnMap(row: JSONObject) {
-        filter(q="",city=row.getString("city"),type="")
+        if (mutable.value.origin == null) filter(q="",city=row.getString("city"),type="")
         selectionId=row.getString("id");selectionDetail=false
         mutable.value=mutable.value.copy(selected=row,detail=false)
         center(row.getDouble("latitude"),row.getDouble("longitude"),16.0)

@@ -40,8 +40,18 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     var placesRequest=0;private set
     var venueId: String? = null; private set
     var placesReturn = AccountScreen.HOME; private set
+    var chooseCityOnPlacesEntry = false; private set
     var diaryVenue: JSONObject? = null; private set
-    fun openVenues(id: String? = null) { placesRequest++;placesReturn=mutable.value.screen;venueId=id;navigate(AccountScreen.VENUES) }
+    fun openVenues(id: String? = null) = openPlaces(id, chooseCity = false)
+    fun openVenueCities() = openPlaces(null, chooseCity = true)
+    private fun openPlaces(id: String?, chooseCity: Boolean) {
+        if (mutable.value.busy) return
+        placesRequest++
+        placesReturn = mutable.value.screen
+        venueId = id
+        chooseCityOnPlacesEntry = chooseCity
+        navigate(AccountScreen.VENUES)
+    }
     fun checkinAt(venue: JSONObject) { openDiary("new",venue=venue) }
     var diaryRequest = 0; private set
     var diaryEntry = "HOME"; private set

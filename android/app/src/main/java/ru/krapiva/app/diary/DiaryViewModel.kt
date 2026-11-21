@@ -103,18 +103,37 @@ class DiaryViewModel(val api: AccountApi,private val upload: suspend (Uri) -> St
         val (data,offline) = api.catalogGet("v1/checkins/$id")
         mutable.value = DiaryState(page = DiaryPage.DETAIL,data = data,offline = offline)
     }
-    private fun blank(position: JSONObject? = null) = JSONObject().put("draftId",UUID.randomUUID().toString()).put("requestId",UUID.randomUUID().toString()).put("status","saved_offline").put("positionId",position?.optString("canonicalId",position.optString("id"))).put("positionName",position?.optString("name")).put("breweryName",position?.optString("breweryName")).put("styleName",position?.text("styleName")).put("imageAssetId",position?.text("imageAssetId")).put("body","").put("ratingQuarters",JSONObject.NULL).put("occurredAt",Instant.now().toString()).put("visibility","private").put("tagIds",JSONArray()).put("mediaIds",JSONArray()).put("localPhotos",JSONArray())
-    fun new(position: JSONObject? = null,venue: JSONObject?=null) {
-        if(mutable.value.busy) return
-        mutable.value = DiaryState(page = if(position == null)DiaryPage.PICK else DiaryPage.EDITOR,editor = blank(position).apply {if(venue!=null){put("venueId",venue.getString("id"));put("venueName",venue.getString("name"))}}); if(position == null) refresh() else tags()
+    private fun blank(position: JSONObject? = null, visibility: String = CheckinVisibility.PRIVATE.value) = JSONObject().put("draftId",UUID.randomUUID().toString()).put("requestId",UUID.randomUUID().toString()).put("status","saved_offline").put("positionId",position?.optString("canonicalId",position.optString("id"))).put("positionName",position?.optString("name")).put("breweryName",position?.optString("breweryName")).put("styleName",position?.text("styleName")).put("imageAssetId",position?.text("imageAssetId")).put("body","").put("ratingQuarters",JSONObject.NULL).put("occurredAt",Instant.now().toString()).put("visibility",visibility).put("tagIds",JSONArray()).put("mediaIds",JSONArray()).put("localPhotos",JSONArray())
+    fun new(position: JSONObject? = null,venue: JSONObject?=null) = task {
+        val visibility = try {
+            api.defaultCheckinVisibility()
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            CheckinVisibility.PRIVATE
+        }
+        val editor = blank(position, visibility.value).apply {
+            if (venue != null) {
+                put("venueId", venue.getString("id"))
+                put("venueName", venue.getString("name"))
+            }
+        }
+        mutable.value = DiaryState(
+            page = if (position == null) DiaryPage.PICK else DiaryPage.EDITOR,
+            editor = editor, busy = true,
+        )
+        if (position == null) load() else loadTags()
     }
     fun select(position: JSONObject) {
+        val previous = mutable.value.editor
         mutable.value = mutable.value.copy(page = DiaryPage.EDITOR,editor = blank(position).apply {
-            for(key in listOf("venueId","venueName"))mutable.value.editor?.text(key)?.let {put(key,it)}
+            for (key in listOf("venueId", "venueName", "visibility")) previous?.text(key)?.let { put(key, it) }
         },items = emptyList()); tags()
     }
-    private fun tags() = task {
-        val (data,_) = api.catalogGet("v1/taste-tags"); mutable.value = mutable.value.copy(tags = data.getJSONArray("items").objects())
+    private fun tags() = task { loadTags() }
+
+    private suspend fun loadTags() {
+        val (data, _) = api.catalogGet("v1/taste-tags")
+        mutable.value = mutable.value.copy(tags = data.getJSONArray("items").objects())
     }
     fun edit(data: JSONObject) {
         if(mutable.value.busy) return

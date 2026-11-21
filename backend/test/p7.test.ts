@@ -55,6 +55,19 @@ test('P7 real directory API: provenance, roles, bbox, antimeridian, filters/curs
   for(const box of ['0,0,0,0','a,b,c,d','-181,-5,180,5','0,20,2,10'])await call('/v1/venues/map?bbox='+box,'GET',undefined,f.a.token,400);
   const dateline=randomUUID();await call('/v1/moderation/venues/'+dateline,'PUT',venue('Synthetic dateline',{longitude:-179,latitude:0}));
   assert.equal((await call('/v1/venues/map?bbox=170,-10,-170,10')).items[0].id,dateline);
+  const near={latitude:55.75,longitude:37.61,radiusKm:1};
+  const nearby=await call('/v1/venues/nearby','POST',near);
+  assert.deepEqual(nearby.items.map((row:{id:string})=>row.id),[id,shop]);
+  assert.ok(nearby.items[0].distanceKm<0.001);
+  assert.ok(nearby.items[1].distanceKm>0.1&&nearby.items[1].distanceKm<1);
+  assert.deepEqual((await call('/v1/venues/nearby','POST',{...near,limit:1})).truncated,true);
+  assert.equal((await call('/v1/venues/nearby','POST',{...near,type:'beer_shop'})).items[0].id,shop);
+  assert.equal((await call('/v1/venues/nearby','POST',{latitude:0,longitude:180,radiusKm:50})).items.length,0);
+  const across=randomUUID();await call('/v1/moderation/venues/'+across,'PUT',venue('Synthetic across',{longitude:-179.997,latitude:0}));
+  assert.equal((await call('/v1/venues/nearby','POST',{latitude:0,longitude:179.997,radiusKm:1})).items[0].id,across);
+  assert.equal((await call('/v1/venues/nearby','POST',{latitude:0,longitude:-179.1,radiusKm:50})).items[0].id,dateline);
+  await call('/v1/venues/nearby','POST',{...near,radiusKm:2},f.a.token,400);
+
   await db.pool.query(`INSERT INTO venues(name,type,city,address,source,latitude,longitude,coordinates_verified_at,coordinates_source,status,is_test)
    SELECT 'Synthetic density '||n,'bar','Synthetic city','Test','Isolated density fixture',55.751,37.611,now(),'Synthetic test coordinates','verified',true FROM generate_series(1,501)n`);
   const bounded=await call('/v1/venues/map?bbox=37.5,55.6,37.8,55.9');assert.equal(bounded.items.length,500);assert.equal(bounded.truncated,true);

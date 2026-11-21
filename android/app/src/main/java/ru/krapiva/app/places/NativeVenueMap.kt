@@ -68,6 +68,7 @@ private fun mapStyle(): String = JSONObject().put("version",8).put("sources",JSO
 @Composable fun NativeVenueMap(state: PlacesState,model: PlacesViewModel,modifier: Modifier=Modifier) {
     val context=LocalContext.current;val owner=LocalLifecycleOwner.current
     val latest by rememberUpdatedState(state)
+    var renderedLocation by remember { mutableStateOf<Coordinates?>(null) }
     val healthy by TileNetwork.healthy.collectAsState()
     LaunchedEffect(healthy) {model.providerError(if(healthy)null else "Подложка карты недоступна. Откройте список мест или повторите загрузку.")}
     val view=remember {
@@ -97,8 +98,10 @@ private fun mapStyle(): String = JSONObject().put("version",8).put("sources",JSO
         }
         view.getMapAsync { m ->
             map=m;m.setPrefetchZoomDelta(0);m.uiSettings.isCompassEnabled=true;m.uiSettings.isRotateGesturesEnabled=false;m.uiSettings.isTiltGesturesEnabled=false
-            val initial=latest.camera
-            m.cameraPosition=CameraPosition.Builder().target(LatLng(initial.latitude,initial.longitude)).zoom(initial.zoom).build();command=initial.command
+            latest.camera?.let { initial ->
+                m.cameraPosition = CameraPosition.Builder().target(LatLng(initial.latitude, initial.longitude)).zoom(initial.zoom).build()
+                command = initial.command
+            }
             m.setStyle(Style.Builder().fromJson(mapStyle())) { style ->
                 style.addSource(GeoJsonSource("venues",FeatureCollection.fromFeatures(emptyList()),GeoJsonOptions().withCluster(true).withClusterRadius(52).withClusterMaxZoom(18)))
                 style.addLayer(CircleLayer("points","venues").withFilter(not(has("point_count"))).withProperties(
@@ -106,12 +109,18 @@ private fun mapStyle(): String = JSONObject().put("version",8).put("sources",JSO
                 style.addLayer(CircleLayer("clusters","venues").withFilter(has("point_count")).withProperties(circleRadius(22f),circleColor("#ffb63c")))
                 // Numeric labels are generated locally on demand. No third-party glyph service.
                 style.addLayer(SymbolLayer("counts","venues").withFilter(has("point_count")).withProperties(iconImage(concat(literal("count-"),toString(get("point_count")))),iconSize(.75f),iconAllowOverlap(true)))
+                style.addSource(GeoJsonSource("device-location", FeatureCollection.fromFeatures(emptyList())))
+                style.addLayer(CircleLayer("device-location", "device-location").withProperties(
+                    circleRadius(8f), circleColor("#2974D6"), circleStrokeColor("#FFFFFF"), circleStrokeWidth(3f),
+                ))
                 ready=true
             }
             m.addOnCameraIdleListener {
                 if(ready) {
                     val b=m.projection.visibleRegion.latLngBounds;val c=m.cameraPosition
-                    runCatching {MapBounds.viewport(b.longitudeWest,b.latitudeSouth,b.longitudeEast,b.latitudeNorth)}.onSuccess {model.viewport(it,MapCamera(c.target?.latitude?:0.0,c.target?.longitude?:0.0,c.zoom))}
+                    val target = c.target ?: return@addOnCameraIdleListener
+                    runCatching { MapBounds.viewport(b.longitudeWest,b.latitudeSouth,b.longitudeEast,b.latitudeNorth) }
+                        .onSuccess { model.viewport(it,MapCamera(target.latitude,target.longitude,c.zoom)) }
                 }
             }
             m.addOnMapClickListener { location ->
@@ -134,10 +143,19 @@ private fun mapStyle(): String = JSONObject().put("version",8).put("sources",JSO
             map?.style?.getSourceAs<GeoJsonSource>("venues")?.setGeoJson(FeatureCollection.fromFeatures(state.points.map {p->
                 Feature.fromGeometry(Point.fromLngLat(p.getDouble("longitude"),p.getDouble("latitude"))).apply {addStringProperty("id",p.getString("id"));addStringProperty("type",p.getString("type"))}
             }))}
-            if(command!=state.camera.command) {
-                command=state.camera.command
-                val c=state.camera
-                map?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(c.latitude,c.longitude),c.zoom))
+            if (renderedLocation != state.deviceLocation) {
+                renderedLocation = state.deviceLocation
+                val position = state.deviceLocation
+                val features = if (position == null) emptyList() else listOf(
+                    Feature.fromGeometry(Point.fromLngLat(position.longitude, position.latitude)),
+                )
+                map?.style?.getSourceAs<GeoJsonSource>("device-location")?.setGeoJson(FeatureCollection.fromFeatures(features))
+            }
+            state.camera?.let { camera ->
+                if (command != camera.command) {
+                    command = camera.command
+                    map?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(camera.latitude,camera.longitude),camera.zoom))
+                }
             }
         }
     })

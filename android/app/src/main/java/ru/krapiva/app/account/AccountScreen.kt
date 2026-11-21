@@ -43,12 +43,20 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import ru.krapiva.app.BuildConfig
 import ru.krapiva.app.R
 import ru.krapiva.app.designsystem.BeerHero
 import ru.krapiva.app.designsystem.*
+import ru.krapiva.app.diary.CheckinVisibility
+import ru.krapiva.app.diary.defaultCheckinVisibility
+import ru.krapiva.app.diary.saveDefaultCheckinVisibility
+import ru.krapiva.app.places.NearbyPreference
+import ru.krapiva.app.places.NearbyRadiusDialog
+import ru.krapiva.app.places.hasLocationPermission
 
 @Composable
 fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<String,String>? = null, consumeReminder: () -> Unit = {}) {
@@ -92,7 +100,7 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
     }
     if(state.screen in setOf(AccountScreen.VENUES,AccountScreen.BADGES) && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            if(state.screen==AccountScreen.VENUES) ru.krapiva.app.places.PlacesApp(model.api,state.profile!!.getString("userId"),model.placesRequest,model.venueId,{model.navigate(model.placesReturn)},model::checkinAt,model::sessionExpired) {navigation {it()}}
+            if(state.screen==AccountScreen.VENUES) ru.krapiva.app.places.PlacesApp(model.api,state.profile!!.getString("userId"),model.placesRequest,model.venueId,{model.navigate(model.placesReturn)},model::checkinAt,model::sessionExpired, chooseCityOnEntry = model.chooseCityOnPlacesEntry) {navigation {it()}}
             else ru.krapiva.app.badges.BadgesApp(model.api,{model.navigate(AccountScreen.PROFILE)},model::sessionExpired) {navigation {it()}}
         }
         return
@@ -379,13 +387,73 @@ private fun visibilityLabel(value: String) = when(value) { "public" -> "Все �
 @Composable private fun Settings(state: AccountState, model: AccountViewModel) {
     var deleteDialog by remember { mutableStateOf(false) }
     var licenses by remember {mutableStateOf(false)}
-    val licenseContext=androidx.compose.ui.platform.LocalContext.current
+    val licenseContext = androidx.compose.ui.platform.LocalContext.current
+    val radius = remember(licenseContext) { NearbyPreference(licenseContext) }
+    var radiusDialog by rememberSaveable { mutableStateOf(false) }
+    var privacyInfo by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var checkinVisibility by remember { mutableStateOf<CheckinVisibility?>(null) }
+    var savingVisibility by remember { mutableStateOf(false) }
+    var visibilityError by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(state.profile?.optString("userId")) {
+        try { checkinVisibility = model.api.defaultCheckinVisibility() }
+        catch (error: Exception) {
+            if (error is CancellationException) throw error
+            visibilityError = "Не удалось открыть настройку видимости."
+        }
+    }
+    if (radiusDialog) NearbyRadiusDialog(radius.radius, { radiusDialog = false }) {
+        radius.select(it)
+        radiusDialog = false
+    }
+    if (privacyInfo) AlertDialog(
+        onDismissRequest = { privacyInfo = false },
+        title = { Text("Данные и конфиденциальность") },
+        text = {
+            Text("Профиль, опубликованные чекины и выбранные фотографии хранятся в аккаунте. " +
+                "Доступ к ним зависит от настроек профиля и каждого чекина. Геопозиция используется " +
+                "для поиска мест. Другим пользователям доступны город, указанный в профиле, и места " +
+                "из видимых им чекинов. Черновики и настройки этого устройства сохранены локально. " +
+                "Запрос на удаление аккаунта доступен в этом разделе.")
+        },
+        confirmButton = { TextButton({ privacyInfo = false }) { Text("Закрыть") } },
+    )
     if(licenses)AlertDialog(onDismissRequest={licenses=false},title={Text("Лицензии карты")},text={
         val notices=remember {licenseContext.assets.open("map-notices.txt").bufferedReader().use {it.readText()}}
         Text(notices,modifier=Modifier.heightIn(max=360.dp).verticalScroll(rememberScrollState()))
     },confirmButton={TextButton({licenses=false}){Text("Закрыть")}})
-    Link("Лицензии карты и атрибуция") {licenses=true}
-    Title("Оформление")
+    Title("Настройки")
+    Text("Профиль", style = MaterialTheme.typography.titleLarge)
+    OutlinedButton({ model.navigate(AccountScreen.EDIT) }, Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        enabled = !state.busy && !state.offline) { Text("Имя, аватар и информация о себе") }
+    Text("Конфиденциальность", style = MaterialTheme.typography.titleLarge)
+    OutlinedButton({ model.navigate(AccountScreen.EDIT) }, Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        enabled = !state.busy && !state.offline) { Text("Видимость профиля и фото") }
+    Text("Кто видит новые чекины", style = MaterialTheme.typography.titleMedium)
+    Text("Выбор применяется на этом устройстве. Видимость отдельной записи можно изменить перед публикацией.")
+    visibilityError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    checkinVisibility?.let { current ->
+        Column(Modifier.selectableGroup()) {
+            for (option in CheckinVisibility.entries) {
+                SettingsRadio(option.label, option == current, enabled = !savingVisibility) {
+                    savingVisibility = true
+                    scope.launch {
+                        try {
+                            model.api.saveDefaultCheckinVisibility(option)
+                            checkinVisibility = option
+                            visibilityError = null
+                        } catch (error: Exception) {
+                            if (error is CancellationException) throw error
+                            visibilityError = "Не удалось сохранить видимость."
+                        } finally {
+                            savingVisibility = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Text("Внешний вид", style = MaterialTheme.typography.titleLarge)
     val theme = LocalThemeMode.current
     val selectTheme = LocalThemeSelection.current
     Column(Modifier.selectableGroup()) {
@@ -395,29 +463,43 @@ private fun visibilityLabel(value: String) = when(value) { "public" -> "Все �
             ThemeMode.DARK to "Тёмная",
         )
         for ((mode, label) in options) {
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                    .selectable(theme == mode, role = Role.RadioButton) { selectTheme(mode) }
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                RadioButton(selected = theme == mode, onClick = null)
-                Text(label)
-            }
+            SettingsRadio(label, theme == mode) { selectTheme(mode) }
         }
     }
-    Title("Аккаунт и приватность")
-    Text("Публичность полей и фото проверяется на сервере. Настройте её при редактировании профиля.")
-    Link("Редактировать приватность", !state.busy && !state.offline) { model.navigate(AccountScreen.EDIT) }
+    Text("Геолокация", style = MaterialTheme.typography.titleLarge)
+    Text(if (hasLocationPermission(licenseContext)) "Доступ к геопозиции разрешён" else "Доступ к геопозиции выключен")
+    OutlinedButton({ model.openVenues() }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Карта и текущая геопозиция") }
+    OutlinedButton({ model.openVenueCities() }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Выбрать город вручную") }
+    OutlinedButton({ radiusDialog = true }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Радиус · ${radius.radius} км") }
+    Text("Уведомления", style = MaterialTheme.typography.titleLarge)
+    OutlinedButton({ model.openDiary("NOTIFICATIONS") }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Настроить напоминания") }
+    Text("Аккаунт", style = MaterialTheme.typography.titleLarge)
+    state.profile?.text("email")?.let { Text(it) }
     Action("Выйти из аккаунта", !state.busy, model::logout)
     if (state.error != null || state.offline) ClearLocalAction("Очистить данные на этом телефоне",!state.busy,model::clearLocally)
     Link("Запросить удаление аккаунта", !state.busy) { deleteDialog = true }
-    Link("К профилю", !state.busy) { model.navigate(AccountScreen.PROFILE) }
+    Text("О приложении", style = MaterialTheme.typography.titleLarge)
+    Text("KraPiva ${BuildConfig.VERSION_NAME}")
+    Link("Данные и конфиденциальность") { privacyInfo = true }
+    Link("Лицензии карты и атрибуция") { licenses = true }
     if (deleteDialog) AlertDialog(onDismissRequest = { deleteDialog = false }, title = { Text("Удалить аккаунт?") },
         text = { Text("Доступ и публичность отключатся сразу. Запрос на удаление личных материалов будет сохранён на сервере со сроком до 30 дней. Обязательные по закону записи могут сохраняться при законном основании.") },
         confirmButton = { TextButton({ deleteDialog = false; model.deleteAccount() }) { Text("Отправить запрос") } },
         dismissButton = { TextButton({ deleteDialog = false }) { Text("Отмена") } })
+}
+
+@Composable
+private fun SettingsRadio(label: String, selected: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            .selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        RadioButton(selected = selected, onClick = null, enabled = enabled)
+        Text(label)
+    }
 }
 
 @Composable private fun ClearLocalAction(label:String,enabled:Boolean,clear:()->Unit) {

@@ -7,9 +7,18 @@ export const venue=s.object({id:s.uuid,name:{type:'string'},type:{type:'string',
  latitude:nullableNumber,longitude:nullableNumber,coordinatesSource:s.nullableText(2000),coordinatesVerifiedAt:nullableDate,
  imageAssetId:{anyOf:[s.uuid,{type:'null'}]},imageSource:s.nullableText(2000),version:s.version,status:{type:'string'},testOnly:{type:'boolean'}});
 const query={...s.pageQuery.properties,cursor:{type:'string',maxLength:512,pattern:'^[A-Za-z0-9_-]+$'},q:{type:'string',maxLength:120},city:{type:'string',maxLength:120},type:{type:'string',enum:['bar','beer_shop']},bbox:{type:'string',maxLength:160}};
+export const nearbyFields={
+ latitude:{type:'number',minimum:-90,maximum:90},
+ longitude:{type:'number',minimum:-180,maximum:180},
+ radiusKm:{type:'integer',enum:[1,3,5,10,25,50]},
+};
 export async function venueRoutes(app:FastifyInstance,pool:pg.Pool,allowTest:boolean) {
  const secure={security:[{bearerAuth:[]}],response:s.errors};
  app.get<{Querystring:r.VenueQuery}>('/v1/venues',{schema:{...secure,querystring:s.object(query,[]),response:{...s.errors,200:s.page(venue)}}},req=>r.list(pool,req.query,allowTest));
+ app.post<{Body:r.NearbyQuery}>('/v1/venues/nearby',{
+  schema:{...secure,body:s.object({...nearbyFields,q:query.q,type:query.type,limit:{type:'integer',minimum:1,maximum:500}},Object.keys(nearbyFields)),
+   response:{...s.errors,200:s.object({items:{type:'array',maxItems:500,items:s.object({...venue.properties,distanceKm:{type:'number',minimum:0}})},truncated:{type:'boolean'}})}},
+ },req=>r.nearby(pool,req.body,allowTest));
  app.get<{Querystring:r.VenueQuery}>('/v1/venues/map',{schema:{...secure,querystring:s.object({q:query.q,city:query.city,type:query.type,bbox:query.bbox},['bbox']),response:{...s.errors,200:s.object({items:{type:'array',maxItems:500,items:s.object({id:s.uuid,name:{type:'string'},type:{type:'string'},latitude:{type:'number'},longitude:{type:'number'},testOnly:{type:'boolean'}})},truncated:{type:'boolean'}})}}},req=>r.list(pool,req.query,allowTest,true));
  app.get<{Querystring:{q?:string}}>('/v1/venue-cities',{schema:{...secure,querystring:s.object({q:query.q},[]),response:{...s.errors,200:s.object({items:{type:'array',items:s.object({city:{type:'string'},count:{type:'integer'},latitude:nullableNumber,longitude:nullableNumber})}})}}},req=>r.cities(pool,req.query.q??'',allowTest));
  const stats=s.object({scope:{type:'string',const:'visible_to_viewer'},totalCheckins:{type:'integer'},ratedCheckins:{type:'integer'},averageRating:nullableNumber});

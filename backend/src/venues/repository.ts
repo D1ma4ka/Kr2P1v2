@@ -15,7 +15,7 @@ export function bbox(value:string):[number,number,number,number] {
  if(parts.length!==4||parts.some(x=>!x.trim())||n.some(x=>!Number.isFinite(x))||n[0]! < -180||n[0]!>180||n[2]! < -180||n[2]!>180||n[1]! < -90||n[3]!>90||n[1]!>=n[3]!||n[0]===n[2])throw new ApiError(400,'INVALID_BBOX','Некорректные границы карты');
  return n as [number,number,number,number];
 }
-function where(q:VenueQuery,allowTest:boolean,map=false,admin=false) {
+function where(q:Pick<VenueQuery,'q'|'city'|'type'|'bbox'|'status'>,allowTest:boolean,map=false,admin=false) {
  const args:unknown[]=[allowTest],parts=[...(admin?[]:["v.status='verified'"]),'(NOT v.is_test OR $1)'];
  const add=(sql:string,value:unknown)=>{args.push(value);parts.push(sql.replaceAll('?',`$${args.length}`));};
  if(admin&&q.status)add('v.status=?',q.status);
@@ -42,6 +42,25 @@ async function queryList(pool:pg.Pool,q:VenueQuery,allowTest:boolean,map=false,a
  const result=(await pool.query(`SELECT ${map?'v.id,v.name,v.type,v.latitude,v.longitude,v.is_test AS "testOnly"':cols} FROM venues v ${map?'':'LEFT JOIN media_assets ma ON ma.id=v.image_asset_id'} WHERE ${w.sql} ORDER BY v.id LIMIT $${w.args.length}`,w.args)).rows;
  const items=result.slice(0,limit);
  return map?{items,truncated:result.length>limit}:{items,nextCursor:result.length>limit?Buffer.from(JSON.stringify([hash,items.at(-1)!.id])).toString('base64url'):null};
+}
+export interface NearbyQuery {latitude:number;longitude:number;radiusKm:number;q?:string;type?:string;limit?:number;}
+export function distanceSql(latitude:string,longitude:string) {
+ return `6371.0088 * 2 * asin(sqrt(least(1.0,
+    power(sin(radians(v.latitude-${latitude}::float8)/2),2) +
+    cos(radians(${latitude}::float8))*cos(radians(v.latitude)) *
+    power(sin(radians(v.longitude-${longitude}::float8)/2),2))))`;
+}
+export async function nearby(pool:pg.Pool,q:NearbyQuery,allowTest:boolean) {
+ const filters=where(q,allowTest,true),limit=q.limit??20;
+ const offset=filters.args.length;
+ filters.args.push(q.latitude,q.longitude,q.radiusKm,limit+1);
+ const rows=(await pool.query(`WITH measured AS (
+    SELECT ${cols},${distanceSql(`$${offset+1}`,`$${offset+2}`)} AS "distanceKm"
+    FROM venues v LEFT JOIN media_assets ma ON ma.id=v.image_asset_id
+    WHERE ${filters.sql} AND abs(v.latitude-$${offset+1}::float8) <= $${offset+3}::float8 / 110
+  ) SELECT * FROM measured WHERE "distanceKm" <= $${offset+3}
+  ORDER BY "distanceKm",id LIMIT $${offset+4}`,filters.args)).rows;
+ return {items:rows.slice(0,limit),truncated:rows.length>limit};
 }
 export function list(pool:pg.Pool,q:VenueQuery,allowTest:boolean,map=false) {return queryList(pool,q,allowTest,map);}
 export async function moderationList(pool:pg.Pool,actor:string,q:VenueQuery,allowTest:boolean) {
