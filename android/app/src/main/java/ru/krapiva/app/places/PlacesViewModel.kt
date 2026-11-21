@@ -13,9 +13,14 @@ import ru.krapiva.app.catalog.text
 import ru.krapiva.app.diary.objects
 
 data class MapCamera(val latitude: Double,val longitude: Double,val zoom: Double,val command: Int=0)
+enum class VenueScope(val wireValue: String, val label: String) {
+    ALL("all", "Все места"),
+    VISITED("visited", "Был здесь"),
+    SAVED("saved", "Хочу сходить"),
+}
 data class PlacesState(val q: String="",val city: String="",val type: String="",val bounds: MapBounds?=null,
     val camera: MapCamera?=null,val map: Boolean=true,val inArea: Boolean=true,
-    val origin: Coordinates? = null, val deviceLocation: Coordinates? = null, val radius: Int = 5,
+    val scope: VenueScope = VenueScope.ALL, val origin: Coordinates? = null, val deviceLocation: Coordinates? = null, val radius: Int = 5,
     val points: List<JSONObject> = emptyList(),
     val items: List<JSONObject> = emptyList(),val cities: List<JSONObject> = emptyList(),val next: String?=null,val truncated: Boolean=false,
     val selectionBusy: Boolean=false,val selected: JSONObject?=null,val detail: Boolean=false,val busy: Boolean=false,val error: String?=null,val providerError: String?=null)
@@ -43,6 +48,7 @@ class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): View
     }
     private fun query(s: PlacesState,map: Boolean,cursor: String?=null): String {
         val values=linkedMapOf("q" to s.q,"city" to s.city,"type" to s.type)
+        if (s.scope != VenueScope.ALL) values["scope"] = s.scope.wireValue
         if(map || s.inArea)values["bbox"]=(s.bounds ?: MapBounds(-180.0,-85.0,180.0,85.0)).query()
         if(!map) { values["limit"]="20";cursor?.let {values["cursor"]=it} }
         return values.filterValues {it.isNotBlank()}.entries.joinToString("&") {"${it.key}=${Uri.encode(it.value)}"}
@@ -53,6 +59,7 @@ class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): View
             val query = s.origin.request(s.radius).put("limit", 500)
             if (s.q.isNotBlank()) query.put("q", s.q)
             if (s.type.isNotBlank()) query.put("type", s.type)
+            if (s.scope != VenueScope.ALL) query.put("scope", s.scope.wireValue)
             val page = api.json("v1/venues/nearby", "POST", query)
             val rows = page.getJSONArray("items").objects()
             if (token == generation) mutable.value = mutable.value.copy(
@@ -68,9 +75,9 @@ class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): View
             if(token==generation)mutable.value=mutable.value.copy(items=page.getJSONArray("items").objects(),next=page.text("nextCursor"),points=map.getJSONArray("items").objects(),truncated=map.getBoolean("truncated"))
         }
     }
-    fun filter(q: String=state.value.q,city: String=state.value.city,type: String=state.value.type,inArea: Boolean=state.value.inArea) {
+    fun filter(q: String=state.value.q,city: String=state.value.city,type: String=state.value.type,inArea: Boolean=state.value.inArea,scope: VenueScope=state.value.scope) {
         selectionJob?.cancel();selectionGeneration++;selectionId=null
-        mutable.value=mutable.value.copy(selectionBusy=false,q=q.take(120),city=city.take(120),type=type,inArea=inArea,items=emptyList(),points=emptyList(),next=null,selected=null,detail=false);refresh(debounce=true)
+        mutable.value=mutable.value.copy(selectionBusy=false,q=q.take(120),city=city.take(120),type=type,inArea=inArea,scope=scope,items=emptyList(),points=emptyList(),next=null,selected=null,detail=false);refresh(debounce=true)
     }
     fun viewport(bounds: MapBounds,camera: MapCamera) {
         val state = mutable.value
@@ -133,6 +140,34 @@ class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): View
             }} finally {if(token==selectionGeneration)mutable.value=mutable.value.copy(selectionBusy=false)}
         }
     }
+    fun toggleSaved() {
+        val selected = mutable.value.selected ?: return
+        if (mutable.value.selectionBusy) return
+        val id = selected.getString("id")
+        val desired = !selected.optBoolean("saved")
+        val generation = ++selectionGeneration
+        mutable.value = mutable.value.copy(selectionBusy = true, error = null)
+        selectionJob = viewModelScope.launch {
+            try {
+                val result = api.json("v1/me/saved-venues/$id", if (desired) "PUT" else "DELETE")
+                if (generation == selectionGeneration) {
+                    mutable.value = mutable.value.copy(
+                        selected = JSONObject(selected.toString()).put("saved", result.getBoolean("saved")),
+                    )
+                    if (mutable.value.scope == VenueScope.SAVED) refresh()
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (generation == selectionGeneration) {
+                    if (error is ApiFailure && error.status == 401) expired()
+                    mutable.value = mutable.value.copy(error = "Не удалось изменить список мест. Повтори попытку.")
+                }
+            } finally {
+                if (generation == selectionGeneration) mutable.value = mutable.value.copy(selectionBusy = false)
+            }
+        }
+    }
+
     fun showOnMap(row: JSONObject) {
         if (mutable.value.origin == null) filter(q="",city=row.getString("city"),type="")
         selectionId=row.getString("id");selectionDetail=false

@@ -56,6 +56,7 @@ import kotlin.coroutines.resume
         onDispose {owner.lifecycle.removeObserver(observer);model.stop()}
     }
     var filters by rememberSaveable {mutableStateOf(false)}
+    var scopeMenu by remember { mutableStateOf(false) }
     var cities by rememberSaveable(request) {mutableStateOf(chooseCityOnEntry)}
     var radiusPicker by rememberSaveable { mutableStateOf(false) }
     var explainLocation by rememberSaveable { mutableStateOf(false) }
@@ -137,6 +138,10 @@ import kotlin.coroutines.resume
                 if(!selected.isNull("latitude"))AmberAction("На карте",{model.showOnMap(selected)})
                 else Text("Координаты не подтверждены. На карту место не наносится.",color=KraPivaColors.Muted)
                 AmberAction("Чекин в этом месте",{onCheckin(selected)})
+                OutlinedButton(model::toggleSaved, Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    enabled = !state.selectionBusy) {
+                    Text(if (selected.optBoolean("saved")) "Убрать из «Хочу сходить»" else "Хочу сходить")
+                }
                 ReportAction(api,"venue",selected.getString("id"),expired)
             }
         } else {
@@ -162,10 +167,26 @@ import kotlin.coroutines.resume
                             Text(if (locating) "Определяем…" else if (state.deviceLocation != null) "На мою позицию" else "Рядом со мной")
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(state.map && state.camera != null, { model.mode(true) }, label = { Text("Карта") }, enabled = state.camera != null)
                         FilterChip(!state.map || state.camera == null, { model.mode(false) }, label = { Text("Список") })
                         TextButton({ filters = !filters }) { Text("Фильтры") }
+                        Box {
+                            TextButton({ scopeMenu = true }, Modifier.heightIn(min = 48.dp)) {
+                                Text(if (state.scope == VenueScope.ALL) "Мои места" else state.scope.label)
+                            }
+                            DropdownMenu(expanded = scopeMenu, onDismissRequest = { scopeMenu = false }) {
+                                for (scope in VenueScope.entries) {
+                                    DropdownMenuItem(
+                                        text = { Text(scope.label) },
+                                        onClick = { scopeMenu = false; model.filter(scope = scope) },
+                                        trailingIcon = if (scope == state.scope) {
+                                            { ClubGlyph(ClubIcon.CHECK, description = "Выбрано") }
+                                        } else null,
+                                    )
+                                }
+                            }
+                        }
                     }
                     if (state.origin != null) {
                         TextButton({ radiusPicker = true }, Modifier.heightIn(min = 48.dp)) { Text("Радиус · ${nearby.radius} км") }
@@ -199,7 +220,13 @@ import kotlin.coroutines.resume
                 },minLines=2,maxLines=2,modifier=Modifier.padding(horizontal=16.dp),color=KraPivaColors.Muted)
             }
             if(!showMap||fallback)LazyColumn(Modifier.weight(1f),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                if(state.items.isEmpty()&&!state.busy)item {Text("Места не найдены. Попробуй другой город, фильтр или радиус.")}
+                if(state.items.isEmpty()&&!state.busy)item {
+                    Text(when (state.scope) {
+                        VenueScope.VISITED -> "Здесь нет мест из твоих чекинов."
+                        VenueScope.SAVED -> "Здесь нет сохранённых мест. Добавь место в «Хочу сходить» из его карточки."
+                        VenueScope.ALL -> "Места не найдены. Попробуй другой город, фильтр или радиус."
+                    })
+                }
                 if (state.truncated && !showMap) item { Text("Показаны первые 500 мест. Уточни фильтр.") }
                 items(state.items,key={it.getString("id")}) {row->ClubCard {VenueSummary(row,api,false);TextButton({model.select(row.getString("id"),true)}){Text("Открыть место")};if(!row.isNull("latitude"))TextButton({model.showOnMap(row)}){Text("Показать на карте")}}}
                 if(state.next!=null)item {TextButton({model.refresh(true)},enabled=!state.busy){Text("Загрузить ещё")}}

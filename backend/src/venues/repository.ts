@@ -4,7 +4,8 @@ import {transaction} from '../db/pool.js';
 import {ApiError,conflict,notFound} from '../http/errors.js';
 import {requireModerator} from '../catalog/proposals.js';
 import * as diary from '../checkins/queries.js';
-export interface VenueQuery {q?:string;city?:string;type?:string;bbox?:string;limit?:string;cursor?:string;status?:string;}
+export type VenueScope = 'all'|'visited'|'saved';
+export interface VenueQuery {scope?:VenueScope;q?:string;city?:string;type?:string;bbox?:string;limit?:string;cursor?:string;status?:string;}
 export interface VenueInput {version:number;name:string;type:string;city:string;country:string|null;address:string|null;source:string;latitude:number|null;longitude:number|null;coordinatesSource:string|null;imageAssetId:string|null;imageSource:string|null;rightsConfirmed:boolean;testOnly:boolean;verified:boolean;}
 const cols=`v.id,v.name,v.type,v.city,v.country,v.address,v.source,v.latitude,v.longitude,
  v.coordinates_source AS "coordinatesSource",v.coordinates_verified_at AS "coordinatesVerifiedAt",
@@ -15,9 +16,11 @@ export function bbox(value:string):[number,number,number,number] {
  if(parts.length!==4||parts.some(x=>!x.trim())||n.some(x=>!Number.isFinite(x))||n[0]! < -180||n[0]!>180||n[2]! < -180||n[2]!>180||n[1]! < -90||n[3]!>90||n[1]!>=n[3]!||n[0]===n[2])throw new ApiError(400,'INVALID_BBOX','Некорректные границы карты');
  return n as [number,number,number,number];
 }
-function where(q:Pick<VenueQuery,'q'|'city'|'type'|'bbox'|'status'>,allowTest:boolean,map=false,admin=false) {
+function where(q:Pick<VenueQuery,'q'|'city'|'type'|'bbox'|'status'|'scope'>,allowTest:boolean,map=false,admin=false,viewer?:string) {
  const args:unknown[]=[allowTest],parts=[...(admin?[]:["v.status='verified'"]),'(NOT v.is_test OR $1)'];
  const add=(sql:string,value:unknown)=>{args.push(value);parts.push(sql.replaceAll('?',`$${args.length}`));};
+ if(viewer&&q.scope==='saved') add('EXISTS(SELECT 1 FROM user_saved_venues sv WHERE sv.venue_id=v.id AND sv.user_id=?)',viewer);
+ if(viewer&&q.scope==='visited') add(`EXISTS(SELECT 1 FROM checkins c WHERE c.venue_id=v.id AND c.user_id=? AND ${diary.active})`,viewer);
  if(admin&&q.status)add('v.status=?',q.status);
  if(q.type)add('v.type=?',q.type);
  if(q.city)add('catalog_normalize(v.city)=catalog_normalize(?)',q.city);
@@ -31,9 +34,9 @@ function where(q:Pick<VenueQuery,'q'|'city'|'type'|'bbox'|'status'>,allowTest:bo
  }
  return {args,sql:parts.join(' AND ')};
 }
-async function queryList(pool:pg.Pool,q:VenueQuery,allowTest:boolean,map=false,admin=false) {
- const w=where(q,allowTest,map,admin),limit=map?500:Number(q.limit??20);
- const hash=createHash('sha256').update(JSON.stringify([q.q??'',q.city??'',q.type??'',q.bbox??'',allowTest,admin,q.status??''])).digest('hex').slice(0,24);
+async function queryList(pool:pg.Pool,q:VenueQuery,allowTest:boolean,map=false,admin=false,viewer?:string) {
+ const w=where(q,allowTest,map,admin,viewer),limit=map?500:Number(q.limit??20);
+ const hash=createHash('sha256').update(JSON.stringify([q.q??'',q.city??'',q.type??'',q.bbox??'',allowTest,admin,q.status??'',...(q.scope&&q.scope!=='all'?[q.scope,viewer]:[])])).digest('hex').slice(0,24);
  if(q.cursor&&!map) {
   try {const c=JSON.parse(Buffer.from(q.cursor,'base64url').toString());if(!Array.isArray(c)||c.length!==2||c[0]!==hash||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(c[1]))throw Error();w.args.push(c[1]);w.sql+=` AND v.id>$${w.args.length}::uuid`;}
   catch{throw new ApiError(400,'INVALID_CURSOR','Курсор не соответствует фильтрам');}
@@ -43,15 +46,15 @@ async function queryList(pool:pg.Pool,q:VenueQuery,allowTest:boolean,map=false,a
  const items=result.slice(0,limit);
  return map?{items,truncated:result.length>limit}:{items,nextCursor:result.length>limit?Buffer.from(JSON.stringify([hash,items.at(-1)!.id])).toString('base64url'):null};
 }
-export interface NearbyQuery {latitude:number;longitude:number;radiusKm:number;q?:string;type?:string;limit?:number;}
+export interface NearbyQuery {scope?:VenueScope;latitude:number;longitude:number;radiusKm:number;q?:string;type?:string;limit?:number;}
 export function distanceSql(latitude:string,longitude:string) {
  return `6371.0088 * 2 * asin(sqrt(least(1.0,
     power(sin(radians(v.latitude-${latitude}::float8)/2),2) +
     cos(radians(${latitude}::float8))*cos(radians(v.latitude)) *
     power(sin(radians(v.longitude-${longitude}::float8)/2),2))))`;
 }
-export async function nearby(pool:pg.Pool,q:NearbyQuery,allowTest:boolean) {
- const filters=where(q,allowTest,true),limit=q.limit??20;
+export async function nearby(pool:pg.Pool,q:NearbyQuery,allowTest:boolean,viewer?:string) {
+ const filters=where(q,allowTest,true,false,viewer),limit=q.limit??20;
  const offset=filters.args.length;
  filters.args.push(q.latitude,q.longitude,q.radiusKm,limit+1);
  const rows=(await pool.query(`WITH measured AS (
@@ -62,7 +65,7 @@ export async function nearby(pool:pg.Pool,q:NearbyQuery,allowTest:boolean) {
   ORDER BY "distanceKm",id LIMIT $${offset+4}`,filters.args)).rows;
  return {items:rows.slice(0,limit),truncated:rows.length>limit};
 }
-export function list(pool:pg.Pool,q:VenueQuery,allowTest:boolean,map=false) {return queryList(pool,q,allowTest,map);}
+export function list(pool:pg.Pool,q:VenueQuery,allowTest:boolean,map=false,viewer?:string) {return queryList(pool,q,allowTest,map,false,viewer);}
 export async function moderationList(pool:pg.Pool,actor:string,q:VenueQuery,allowTest:boolean) {
  await requireModerator(pool,actor);return queryList(pool,q,allowTest,false,true);
 }
@@ -78,13 +81,29 @@ export async function cities(pool:pg.Pool,q:string,allowTest:boolean) {
  GROUP BY v.city ORDER BY v.city COLLATE "C" LIMIT 50`,[allowTest,q])).rows};
 }
 export async function detail(pool:pg.Pool,user:string,id:string,allowTest:boolean) {
- const row=(await pool.query(`SELECT ${cols} FROM venues v LEFT JOIN media_assets ma ON ma.id=v.image_asset_id WHERE v.id=$1 AND v.status='verified' AND (NOT v.is_test OR $2)`,[id,allowTest])).rows[0];
+ const row=(await pool.query(`SELECT ${cols},EXISTS(
+   SELECT 1 FROM user_saved_venues sv WHERE sv.user_id=$3 AND sv.venue_id=v.id
+ ) AS saved FROM venues v LEFT JOIN media_assets ma ON ma.id=v.image_asset_id
+ WHERE v.id=$1 AND v.status='verified' AND (NOT v.is_test OR $2)`,[id,allowTest,user])).rows[0];
  if(!row)throw notFound();
  const stats=(await pool.query(`SELECT count(*)::int AS "totalCheckins",count(c.rating_quarters)::int AS "ratedCheckins",(avg(c.rating_quarters)/4)::float8 AS "averageRating"
  FROM checkins c JOIN users u ON u.id=c.user_id JOIN user_profiles p ON p.user_id=u.id ${diary.joins}
  WHERE c.venue_id=$2 AND ${diary.active} AND ${diary.visible}`,[user,id])).rows[0];
  return {...row,statistics:{scope:'visible_to_viewer',...stats}};
 }
+export async function changeSaved(pool:pg.Pool,user:string,id:string,saved:boolean,allowTest:boolean) {
+ if (!saved) {
+  await pool.query('DELETE FROM user_saved_venues WHERE user_id=$1 AND venue_id=$2',[user,id]);
+  return {saved:false};
+ }
+ return transaction(pool,async db=>{
+  const venue=await db.query("SELECT id FROM venues WHERE id=$1 AND status='verified' AND (NOT is_test OR $2) FOR SHARE",[id,allowTest]);
+  if(!venue.rowCount) throw notFound();
+  await db.query('INSERT INTO user_saved_venues(user_id,venue_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[user,id]);
+  return {saved:true};
+ });
+}
+
 export async function save(pool:pg.Pool,actor:string,id:string,input:VenueInput,allowTest:boolean) {
  return transaction(pool,async db=>{
   await requireModerator(db,actor);

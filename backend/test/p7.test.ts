@@ -182,7 +182,7 @@ test('P7 reports cover comment, venue, position and user holds; dismissal and de
 test('P7 additive upgrade from 009 preserves existing IDs and never certifies old coordinates without provenance',async()=>{
  const db=await testDatabase(),dir=await mkdtemp(join(tmpdir(),'krapiva-p7-upgrade-'));
  try {
-  await cp('migrations',dir,{recursive:true});await rm(join(dir,'010_places_badges_moderation.sql'));await rm(join(dir,'011_password_reset_codes.sql'));await rm(join(dir,'012_user_handles.sql'));await rm(join(dir,'013_local_discovery.sql'));await migrate(db.pool,dir);
+  await cp('migrations',dir,{recursive:true});await rm(join(dir,'010_places_badges_moderation.sql'));await rm(join(dir,'011_password_reset_codes.sql'));await rm(join(dir,'012_user_handles.sql'));await rm(join(dir,'013_local_discovery.sql'));await rm(join(dir,'014_saved_venues.sql'));await migrate(db.pool,dir);
   const f=await fixtures(db.pool);
   const old=(await db.pool.query("INSERT INTO venues(name,type,city,source,status,latitude,longitude,coordinates_verified_at)VALUES('Old fixture','bar','Synthetic','test','verified',55,37,now())RETURNING id")).rows[0].id;
   const checkin=(await db.pool.query("INSERT INTO checkins(user_id,position_id,occurred_at,venue_id)VALUES($1,$2,now(),$3)RETURNING id",[f.a.id,f.position,old])).rows[0].id;
@@ -270,5 +270,34 @@ test('Nearby discovery uses real venues and grants local badges only after moder
   assert.equal((await ownerBadge()).earnedAt,null);
   assert.equal((await ownerBadge()).pinSlot,null);
   assert.deepEqual((await call('/v1/discover/nearby','POST',nearby)).events,[]);
+ } finally {await c.close();}
+});
+
+
+test('My places filters only the signed-in account and follow active checkins',async()=>{
+ const c=await context(),{db,f,call}=c;
+ try {
+  await db.pool.query("UPDATE users SET role='moderator' WHERE id=$1",[f.a.id]);
+  const saved=randomUUID(),visited=randomUUID();
+  await call('/v1/moderation/venues/'+saved,'PUT',venue('Synthetic saved place'));
+  await call('/v1/moderation/venues/'+visited,'PUT',venue('Synthetic visited place',{longitude:37.612}));
+  const save='/v1/me/saved-venues/'+saved;
+  const ids=(page:{items:Array<{id:string}>})=>page.items.map(row=>row.id);
+  await call('/v1/me/saved-venues/'+randomUUID(),'PUT',undefined,f.a.token,404);
+  assert.deepEqual(await call(save,'PUT'),{saved:true});
+  assert.deepEqual(await call(save,'PUT'),{saved:true});
+  assert.equal((await call('/v1/venues/'+saved)).saved,true);
+  assert.equal((await call('/v1/venues/'+saved,'GET',undefined,f.b.token)).saved,false);
+  const checkin=await call('/v1/checkins','POST',{positionId:f.position,venueId:visited,
+    occurredAt:'2026-11-17T12:00:00Z',ratingQuarters:null,body:'Synthetic venue visit',visibility:'private'},f.a.token,201);
+  assert.deepEqual(ids(await call('/v1/venues?scope=visited')),[visited]);
+  assert.deepEqual(ids(await call('/v1/venues?scope=visited','GET',undefined,f.b.token)),[]);
+  assert.deepEqual(ids(await call('/v1/venues?scope=saved','GET',undefined,f.b.token)),[]);
+  assert.deepEqual(ids(await call('/v1/venues/map?scope=saved&bbox=37.5,55.6,37.8,55.9')),[saved]);
+  assert.deepEqual(ids(await call('/v1/venues/nearby','POST',{latitude:55.75,longitude:37.61,radiusKm:1,scope:'visited'})),[visited]);
+  await call('/v1/checkins/'+checkin.id,'DELETE',{version:checkin.version},f.a.token,204);
+  assert.deepEqual(ids(await call('/v1/venues?scope=visited')),[]);
+  assert.deepEqual(await call(save,'DELETE'),{saved:false});
+  assert.deepEqual(ids(await call('/v1/venues?scope=saved')),[]);
  } finally {await c.close();}
 });

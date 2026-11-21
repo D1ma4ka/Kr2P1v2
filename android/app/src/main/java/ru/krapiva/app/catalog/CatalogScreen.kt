@@ -41,11 +41,29 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
         @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T = CatalogViewModel(CatalogRepository(api), upload, expired) as T
     })
     val state by model.state.collectAsStateWithLifecycle()
+    var firstComparisonId by rememberSaveable(userId) { mutableStateOf<String?>(null) }
+    var firstComparisonName by rememberSaveable(userId) { mutableStateOf<String?>(null) }
+    var secondComparisonId by rememberSaveable(userId) { mutableStateOf<String?>(null) }
+    fun clearComparison() {
+        firstComparisonId = null
+        firstComparisonName = null
+        secondComparisonId = null
+    }
+    val first = firstComparisonId
+    val second = secondComparisonId
+    if (first != null && second != null) PositionComparison(api, first, second) { secondComparisonId = null }
     LaunchedEffect(requestedPosition,state.busy) { if (!state.busy) requestedPosition?.let { model.detail(it); consumePosition() } }
     BackHandler { if (!model.back()) onProfile() }
     KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding().imePadding()) {
             ClubHeader(if(state.page == CatalogPage.POSITIONS) "Пивная база" else null,onSettings,if(state.page == CatalogPage.POSITIONS && onCheckin != null) ({ onCheckin(null) }) else null)
+            if (state.page == CatalogPage.POSITIONS && firstComparisonName != null) {
+                ListItem(
+                    headlineContent = { Text("Открой карточку второй упаковки") },
+                    supportingContent = { Text(firstComparisonName.orEmpty()) },
+                    trailingContent = { TextButton(::clearComparison) { Text("Сбросить") } },
+                )
+            }
             if(state.page != CatalogPage.POSITIONS) TextButton(onClick = { if(!model.back()) onProfile() },enabled = !state.busy) { Text("Назад") }
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Assertive }) }
@@ -54,7 +72,20 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (state.page) {
                     CatalogPage.POSITIONS, CatalogPage.BREWERIES, CatalogPage.STYLES, CatalogPage.PROPOSALS -> CatalogList(state, model, api)
-                    CatalogPage.POSITION, CatalogPage.BREWERY -> Detail(state, model, api, onCheckin,onOwnCheckin)
+                    CatalogPage.POSITION, CatalogPage.BREWERY -> Detail(
+                        state, model, api, onCheckin, onOwnCheckin,
+                        firstComparisonId = firstComparisonId,
+                    ) { card ->
+                        val id = card.getString("canonicalId")
+                        when (firstComparisonId) {
+                            null -> {
+                                firstComparisonId = id
+                                firstComparisonName = card.getString("name")
+                            }
+                            id -> clearComparison()
+                            else -> secondComparisonId = id
+                        }
+                    }
                     CatalogPage.PROPOSAL -> ProposalForm(state, model)
                     CatalogPage.SCANNER -> ScannerScreen(state, model)
                 }
@@ -225,7 +256,9 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: Accou
         }
     }
 }
-@Composable private fun Detail(state: CatalogState, model: CatalogViewModel, api: AccountApi, onCheckin: ((JSONObject?) -> Unit)?,onOwnCheckin: (String) -> Unit) {
+@Composable private fun Detail(state: CatalogState, model: CatalogViewModel, api: AccountApi, onCheckin: ((JSONObject?) -> Unit)?, onOwnCheckin: (String) -> Unit,
+    firstComparisonId: String?, onCompare: (JSONObject) -> Unit,
+) {
     val data = state.detail ?: return
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         CatalogImage(data, model.repository, state.offline, true)
@@ -236,6 +269,17 @@ private fun CatalogList(state: CatalogState, model: CatalogViewModel, api: Accou
         TextButton({ model.detail(data.getString("breweryId"), true) }, enabled = !state.busy) { Text(data.getString("breweryName")) }
             for ((field,label) in listOf("brand" to "Бренд", "styleName" to "Стиль", "abv" to "ABV, %", "ibu" to "IBU", "packaging" to "Упаковка", "volumeMl" to "Объём, мл", "edition" to "Выпуск", "variant" to "Вариант"))
                 data.text(field)?.let { Text("$label: $it") }
+            val comparisonLabel = when (firstComparisonId) {
+                null -> "Сравнить с другой упаковкой"
+                data.getString("canonicalId") -> "Убрать из сравнения"
+                else -> "Сравнить выбранные упаковки"
+            }
+            OutlinedButton({ onCompare(data) }, Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = !state.busy) {
+                Text(comparisonLabel)
+            }
+            if (firstComparisonId == data.getString("canonicalId")) {
+                Text("Открой карточку второй упаковки в каталоге.", color = KraPivaColors.Muted)
+            }
             if (data.getString("requestedId") != data.getString("canonicalId")) Text("Дубликат объединён. Показана актуальная позиция.", color = KraPivaColors.Muted)
         } else {
             listOfNotNull(data.text("country"),data.text("city")).takeIf { it.isNotEmpty() }?.let { Text(it.joinToString(" · ")) }
