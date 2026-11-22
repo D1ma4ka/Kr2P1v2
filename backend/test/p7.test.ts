@@ -182,7 +182,7 @@ test('P7 reports cover comment, venue, position and user holds; dismissal and de
 test('P7 additive upgrade from 009 preserves existing IDs and never certifies old coordinates without provenance',async()=>{
  const db=await testDatabase(),dir=await mkdtemp(join(tmpdir(),'krapiva-p7-upgrade-'));
  try {
-  await cp('migrations',dir,{recursive:true});await rm(join(dir,'010_places_badges_moderation.sql'));await rm(join(dir,'011_password_reset_codes.sql'));await rm(join(dir,'012_user_handles.sql'));await rm(join(dir,'013_local_discovery.sql'));await rm(join(dir,'014_saved_venues.sql'));await migrate(db.pool,dir);
+  await cp('migrations',dir,{recursive:true});await rm(join(dir,'010_places_badges_moderation.sql'));await rm(join(dir,'011_password_reset_codes.sql'));await rm(join(dir,'012_user_handles.sql'));await rm(join(dir,'013_local_discovery.sql'));await rm(join(dir,'014_saved_venues.sql'));await rm(join(dir,'015_venue_menus.sql'));await migrate(db.pool,dir);
   const f=await fixtures(db.pool);
   const old=(await db.pool.query("INSERT INTO venues(name,type,city,source,status,latitude,longitude,coordinates_verified_at)VALUES('Old fixture','bar','Synthetic','test','verified',55,37,now())RETURNING id")).rows[0].id;
   const checkin=(await db.pool.query("INSERT INTO checkins(user_id,position_id,occurred_at,venue_id)VALUES($1,$2,now(),$3)RETURNING id",[f.a.id,f.position,old])).rows[0].id;
