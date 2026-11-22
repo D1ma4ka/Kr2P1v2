@@ -61,6 +61,7 @@ test('venue menus: role delegation, venue isolation, publication, ratings, and p
   assert.equal(published.items[0].tried,true);
   assert.equal(published.items[1].tried,false);
   assert.equal(published.items[0].averageRating,5);
+  assert.equal(published.items[0].publicAverageRating,null);
   assert.equal(published.items[0].ratedCheckins,1);
   assert.equal(published.items[0].personalCheckins,1);
   assert.equal(published.items[0].personalAverageRating,5);
@@ -74,6 +75,12 @@ test('venue menus: role delegation, venue isolation, publication, ratings, and p
   assert.equal(other.items[0].personalCheckins,0);
   assert.equal(other.items[0].personalAverageRating,null);
   assert.equal(other.items[0].ratedCheckins,0);
+  await db.pool.query("UPDATE user_profiles SET profile_visibility='public' WHERE user_id=$1",[b.id]);
+  await db.pool.query(`INSERT INTO checkins(user_id,position_id,rating_quarters,body,visibility,occurred_at)
+   VALUES ($1,$2,12,'','public',now())`,[b.id,position]);
+  const withPublicRating = (await call(path(first),b.token)).menu.items[0];
+  assert.equal(withPublicRating.averageRating,4);
+  assert.equal(withPublicRating.publicAverageRating,3);
   await call(path(first)+'/draft/items/'+position,operator.token,'PUT',{...offer,expectedRevision:1,available:false});
   await call(path(first)+'/draft/items/'+bottle+'?expectedRevision=2',operator.token,'DELETE');
   assert.equal((await call(path(first),b.token)).menu.items.length,2);

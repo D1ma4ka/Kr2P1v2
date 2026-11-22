@@ -27,6 +27,15 @@ export async function diaryRoutes(app:FastifyInstance,pool:pg.Pool,allowTest=fal
  app.delete<{Params:{id:string};Body:{version:number}}>('/v1/checkins/:id',{schema:{...secure,params:s.idParams,body:s.object({version:s.version}),response:{...s.errors,204:{type:'null'}}}},async(req,reply)=>{await r.deleteCheckin(pool,req.userId,req.params.id,req.body.version);return reply.code(204).send();});
  app.get<{Params:{id:string}}>('/v1/me/checkin-requests/:id',{schema:{...secure,params:s.idParams,response:{...s.errors,200:s.object({checkinId:nullableUuid})}}},async req=>({checkinId:(await pool.query("SELECT resource_id FROM idempotency_keys WHERE user_id=$1 AND key=$2 AND operation='create-checkin'",[req.userId,req.params.id])).rows[0]?.resource_id??null}));
  app.get('/v1/taste-tags',{schema:{...secure,response:{...s.errors,200:s.object({items:{type:'array',items:s.object({id:s.uuid,label:{type:'string'}})}})}}},async()=>({items:(await pool.query('SELECT id,label FROM taste_tags ORDER BY label,id')).rows}));
+ app.get('/v1/me/advisor-history',{schema:{...secure,response:{...s.errors,200:s.object({
+  items:{type:'array',maxItems:100,items:s.object({
+   id:s.uuid,positionId:s.uuid,breweryId:s.uuid,styleId:nullableUuid,occurredAt:s.timestamp,
+   ratingQuarters:s.checkinFields.ratingQuarters,firstForPosition:{type:'boolean'},
+  })},
+ })}}},async (req,reply)=>{
+  reply.header('Cache-Control','private, no-store');
+  return r.advisorHistory(pool,req.userId);
+ });
  app.get('/v1/me/statistics',{schema:{...secure,response:{...s.errors,200:stat}}},req=>stats.statistics(pool,req.userId));
  app.get('/v1/me/home',{schema:{...secure,response:{...s.errors,200:s.object({statistics:stat,recent:s.page(checkin)})}}},async req=>({statistics:await stats.statistics(pool,req.userId),recent:await r.listCheckins(pool,req.userId,5)}));
  for(const wishlist of [false,true])app.get<{Querystring:DiaryQuery}>(wishlist?'/v1/me/wishlist':'/v1/me/unique-positions',{schema:{...secure,querystring:uniqueQuery,response:{...s.errors,200:s.page(unique)}}},req=>stats.uniquePositions(pool,req.userId,req.query,wishlist));

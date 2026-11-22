@@ -22,7 +22,7 @@ const menu = s.object({
   name:{type:'string'},breweryId:s.uuid,breweryName:{type:'string'},country:{type:['string','null']},
   styleId:nullable(s.uuid),styleName:{type:['string','null']},releaseId:s.uuid,packaging:{type:['string','null']},
   abv:number,ibu:number,catalogVolumeMl:{type:['integer','null']},averageRating:number,tried:{type:'boolean'},
-  ratedCheckins:count,personalCheckins:count,personalAverageRating:number,description:{type:['string','null']},
+  publicAverageRating:number,ratedCheckins:count,personalCheckins:count,personalAverageRating:number,description:{type:['string','null']},
  })},
 });
 const expected = {expectedRevision:s.version};

@@ -18,6 +18,25 @@ export async function listCheckins(pool:pg.Pool,user:string,limit:number,oldCurs
  const items=rows.slice(0,limit),last=items.at(-1);
  return{items,nextCursor:rows.length>limit?d.encode(hash,rating?(last!.ratingQuarters??-1):last!.occurredAt,last!.id):null};
 }
+export async function advisorHistory(pool: pg.Pool, user: string) {
+ const {rows} = await pool.query(`
+  WITH recent AS MATERIALIZED (
+   SELECT c.id,c.position_id,c.occurred_at,c.rating_quarters
+   FROM checkins c WHERE c.user_id=$1 AND ${d.active}
+   ORDER BY c.occurred_at DESC,c.id DESC LIMIT 100
+  )
+  SELECT c.id,c.position_id AS "positionId",r.brewery_id AS "breweryId",r.style_id AS "styleId",
+   to_char(c.occurred_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "occurredAt",
+   c.rating_quarters AS "ratingQuarters",NOT EXISTS (
+    SELECT 1 FROM checkins earlier WHERE earlier.user_id=$1 AND earlier.position_id=c.position_id
+     AND earlier.deleted_at IS NULL AND earlier.hidden_at IS NULL
+     AND (earlier.occurred_at,earlier.id)<(c.occurred_at,c.id)
+   ) AS "firstForPosition"
+  FROM recent c JOIN beer_positions bp ON bp.id=c.position_id JOIN beer_releases r ON r.id=bp.release_id
+  ORDER BY c.occurred_at DESC,c.id DESC
+ `,[user]);
+ return {items:rows};
+}
 function normalized(input:CheckinInput) {
  if(!d.validDate(input.occurredAt))throw new ApiError(400,'INVALID_DATE','Некорректная дата');
  if(input.venueId&&input.venueText)throw new ApiError(400,'INVALID_VENUE','Выберите место или введите его вручную');

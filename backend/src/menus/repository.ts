@@ -42,6 +42,7 @@ export async function readMenu(pool: pg.Pool, user: string, venue: string, allow
    WHERE $4='draft' OR (${verifiedPosition})
   ), ratings AS (
    SELECT c.position_id,(avg(c.rating_quarters)/4)::float8 AS rating,
+    (avg(c.rating_quarters) FILTER (WHERE c.visibility='public' AND p.profile_visibility='public')/4)::float8 AS public_rating,
     count(c.rating_quarters)::int AS rated,
     count(*) FILTER (WHERE c.user_id=$1)::int AS personal_checkins,
     (avg(c.rating_quarters) FILTER (WHERE c.user_id=$1)/4)::float8 AS personal_rating
@@ -60,7 +61,7 @@ export async function readMenu(pool: pg.Pool, user: string, venue: string, allow
      'styleId',i.style_id,'styleName',i.style_name,'releaseId',i.release_id,
      'abv',i.abv,'ibu',i.ibu,'packaging',i.packaging,'catalogVolumeMl',i.catalog_volume_ml,
      'price',i.price,'currency',i.currency,'volumeMl',i.volume_ml,'servingFormat',i.serving_format,
-     'available',i.available,'averageRating',a.rating,'ratedCheckins',COALESCE(a.rated,0),
+     'available',i.available,'averageRating',a.rating,'publicAverageRating',a.public_rating,'ratedCheckins',COALESCE(a.rated,0),
      'personalCheckins',COALESCE(a.personal_checkins,0),'personalAverageRating',a.personal_rating,
      'tried',COALESCE(a.personal_checkins>0,false),'description',i.description
     ) ORDER BY s.ordinal,i.ordinal,i.position_id)
