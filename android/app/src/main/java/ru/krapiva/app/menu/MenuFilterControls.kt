@@ -31,6 +31,7 @@ internal fun MenuFilter.chips(): List<FilterChipAction> = buildList {
     addCondition(formats.isNotEmpty(), "Подача или упаковка (${formats.size})", copy(formats = emptySet()))
     addCondition(tried != Tried.ALL, tried.title, copy(tried = Tried.ALL))
     addCondition(abv.active, "ABV", copy(abv = MenuRange()))
+    addCondition(volumeMl.active, "Объём", copy(volumeMl = MenuRange()))
     addCondition(ibu.active, "IBU", copy(ibu = MenuRange()))
     addCondition(ratingMin.isNotBlank(), "Рейтинг от $ratingMin", copy(ratingMin = ""))
     addCondition(price.active, "Цена ${currency.orEmpty()}", copy(price = MenuRange(), currency = null))
@@ -76,9 +77,10 @@ internal fun MenuFilterDialog(
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         for (value in Tried.entries) FilterChip(filter.tried == value, { filter = filter.copy(tried = value) }, { Text(value.title) })
                     }
-                    FilterGroup("Крепость, горечь и рейтинг") {
+                    FilterGroup("Крепость, горечь, объём и рейтинг") {
                         RangeFields("ABV, %", filter.abv) { filter = filter.copy(abv = it) }
                         RangeFields("IBU", filter.ibu) { filter = filter.copy(ibu = it) }
+                        RangeFields("Объём, мл", filter.volumeMl) { filter = filter.copy(volumeMl = it) }
                         NumberField("Средний рейтинг от", filter.ratingMin) { filter = filter.copy(ratingMin = it) }
                     }
                     FilterGroup("Цена") {

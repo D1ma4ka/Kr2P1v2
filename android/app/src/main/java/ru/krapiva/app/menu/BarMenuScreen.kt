@@ -12,6 +12,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -93,6 +96,19 @@ internal fun BarMenuScreen(
         }
     }
     var retry by remember { mutableIntStateOf(0) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        var stopped = false
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) stopped = true
+            if (event == Lifecycle.Event.ON_START && stopped) {
+                stopped = false
+                retry++
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
     val session = api.sessionIdentity()
     var advisorMode by rememberSaveable(venueId) { mutableStateOf(AdvisorMode.MY_CHOICE) }
     var showAdvisor by rememberSaveable(venueId) { mutableStateOf(false) }
@@ -134,8 +150,8 @@ internal fun BarMenuScreen(
         comparedIds = comparedIds - id
         if (comparedIds.size < 2) comparing = false
     }
-    LaunchedEffect(api, session, venueId, retry, menu != null) {
-        if (menu == null || profile != null) return@LaunchedEffect
+    LaunchedEffect(api, session, venueId, retry, menu?.items?.isNotEmpty()) {
+        if (menu?.items.isNullOrEmpty() || profile != null) return@LaunchedEffect
         val history = try {
             api.advisorCheckins()
         } catch (e: CancellationException) {

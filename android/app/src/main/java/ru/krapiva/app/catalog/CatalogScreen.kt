@@ -38,7 +38,7 @@ import ru.krapiva.app.diary.objects
 @Composable
 fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String, onProfile: () -> Unit, expired: () -> Unit, providedModel: CatalogViewModel? = null, onHome: (() -> Unit)? = null, onCheckin: ((JSONObject?) -> Unit)? = null, requestedPosition: String? = null, consumePosition: () -> Unit = {}, bottomBar: @Composable () -> Unit = {},onSettings: () -> Unit = onProfile,onOwnCheckin: (String) -> Unit = {}, standalonePosition: Boolean = false) {
     val model: CatalogViewModel = providedModel ?: viewModel(key = "catalog-$userId-$standalonePosition", factory = object : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T = CatalogViewModel(CatalogRepository(api), upload, expired) as T
+        @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T = CatalogViewModel(CatalogRepository(api), upload, expired, standalonePosition) as T
     })
     val state by model.state.collectAsStateWithLifecycle()
     var firstComparisonId by rememberSaveable(userId) { mutableStateOf<String?>(null) }
@@ -67,6 +67,9 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
             if(standalonePosition || state.page != CatalogPage.POSITIONS) TextButton(onClick = { if(!model.back()) onProfile() },enabled = !state.busy) { Text("Назад") }
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Assertive }) }
+            if (standalonePosition && state.error != null && state.detail == null) {
+                TextButton(model::retryStandalone, enabled = !state.busy) { Text("Повторить загрузку позиции") }
+            }
             state.notice?.let { Text(it, modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Polite }) }
             if (state.offline) Text("Нет связи с сервером · сохранённая копия, до 24 часов. Статус мог измениться.", color = KraPivaColors.Muted, modifier = Modifier.padding(horizontal = 16.dp))
             Box(Modifier.weight(1f).fillMaxWidth()) {

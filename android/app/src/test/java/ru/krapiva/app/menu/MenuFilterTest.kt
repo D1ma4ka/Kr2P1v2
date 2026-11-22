@@ -38,6 +38,16 @@ class MenuFilterTest {
         assertFalse(MenuFilter(abv = MenuRange("8", "4")).valid())
     }
 
+    @Test fun volumeRangeIncludesBoundariesAndDistinguishesMissing() {
+        val rows = listOf(null, 250, 330, 500, 750).mapIndexed { index, volume ->
+            testPosition(index.toString()).copy(volumeMl = volume)
+        }
+        val filter = MenuFilter(volumeMl = MenuRange("330", "500"))
+        assertEquals(listOf(330, 500), filterMenu(rows, filter).map { it.volumeMl })
+        assertEquals(rows, filterMenu(rows, filter.chips().single().cleared))
+        assertFalse(filter.copy(volumeMl = MenuRange("500", "330")).valid())
+    }
+
     @Test fun nullValuesSortLastAndPricesNeverCrossCurrencies() {
         val rows = listOf(
             testPosition("null"),

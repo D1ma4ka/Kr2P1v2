@@ -50,10 +50,14 @@ import kotlin.coroutines.resume
     })
     val state by model.state.collectAsStateWithLifecycle()
     val owner=LocalLifecycleOwner.current
-    DisposableEffect(owner,model,request) {
+    var menuVenue by rememberSaveable { mutableStateOf<String?>(null) }
+    var menuName by rememberSaveable { mutableStateOf("") }
+    var menuRequest by rememberSaveable { mutableIntStateOf(-1) }
+    val activeMenuId = menuVenue?.takeIf { menuRequest == request }
+    val showingMenu = activeMenuId != null
+    if (!showingMenu) DisposableEffect(owner, model, request) {
         val observer=LifecycleEventObserver {_,event->if(event==Lifecycle.Event.ON_START)model.enter(request,requestedId)else if(event==Lifecycle.Event.ON_STOP)model.stop()}
         owner.lifecycle.addObserver(observer)
-        if(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))model.enter(request,requestedId)
         onDispose {owner.lifecycle.removeObserver(observer);model.stop()}
     }
     var filters by rememberSaveable {mutableStateOf(false)}
@@ -102,7 +106,7 @@ import kotlin.coroutines.resume
     }
     LaunchedEffect(nearby.radius) { model.radius(nearby.radius) }
     LaunchedEffect(request) {
-        if (!chooseCityOnEntry && requestedId == null && state.city.isBlank() && hasLocationPermission(context)) locate()
+        if (!showingMenu && !chooseCityOnEntry && requestedId == null && state.city.isBlank() && hasLocationPermission(context)) locate()
     }
     DisposableEffect(owner, locationJob) {
         val observer = LifecycleEventObserver { _, event ->
@@ -124,10 +128,7 @@ import kotlin.coroutines.resume
         onDiscoveryCity(name.takeIf { it.isNotBlank() }?.let { DiscoveryCity(it, center) })
         cities = false
     }
-    var menuVenue by rememberSaveable { mutableStateOf<String?>(null) }
-    var menuRequest by rememberSaveable { mutableIntStateOf(-1) }
     val selected = state.selected
-    val showingMenu = menuRequest == request && selected != null && selected.optString("id") == menuVenue && state.detail
     val back = {
         if (showingMenu) menuVenue = null
         else if (state.selected != null) model.back()
@@ -143,12 +144,15 @@ import kotlin.coroutines.resume
                 if (state.error != null) TextButton(model::retry,enabled=!state.busy&&!state.selectionBusy){Text("Повторить")}
             }
         }
-        if (showingMenu) {
-            key(userId, request, menuVenue) {
+        if (activeMenuId != null) {
+            key(userId, request, activeMenuId) {
+                val venue = remember(activeMenuId, menuName) {
+                    JSONObject().put("id", activeMenuId).put("name", menuName)
+                }
                 Box(Modifier.weight(1f)) {
-                    ru.krapiva.app.menu.BarMenuScreen(api, selected.getString("id"), selected.getString("name"), expired,
-                        closeMenu = back, openPosition = { openMenuPosition?.invoke(it, selected) },
-                        checkin = { onMenuCheckin(it.checkinSeed(), selected) })
+                    ru.krapiva.app.menu.BarMenuScreen(api, activeMenuId, menuName, expired,
+                        closeMenu = back, openPosition = { openMenuPosition?.invoke(it, venue) },
+                        checkin = { onMenuCheckin(it.checkinSeed(), venue) })
                 }
             }
         } else if(state.detail && selected!=null) {
@@ -157,6 +161,7 @@ import kotlin.coroutines.resume
                 if(!selected.isNull("latitude"))AmberAction("На карте",{model.showOnMap(selected)})
                 else Text("Координаты не подтверждены. На карту место не наносится.",color=KraPivaColors.Muted)
                 if (openMenuPosition != null) AmberAction("Меню", {
+                    menuName = selected.getString("name")
                     menuVenue = selected.getString("id")
                     menuRequest = request
                 })

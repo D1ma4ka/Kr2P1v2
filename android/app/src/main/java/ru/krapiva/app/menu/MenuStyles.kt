@@ -3,8 +3,10 @@ package ru.krapiva.app.menu
 import java.text.Normalizer
 import java.util.Locale
 
+private val whitespace = Regex("\\s+")
+
 internal fun normalized(value: String): String =
-    Normalizer.normalize(value, Normalizer.Form.NFKC).lowercase(Locale.ROOT).trim().replace(Regex("\\s+"), " ")
+    Normalizer.normalize(value, Normalizer.Form.NFKC).lowercase(Locale.ROOT).trim().replace(whitespace, " ")
 
 internal data class MenuChoice(val id: String, val title: String)
 internal data class MenuStyle(val id: String, val family: String, val title: String, val aliases: Set<String>) {

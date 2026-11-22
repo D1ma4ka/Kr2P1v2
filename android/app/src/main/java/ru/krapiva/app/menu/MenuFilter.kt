@@ -45,10 +45,11 @@ internal data class MenuFilter(
     val currency: String? = null,
     val available: Boolean = false,
     val sort: MenuSort = MenuSort.MENU,
+    val volumeMl: MenuRange = MenuRange(),
 ) {
     fun valid(): Boolean = abv.valid(100.toBigDecimal()) && ibu.valid(1000.toBigDecimal()) &&
         MenuRange(min = ratingMin).valid(5.toBigDecimal()) &&
-        price.valid(BigDecimal("9999999999.99")) && (!price.active || currency != null)
+        volumeMl.valid(100000.toBigDecimal()) && price.valid(BigDecimal("9999999999.99")) && (!price.active || currency != null)
 
     fun encode(): JSONObject = JSONObject().apply {
         put("version", 1)
@@ -61,6 +62,7 @@ internal data class MenuFilter(
         put("tried", tried.name)
         put("abvMin", abv.min); put("abvMax", abv.max)
         put("ibuMin", ibu.min); put("ibuMax", ibu.max)
+        put("volumeMin", volumeMl.min); put("volumeMax", volumeMl.max)
         put("ratingMin", ratingMin)
         put("priceMin", price.min); put("priceMax", price.max)
         put("currency", currency)
@@ -80,6 +82,7 @@ internal data class MenuFilter(
                 countries = set("countries"), formats = set("formats"), tried = Tried.valueOf(data.getString("tried")),
                 abv = MenuRange(data.getString("abvMin"), data.getString("abvMax")),
                 ibu = MenuRange(data.getString("ibuMin"), data.getString("ibuMax")),
+                volumeMl = MenuRange(data.optString("volumeMin", ""), data.optString("volumeMax", "")),
                 ratingMin = data.getString("ratingMin"), price = MenuRange(data.getString("priceMin"), data.getString("priceMax")),
                 currency = if (data.isNull("currency")) null else data.getString("currency"),
                 available = data.getBoolean("available"), sort = MenuSort.valueOf(data.getString("sort")),
@@ -108,16 +111,17 @@ internal fun filterMenu(rows: List<MenuPosition>, filter: MenuFilter, relevance:
     val query = normalized(filter.query).split(' ').filter(String::isNotEmpty)
     val rating = MenuRange(min = filter.ratingMin)
     val matches = rows.filter { row ->
-        val knownStyle = MenuStyles.classify(row.style)
         (filter.families.isEmpty() && filter.styles.isEmpty() ||
-            knownStyle?.family in filter.families || MenuStyles.key(row) in filter.styles) &&
+            MenuStyles.classify(row.style)?.family in filter.families || MenuStyles.key(row) in filter.styles) &&
             (filter.breweries.isEmpty() || row.breweryId in filter.breweries) &&
             (filter.countries.isEmpty() || row.country?.let(::normalized) in filter.countries) &&
             (filter.formats.isEmpty() || row.formatKeys().any { it in filter.formats }) &&
             (filter.tried == Tried.ALL || row.tried == (filter.tried == Tried.YES)) &&
             (!filter.available || row.available) &&
-            filter.abv.contains(row.abv?.toBigDecimal()) && filter.ibu.contains(row.ibu?.toBigDecimal()) &&
-            rating.contains(row.averageRating?.toBigDecimal()) &&
+            (!filter.abv.active || filter.abv.contains(row.abv?.toBigDecimal())) &&
+            (!filter.ibu.active || filter.ibu.contains(row.ibu?.toBigDecimal())) &&
+            (!filter.volumeMl.active || filter.volumeMl.contains(row.volumeMl?.toBigDecimal())) &&
+            (!rating.active || rating.contains(row.averageRating?.toBigDecimal())) &&
             (!filter.price.active || row.currency == filter.currency && filter.price.contains(row.price)) &&
             query.all { it in normalized(row.name) }
     }

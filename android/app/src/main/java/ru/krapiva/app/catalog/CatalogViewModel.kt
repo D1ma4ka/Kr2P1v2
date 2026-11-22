@@ -25,12 +25,13 @@ data class CatalogState(val page: CatalogPage = CatalogPage.POSITIONS, val items
     val code: String = "", val lookupState: String? = null, val lookupSource: String? = null,
     val pickerQuery: String = "", val proposal: JSONObject? = null, val refreshOnBack: Boolean = false)
 class CatalogViewModel(val repository: CatalogRepository, private val upload: suspend (Uri) -> String,
-    private val expired: () -> Unit) : ViewModel() {
-    private val mutable = MutableStateFlow(CatalogState())
+    private val expired: () -> Unit, standalone: Boolean = false) : ViewModel() {
+    private val mutable = MutableStateFlow(CatalogState(page = if (standalone) CatalogPage.POSITION else CatalogPage.POSITIONS))
+    private var standaloneId: String? = null
     val state = mutable.asStateFlow()
     private val history = ArrayDeque<CatalogState>()
     private val uploads = mutableMapOf<String, String>()
-    init { viewModelScope.launch {
+    init { if (!standalone) viewModelScope.launch {
         try { val saved = repository.history.read();mutable.value = mutable.value.copy(filters = repository.history.filters(saved),queries = saved.optJSONArray("queries")?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty(),recent = saved.optJSONArray("recent")?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty()) }
         catch(e: Exception) { if(e is CancellationException)throw e;mutable.value=mutable.value.copy(error="История поиска недоступна") }
         refresh()
@@ -123,8 +124,10 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
                 next = data.text("nextCursor"), offline = offline)
         }
     }
+    fun retryStandalone() { standaloneId?.let { detail(it, standalone = true) } }
     fun detail(id: String, brewery: Boolean = false, standalone: Boolean = false) = task {
         if (standalone) {
+            standaloneId = id
             history.clear()
             mutable.value = CatalogState(page = CatalogPage.POSITION, busy = true)
         }
