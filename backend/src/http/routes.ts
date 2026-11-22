@@ -1,3 +1,4 @@
+import {menuRoutes} from '../menus/routes.js';
 import {discoveryRoutes} from '../discovery/routes.js';
 import {badgeRoutes} from '../badges/routes.js';
 import {venueRoutes} from '../venues/routes.js';
@@ -53,6 +54,7 @@ export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media
   await diaryRoutes(app,pool,environment!=='production');
   await socialRoutes(app,pool);
   await venueRoutes(app,pool,environment!=='production');
+  await menuRoutes(app,pool,environment!=='production');
   await badgeRoutes(app,pool);
   await discoveryRoutes(app,pool,environment!=='production');
   await moderationRoutes(app,pool,environment!=='production');
