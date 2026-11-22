@@ -9,7 +9,7 @@ internal fun testPosition(
     ibu: Double? = null, tried: Boolean = false, packaging: String? = null, price: String? = null,
     currency: String? = null, rating: Double? = null, country: String? = null, available: Boolean = true,
 ) = MenuPosition(id, "test", "Test $id", brewery, brewery, style?.let { "style-$it" }, style, abv, ibu,
-    rating, country, packaging, null, price?.let(::BigDecimal), currency, null, available, tried)
+    rating, country, packaging, null, price?.let(::BigDecimal), currency, null, available, tried, publicAverageRating = rating)
 
 class MenuFilterTest {
     @Test fun styleAliasesAndFamilies() {

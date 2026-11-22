@@ -30,6 +30,7 @@ internal data class MenuPosition(
     val personalCheckins: Int? = null,
     val personalAverageRating: Double? = null,
     val description: String? = null,
+    val publicAverageRating: Double? = null,
 )
 
 internal data class BarMenu(
@@ -57,6 +58,7 @@ internal data class BarMenu(
                         row.getBoolean("available"), row.getBoolean("tried"),
                         row.text("ratedCheckins")?.toIntOrNull(), row.text("personalCheckins")?.toIntOrNull(),
                         row.text("personalAverageRating")?.toDoubleOrNull(), row.text("description")?.takeIf { it.isNotBlank() },
+                        row.text("publicAverageRating")?.toDoubleOrNull(),
                     )
                 },
             )

@@ -12,15 +12,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import ru.krapiva.app.account.AccountApi
 import ru.krapiva.app.account.ApiFailure
 import ru.krapiva.app.designsystem.ClubCard
 import ru.krapiva.app.designsystem.KraPivaColors
 import ru.krapiva.app.diary.DiaryNumbers
-import ru.krapiva.app.offline.CachedPersonalSource
 import ru.krapiva.app.offline.LocalDiscovery
-import ru.krapiva.app.offline.RecommendationCard
+import ru.krapiva.app.offline.AdvisorMode
+import ru.krapiva.app.offline.AdvisorProfile
 import java.io.IOException
 import java.time.Instant
 import java.time.ZoneId
@@ -36,6 +38,7 @@ internal fun BarMenuScreen(
     venueId: String,
     venueName: String,
     expired: () -> Unit,
+    closeMenu: () -> Unit,
     openPosition: (String) -> Unit,
     checkin: (MenuPosition) -> Unit,
 ) {
@@ -86,21 +89,24 @@ internal fun BarMenuScreen(
             }
         }
     }
-    var relevance by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var retry by remember { mutableIntStateOf(0) }
-    var data by remember { mutableStateOf<MenuLoad?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(api, venueId, retry) {
+    val session = api.sessionIdentity()
+    var advisorMode by rememberSaveable(venueId) { mutableStateOf(AdvisorMode.MY_CHOICE) }
+    var showAdvisor by rememberSaveable(venueId) { mutableStateOf(false) }
+    var profile by remember(session, venueId, retry) { mutableStateOf<AdvisorProfile?>(null) }
+    var data by remember(session, venueId, retry) { mutableStateOf<MenuLoad?>(null) }
+    var error by remember(session, venueId, retry) { mutableStateOf<String?>(null) }
+    LaunchedEffect(api, session, venueId, retry) {
         data = null
         error = null
         try {
-            val owner = api.ownerId()
             val (body, cached) = api.catalogGet("v1/venues/$venueId/menu")
-            if (owner != api.ownerId()) return@LaunchedEffect
+            if (session !== api.sessionIdentity()) return@LaunchedEffect
             data = MenuLoad(BarMenu.read(body), cached)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            if (session !== api.sessionIdentity()) return@LaunchedEffect
             if (e is ApiFailure && e.status == 401) expired()
             error = when {
                 e is IOException -> "Нет связи с сервером. Сохранённой копии нет."
@@ -125,23 +131,38 @@ internal fun BarMenuScreen(
         comparedIds = ArrayList(comparedIds - id)
         if (comparedIds.size < 2) comparing = false
     }
-    LaunchedEffect(menu, api) {
-        relevance = emptyMap()
-        if (menu != null) {
-            try {
-                val owner = api.ownerId()
-                val history = CachedPersonalSource(api).snapshot().checkins
-                val candidates = menu.items.map { RecommendationCard(it.positionId, it.name, it.brewery, it.style) }
-                val scores = LocalDiscovery.select(candidates, history).associate { it.card.id to it.score }
-                if (owner == api.ownerId()) relevance = scores
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                // The menu works independently of the local discovery cache.
+    LaunchedEffect(api, session, venueId, retry, menu != null) {
+        if (menu == null || profile != null) return@LaunchedEffect
+        val history = try {
+            api.advisorCheckins()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (session !== api.sessionIdentity()) return@LaunchedEffect
+            if (e is ApiFailure && e.status == 401) {
+                expired()
+                return@LaunchedEffect
             }
+            null
+        }
+        val loaded = withContext(Dispatchers.Default) { LocalDiscovery.advisorProfile(history) }
+        if (session === api.sessionIdentity()) profile = loaded
+    }
+    var advice by remember(menu, filter, profile, advisorMode) { mutableStateOf<MenuAdvice?>(null) }
+    LaunchedEffect(menu, filter, profile, advisorMode) {
+        val taste = profile ?: return@LaunchedEffect
+        advice = withContext(Dispatchers.Default) {
+            val candidates = filterMenu(menu?.items.orEmpty(), filter.copy(sort = MenuSort.MENU))
+                .filter(MenuPosition::available).map(MenuPosition::advisorCandidate)
+            val choice = LocalDiscovery.advise(candidates, taste, AdvisorMode.MY_CHOICE)
+            val ranked = if (advisorMode == AdvisorMode.MY_CHOICE) choice else LocalDiscovery.advise(candidates, taste, advisorMode)
+            val scores = if (taste.personalized) choice.associate { it.candidate.card.id to it.score } else emptyMap()
+            MenuAdvice(ranked, scores)
         }
     }
+    val relevance = advice?.scores.orEmpty()
     val rows = remember(menu, filter, relevance) { filterMenu(menu?.items.orEmpty(), filter, relevance) }
+    val positions = remember(menu) { menu?.items.orEmpty().associateBy(MenuPosition::positionId) }
     if (showFilters && menu != null) {
         val edit = book?.active?.firstOrNull { it.id == editing }
         MenuFilterDialog(menu.items, edit?.filter ?: filter, relevance.isNotEmpty(), {
@@ -162,12 +183,20 @@ internal fun BarMenuScreen(
         return
     }
 
+    if (showAdvisor && menu != null) {
+        AdvisorScreen(venueName, advisorMode, profile, advice, positions, data?.cached == true, menu.isOld(Instant.now()),
+            selectMode = { advisorMode = it }, refresh = { retry++ }, back = { showAdvisor = false },
+            open = openPosition, checkin = checkin)
+        return
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
+            TextButton(closeMenu) { Text("К заведению") }
             Text("Меню · $venueName", style = MaterialTheme.typography.headlineSmall)
             val loaded = data
             when {
@@ -213,7 +242,7 @@ internal fun BarMenuScreen(
                             presetError?.let { Text(it, color = KraPivaColors.Error) }
                             ActiveMenuFilters(filter) { filter = it; defaultApplied = true }
                             if (filter.sort == MenuSort.RELEVANCE) {
-                                Text(if (relevance.isNotEmpty()) "Подбор по доступной истории на устройстве." else "Пока недостаточно данных для подбора. Сортировка по рейтингу.")
+                                Text(if (relevance.isNotEmpty()) "Подбор по недавним чекинам." else "Пока недостаточно данных для подбора. Сортировка по публичному рейтингу.")
                             }
                             if (rows.isEmpty()) {
                                 Text("По этим условиям ничего не найдено.")
@@ -225,6 +254,11 @@ internal fun BarMenuScreen(
                     }
                 }
             }
+        }
+        if (menu != null && menu.items.isNotEmpty()) item(key = "advisor") {
+            AdvisorPreview(advisorMode, profile, advice, positions, data?.cached == true, menu.isOld(Instant.now()),
+                selectMode = { advisorMode = it }, refresh = { retry++ }, showAll = { showAdvisor = true },
+                open = openPosition, checkin = checkin)
         }
         if (filter.sort != MenuSort.MENU) {
             items(rows, key = MenuPosition::positionId) { position ->

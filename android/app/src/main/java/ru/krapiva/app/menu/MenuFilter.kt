@@ -133,7 +133,7 @@ internal fun filterMenu(rows: List<MenuPosition>, filter: MenuFilter, relevance:
         MenuSort.RATING -> descending { it.averageRating }
         MenuSort.PRICE -> ascending { it.currency }.then(ascending { it.price })
         MenuSort.NEW_FIRST -> compareBy<MenuPosition> { it.tried }
-        MenuSort.RELEVANCE -> descending { relevance[it.positionId] }.then(descending { it.averageRating })
+        MenuSort.RELEVANCE -> descending { relevance[it.positionId] }.then(descending { it.publicAverageRating })
     }
     return matches.sortedWith(comparator.thenBy { it.positionId })
 }

@@ -135,17 +135,19 @@ import kotlin.coroutines.resume
     }
     BackHandler(onBack = back)
     KraPivaBackdrop {Column(Modifier.safeDrawingPadding()) {
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {TextButton(back) {Text("Назад")};Text("Места и карта",style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(top=12.dp))}
-        Box(Modifier.fillMaxWidth().height(4.dp)) {if(state.busy||state.selectionBusy)LinearProgressIndicator(Modifier.fillMaxWidth())}
-        Row(Modifier.fillMaxWidth().padding(horizontal=12.dp)) {
-            state.error?.let { Text(it,color=KraPivaColors.Error,modifier=Modifier.weight(1f)) }
-            if (state.error != null) TextButton(model::retry,enabled=!state.busy&&!state.selectionBusy){Text("Повторить")}
+        if (!showingMenu) {
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {TextButton(back) {Text("Назад")};Text("Места и карта",style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(top=12.dp))}
+            Box(Modifier.fillMaxWidth().height(4.dp)) {if(state.busy||state.selectionBusy)LinearProgressIndicator(Modifier.fillMaxWidth())}
+            Row(Modifier.fillMaxWidth().padding(horizontal=12.dp)) {
+                state.error?.let { Text(it,color=KraPivaColors.Error,modifier=Modifier.weight(1f)) }
+                if (state.error != null) TextButton(model::retry,enabled=!state.busy&&!state.selectionBusy){Text("Повторить")}
+            }
         }
         if (showingMenu) {
             key(userId, request, menuVenue) {
                 Box(Modifier.weight(1f)) {
                     ru.krapiva.app.menu.BarMenuScreen(api, selected.getString("id"), selected.getString("name"), expired,
-                        openPosition = { openMenuPosition?.invoke(it, selected) },
+                        closeMenu = back, openPosition = { openMenuPosition?.invoke(it, selected) },
                         checkin = { onMenuCheckin(it.checkinSeed(), selected) })
                 }
             }

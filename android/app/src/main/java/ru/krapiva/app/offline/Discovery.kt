@@ -5,6 +5,11 @@ data class RecommendationCard(val id: String, val name: String, val brewery: Str
 data class LocalRecommendation(val card: RecommendationCard, val reason: String, val score: Int)
 interface FutureRecommendationSource { suspend fun recommendations(): List<RecommendationCard> }
 object LocalDiscovery {
+    internal fun advisorProfile(history: List<AdvisorCheckin>?): AdvisorProfile = profileForAdvisor(history)
+
+    internal fun advise(candidates: List<AdvisorCandidate>, profile: AdvisorProfile, mode: AdvisorMode): List<AdvisorRecommendation> =
+        rankAdvisorCandidates(candidates, profile, mode)
+
     fun select(cards: List<RecommendationCard>, history: List<PersonalCheckin>): List<LocalRecommendation> {
         val rows=PersonalAnalytics.current(history)
         val tried=rows.map{it.positionId}.toSet()

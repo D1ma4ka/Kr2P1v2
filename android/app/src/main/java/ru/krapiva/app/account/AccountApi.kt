@@ -2,6 +2,7 @@ package ru.krapiva.app.account
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -12,15 +13,39 @@ import java.net.URL
 
 class ApiFailure(val status: Int, override val message: String) : Exception(message)
 class AccountApi(private val store: AccountStore) {
+    private class Login(val data: JSONObject, val identity: Any = Any())
+    private val sessionLock = Any()
     private val refreshMutex = Mutex()
     private val localMutex = Mutex()
+    @Volatile private var login: Login? = null
+    private val session get() = login?.data
     fun ownerId(): String? = session?.optString("userId")
-    @Volatile private var session: JSONObject? = null
-    suspend fun restore(): Boolean = withContext(Dispatchers.IO) { session = store.session(); session != null }
-    suspend fun accept(value: JSONObject) = withContext(Dispatchers.IO) {
-        store.clear(preserveDrafts = true); store.saveSession(value); session = value
+    internal fun sessionIdentity(): Any? = login?.identity
+
+    suspend fun restore(): Boolean = withContext(Dispatchers.IO) {
+        synchronized(sessionLock) {
+            login = store.session()?.let { Login(it) }
+            login != null
+        }
     }
-    suspend fun clear(preserveDrafts: Boolean = false) = withContext(Dispatchers.IO) { session = null; store.clear(preserveDrafts) }
+    suspend fun accept(value: JSONObject) = withContext(Dispatchers.IO) {
+        synchronized(sessionLock) {
+            login = null
+            store.clear(preserveDrafts = true)
+            store.saveSession(value)
+            login = Login(value)
+        }
+    }
+    suspend fun clear(preserveDrafts: Boolean = false) = withContext(Dispatchers.IO) {
+        synchronized(sessionLock) {
+            login = null
+            store.clear(preserveDrafts)
+        }
+    }
+
+    private fun requireSameLogin(identity: Any?): Login =
+        login?.takeIf { it.identity === identity } ?: throw CancellationException("Аккаунт изменился")
+
     private fun raw(path: String, method: String, body: ByteArray?, contentType: String, token: String?, requestId: String? = null): ByteArray {
         // Android's HttpURLConnection may add form Content-Type to bodyless PUT/DELETE.
         // Send valid empty JSON so Fastify's JSON-only API can parse the request.
@@ -64,35 +89,54 @@ class AccountApi(private val store: AccountStore) {
         }
     }
     suspend fun bytes(path: String, method: String = "GET", body: ByteArray? = null, contentType: String = "application/json", secure: Boolean = true, requestId: String? = null): ByteArray = withContext(Dispatchers.IO) {
-        if (secure && session == null) throw ApiFailure(401, "Требуется вход")
-        val access = if (secure) session?.getString("accessToken") else null
-        try { rawWithRetry(path, method, body, contentType, access, requestId) }
-        catch (error: ApiFailure) {
-            if (error.status != 401 || !secure) throw error
+        val initial = if (!secure) null else login ?: throw ApiFailure(401, "Требуется вход")
+        val access = initial?.data?.getString("accessToken")
+        val response = try {
+            rawWithRetry(path, method, body, contentType, access, requestId)
+        } catch (error: ApiFailure) {
+            if (error.status != 401 || initial == null) throw error
             val token = refreshMutex.withLock {
-                val current = session ?: throw error
+                val current = requireSameLogin(initial.identity).data
                 if (current.getString("accessToken") != access) current.getString("accessToken") else {
                     val response = raw("v1/auth/refresh", "POST", JSONObject().put("refreshToken", current.getString("refreshToken")).toString().toByteArray(), "application/json", null)
                     val next = JSONObject(String(response, Charsets.UTF_8))
-                    store.saveSession(next); session = next
+                    synchronized(sessionLock) {
+                        requireSameLogin(initial.identity)
+                        store.saveSession(next)
+                        login = Login(next, initial.identity)
+                    }
                     next.getString("accessToken")
                 }
             }
+            requireSameLogin(initial.identity)
             rawWithRetry(path, method, body, contentType, token, requestId)
         }
+        if (initial != null) requireSameLogin(initial.identity)
+        response
     }
     suspend fun json(path: String, method: String = "GET", body: JSONObject? = null, secure: Boolean = true, requestId: String? = null): JSONObject {
         val data = bytes(path, method, body?.toString()?.toByteArray(Charsets.UTF_8), secure = secure, requestId = requestId)
         return if (data.isEmpty()) JSONObject() else JSONObject(String(data, Charsets.UTF_8))
     }
     suspend fun catalogGet(path: String): Pair<JSONObject, Boolean> = withContext(Dispatchers.IO) {
-        val user = session?.getString("userId") ?: throw ApiFailure(401, "Требуется вход")
-        try { val data = json(path); store.cacheCatalog(user, path, data); data to false }
-        catch (error: Exception) {
-            if (error is ApiFailure && error.status in setOf(403, 404)) store.evictCatalog(user,path)
-            if (error !is java.io.IOException && !(error is ApiFailure && error.status >= 500)) throw error
-            val cached = store.cachedCatalog(user,path) ?: throw error
-            cached to true
+        val initial = login ?: throw ApiFailure(401, "Требуется вход")
+        val user = initial.data.getString("userId")
+        try {
+            val data = json(path)
+            synchronized(sessionLock) {
+                requireSameLogin(initial.identity)
+                store.cacheCatalog(user, path, data)
+            }
+            data to false
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            synchronized(sessionLock) {
+                requireSameLogin(initial.identity)
+                if (error is ApiFailure && error.status in setOf(403, 404)) store.evictCatalog(user, path)
+                if (error !is java.io.IOException && !(error is ApiFailure && error.status >= 500)) throw error
+                val cached = store.cachedCatalog(user, path) ?: throw error
+                cached to true
+            }
         }
     }
     suspend fun localDocument(name: String, expectedOwner: String? = null): JSONObject = withContext(Dispatchers.IO) {
