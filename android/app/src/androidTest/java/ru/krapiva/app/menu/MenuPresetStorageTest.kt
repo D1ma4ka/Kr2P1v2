@@ -11,6 +11,34 @@ import ru.krapiva.app.offline.IsolatedStoreContext
 import java.time.Instant
 
 class MenuPresetStorageTest {
+    @Test fun cachedMenuExpiresAndCheckinInvalidationPreservesSavedRules() = runBlocking {
+        val context = IsolatedStoreContext(InstrumentationRegistry.getInstrumentation().targetContext)
+        val path = "v1/venues/test/menu"
+        try {
+            AccountStore(context).use { store ->
+                val api = AccountApi(store)
+                api.accept(JSONObject().put("userId", "a"))
+                val presets = MenuPresetRepository(api, "a")
+                presets.edit { it.save("mine", "Мои IPA", MenuFilter(styles = setOf("ipa")), Instant.EPOCH) }
+                val payload = JSONObject().put("menu", JSONObject.NULL)
+                store.cacheCatalog("a", path, payload)
+                assertNull(store.cachedCatalog("b", path))
+                assertNotNull(store.cachedCatalog("a", path))
+                store.writableDatabase.execSQL("UPDATE catalog SET saved_at=0 WHERE user_id=? AND path=?", arrayOf("a", path))
+                assertNull(store.cachedCatalog("a", path))
+                store.cacheCatalog("a", path, payload)
+                api.invalidateDiary()
+                assertNull(store.cachedCatalog("a", path))
+                assertEquals("Мои IPA", presets.read().title("mine"))
+                store.cacheCatalog("a", path, payload)
+                store.evictCatalog("a", path)
+                assertNull(store.cachedCatalog("a", path))
+            }
+        } finally {
+            context.dispose()
+        }
+    }
+
     @Test fun persistsAcrossReopenAndLogoutAndIsolatesAccounts() = runBlocking {
         val context = IsolatedStoreContext(InstrumentationRegistry.getInstrumentation().targetContext)
         val rule = MenuFilter(styles = setOf("ipa", "apa"), abv = MenuRange("4", "8"),

@@ -40,6 +40,10 @@ test('venue menus: role delegation, venue isolation, publication, ratings, and p
   await call(path(first)+'/draft',b.token,'PUT',draft,403);
   await call(path(first)+'/draft',operator.token,'PUT',{...draft,items:[draft.items[0]!,draft.items[0]!]},422);
   await call(path(first)+'/draft',operator.token,'PUT',{...draft,items:[{...draft.items[0],currency:null}]},422);
+  const oversized = Array.from({length:251}, () => ({...draft.items[0],positionId:randomUUID()}));
+  await call(path(first)+'/draft',operator.token,'PUT',{...draft,items:oversized},400);
+  await call(path(first)+'/draft',operator.token,'PUT',{...draft,items:[draft.items[0],{...draft.items[1],positionId:randomUUID()}]},422);
+  assert.equal((await call(path(first)+'/draft',operator.token)).menu,null);
   const writes = await Promise.all([1,2].map(() => app.inject({
    url:path(first)+'/draft',method:'PUT',headers:{authorization:'Bearer '+operator.token},payload:draft,
   })));
@@ -81,6 +85,9 @@ test('venue menus: role delegation, venue isolation, publication, ratings, and p
   const withPublicRating = (await call(path(first),b.token)).menu.items[0];
   assert.equal(withPublicRating.averageRating,4);
   assert.equal(withPublicRating.publicAverageRating,3);
+  await db.pool.query("UPDATE beer_positions SET status='rejected' WHERE id=$1",[bottle]);
+  assert.deepEqual((await call(path(first),b.token)).menu.items.map((i:{positionId:string})=>i.positionId),[position]);
+  await db.pool.query("UPDATE beer_positions SET status='verified' WHERE id=$1",[bottle]);
   await call(path(first)+'/draft/items/'+position,operator.token,'PUT',{...offer,expectedRevision:1,available:false});
   await call(path(first)+'/draft/items/'+bottle+'?expectedRevision=2',operator.token,'DELETE');
   assert.equal((await call(path(first),b.token)).menu.items.length,2);

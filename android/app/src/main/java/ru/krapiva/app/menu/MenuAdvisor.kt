@@ -27,7 +27,10 @@ import ru.krapiva.app.offline.RecommendationCard
 import java.time.Instant
 
 internal suspend fun AccountApi.advisorCheckins(): List<AdvisorCheckin> =
-    json("v1/me/advisor-history").getJSONArray("items").objects().map { row ->
+    readAdvisorCheckins(json("v1/me/advisor-history"))
+
+internal fun readAdvisorCheckins(response: org.json.JSONObject): List<AdvisorCheckin> =
+    response.getJSONArray("items").objects().map { row ->
         AdvisorCheckin(
             row.getString("id"), row.getString("positionId"), row.getString("breweryId"), row.text("styleId"),
             Instant.parse(row.getString("occurredAt")),

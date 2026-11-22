@@ -113,12 +113,20 @@ dependencies {
     implementation("org.maplibre.gl:android-sdk:11.13.5")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("com.vaadin.external.google:android-json:0.0.20131108.vaadin1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2025.04.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+// A fresh PostgreSQL fixture is part of the opt-in host journey.
+tasks.withType<Test>().configureEach {
+    val stand = providers.environmentVariable("KRAPIVA_SMART_BAR_TEST_BACKEND")
+    inputs.property("smartBarBackendEnabled", stand.isPresent)
+    outputs.upToDateWhen { !stand.isPresent }
 }
 
 // Missing staging/production addresses must not silently produce unusable builds.
