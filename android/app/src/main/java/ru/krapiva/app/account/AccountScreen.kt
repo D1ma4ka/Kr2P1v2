@@ -100,7 +100,14 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
     }
     if(state.screen in setOf(AccountScreen.VENUES,AccountScreen.BADGES) && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            if(state.screen==AccountScreen.VENUES) ru.krapiva.app.places.PlacesApp(model.api,state.profile!!.getString("userId"),model.placesRequest,model.venueId,{model.navigate(model.placesReturn)},model::checkinAt,model::sessionExpired, chooseCityOnEntry = model.chooseCityOnPlacesEntry, onDiscoveryCity = model::selectDiscoveryCity) {navigation {it()}}
+            if (state.screen == AccountScreen.VENUES) {
+                val userId = state.profile!!.getString("userId")
+                savedScreens.SaveableStateProvider("places-$userId") {
+                    ru.krapiva.app.places.PlacesApp(model.api,userId,model.placesRequest,model.venueId,{model.navigate(model.placesReturn)},model::checkinAt,model::sessionExpired,
+                        chooseCityOnEntry = model.chooseCityOnPlacesEntry, onDiscoveryCity = model::selectDiscoveryCity,
+                        openMenuPosition = model::openMenuPosition) { navigation { it() } }
+                }
+            }
             else ru.krapiva.app.badges.BadgesApp(model.api,{model.navigate(AccountScreen.PROFILE)},model::sessionExpired) {navigation {it()}}
         }
         return
@@ -124,7 +131,12 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
     }
     if (state.screen == AccountScreen.CATALOG && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
-            ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload, { model.navigate(AccountScreen.PROFILE) }, model::sessionExpired, onHome = model::openHome, onCheckin = { model.openDiary("new",it) }, requestedPosition = model.catalogPosition, consumePosition = model::consumeCatalogPosition,onOwnCheckin = model::openOwnCheckin, bottomBar = { navigation { it() } },onSettings = {model.navigate(AccountScreen.SETTINGS)})
+            val menuVenue = model.menuPositionVenue
+            ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload,
+                { if (menuVenue != null) model.returnToMenu() else model.navigate(AccountScreen.PROFILE) }, model::sessionExpired,
+                onHome = model::openHome, onCheckin = { model.openDiary("new",it,menuVenue) }, requestedPosition = model.catalogPosition,
+                consumePosition = model::consumeCatalogPosition,onOwnCheckin = model::openOwnCheckin, bottomBar = { navigation { it() } },
+                onSettings = {model.navigate(AccountScreen.SETTINGS)}, standalonePosition = menuVenue != null)
         }
         return
     }

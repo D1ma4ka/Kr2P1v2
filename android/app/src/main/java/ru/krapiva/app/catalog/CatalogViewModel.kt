@@ -123,10 +123,15 @@ class CatalogViewModel(val repository: CatalogRepository, private val upload: su
                 next = data.text("nextCursor"), offline = offline)
         }
     }
-    fun detail(id: String, brewery: Boolean = false) = task {
+    fun detail(id: String, brewery: Boolean = false, standalone: Boolean = false) = task {
+        if (standalone) {
+            history.clear()
+            mutable.value = CatalogState(page = CatalogPage.POSITION, busy = true)
+        }
         val (data, offline) = repository.read("v1/${if (brewery) "breweries" else "positions"}/$id")
         if(!brewery) repository.history.viewed(id)
-        enter(CatalogState(queries=mutable.value.queries,recent=if(brewery)mutable.value.recent else recentValues(mutable.value.recent,id),page = if (brewery) CatalogPage.BREWERY else CatalogPage.POSITION, detail = data, offline = offline, filters = mutable.value.filters))
+        val next = CatalogState(queries=mutable.value.queries,recent=if(brewery)mutable.value.recent else recentValues(mutable.value.recent,id),page = if (brewery) CatalogPage.BREWERY else CatalogPage.POSITION, detail = data, offline = offline, filters = mutable.value.filters)
+        if (standalone) mutable.value = next else enter(next)
     }
     fun proposal(existing: JSONObject? = null) {
         if (mutable.value.busy) return

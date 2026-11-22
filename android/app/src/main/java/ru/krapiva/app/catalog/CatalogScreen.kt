@@ -36,8 +36,8 @@ import androidx.compose.foundation.horizontalScroll
 import ru.krapiva.app.diary.objects
 
 @Composable
-fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String, onProfile: () -> Unit, expired: () -> Unit, providedModel: CatalogViewModel? = null, onHome: (() -> Unit)? = null, onCheckin: ((JSONObject?) -> Unit)? = null, requestedPosition: String? = null, consumePosition: () -> Unit = {}, bottomBar: @Composable () -> Unit = {},onSettings: () -> Unit = onProfile,onOwnCheckin: (String) -> Unit = {}) {
-    val model: CatalogViewModel = providedModel ?: viewModel(key = "catalog-$userId", factory = object : ViewModelProvider.Factory {
+fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String, onProfile: () -> Unit, expired: () -> Unit, providedModel: CatalogViewModel? = null, onHome: (() -> Unit)? = null, onCheckin: ((JSONObject?) -> Unit)? = null, requestedPosition: String? = null, consumePosition: () -> Unit = {}, bottomBar: @Composable () -> Unit = {},onSettings: () -> Unit = onProfile,onOwnCheckin: (String) -> Unit = {}, standalonePosition: Boolean = false) {
+    val model: CatalogViewModel = providedModel ?: viewModel(key = "catalog-$userId-$standalonePosition", factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T = CatalogViewModel(CatalogRepository(api), upload, expired) as T
     })
     val state by model.state.collectAsStateWithLifecycle()
@@ -52,7 +52,7 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
     val first = firstComparisonId
     val second = secondComparisonId
     if (first != null && second != null) PositionComparison(api, first, second) { secondComparisonId = null }
-    LaunchedEffect(requestedPosition,state.busy) { if (!state.busy) requestedPosition?.let { model.detail(it); consumePosition() } }
+    LaunchedEffect(requestedPosition,state.busy) { if (!state.busy) requestedPosition?.let { model.detail(it, standalone = standalonePosition); consumePosition() } }
     BackHandler { if (!model.back()) onProfile() }
     KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding().imePadding()) {
@@ -64,7 +64,7 @@ fun CatalogApp(api: AccountApi, userId: String, upload: suspend (Uri) -> String,
                     trailingContent = { TextButton(::clearComparison) { Text("Сбросить") } },
                 )
             }
-            if(state.page != CatalogPage.POSITIONS) TextButton(onClick = { if(!model.back()) onProfile() },enabled = !state.busy) { Text("Назад") }
+            if(standalonePosition || state.page != CatalogPage.POSITIONS) TextButton(onClick = { if(!model.back()) onProfile() },enabled = !state.busy) { Text("Назад") }
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Assertive }) }
             state.notice?.let { Text(it, modifier = Modifier.padding(16.dp).semantics { liveRegion = LiveRegionMode.Polite }) }

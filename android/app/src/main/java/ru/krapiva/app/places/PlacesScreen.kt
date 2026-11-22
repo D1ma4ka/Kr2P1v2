@@ -43,7 +43,7 @@ import ru.krapiva.app.moderation.ReportAction
 import kotlin.coroutines.resume
 
 @OptIn(ExperimentalLayoutApi::class)
-@Composable fun PlacesApp(api: AccountApi,userId: String,request: Int,requestedId: String?,onBack: ()->Unit,onCheckin: (JSONObject)->Unit,expired: ()->Unit,chooseCityOnEntry: Boolean = false, onDiscoveryCity: (DiscoveryCity?) -> Unit = {},bottomBar: @Composable ()->Unit) {
+@Composable fun PlacesApp(api: AccountApi,userId: String,request: Int,requestedId: String?,onBack: ()->Unit,onCheckin: (JSONObject)->Unit,expired: ()->Unit,chooseCityOnEntry: Boolean = false, onDiscoveryCity: (DiscoveryCity?) -> Unit = {},openMenuPosition: ((String, JSONObject) -> Unit)? = null, bottomBar: @Composable ()->Unit) {
     val model=viewModel<PlacesViewModel>(key="places-$userId",factory=object: ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T=PlacesViewModel(api,expired) as T
     })
@@ -123,20 +123,36 @@ import kotlin.coroutines.resume
         onDiscoveryCity(name.takeIf { it.isNotBlank() }?.let { DiscoveryCity(it, center) })
         cities = false
     }
-    BackHandler {if(state.selected!=null)model.back()else onBack()}
+    var menuVenue by rememberSaveable(userId, request) { mutableStateOf<String?>(null) }
+    val selected = state.selected
+    val showingMenu = selected != null && selected.optString("id") == menuVenue && state.detail
+    val back = {
+        if (showingMenu) menuVenue = null
+        else if (state.selected != null) model.back()
+        else onBack()
+    }
+    BackHandler(onBack = back)
     KraPivaBackdrop {Column(Modifier.safeDrawingPadding()) {
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {TextButton({if(state.selected!=null)model.back()else onBack()}) {Text("Назад")};Text("Места и карта",style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(top=12.dp))}
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {TextButton(back) {Text("Назад")};Text("Места и карта",style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(top=12.dp))}
         Box(Modifier.fillMaxWidth().height(4.dp)) {if(state.busy||state.selectionBusy)LinearProgressIndicator(Modifier.fillMaxWidth())}
         Row(Modifier.fillMaxWidth().padding(horizontal=12.dp)) {
             state.error?.let { Text(it,color=KraPivaColors.Error,modifier=Modifier.weight(1f)) }
             if (state.error != null) TextButton(model::retry,enabled=!state.busy&&!state.selectionBusy){Text("Повторить")}
         }
-        val selected=state.selected
-        if(state.detail && selected!=null) {
+        if (showingMenu && selected != null) {
+            key(userId, menuVenue) {
+                Box(Modifier.weight(1f)) {
+                    ru.krapiva.app.menu.BarMenuScreen(api, selected.getString("id"), selected.getString("name"), expired) {
+                        openMenuPosition?.invoke(it, selected)
+                    }
+                }
+            }
+        } else if(state.detail && selected!=null) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                 VenueSummary(selected,api,true)
                 if(!selected.isNull("latitude"))AmberAction("На карте",{model.showOnMap(selected)})
                 else Text("Координаты не подтверждены. На карту место не наносится.",color=KraPivaColors.Muted)
+                if (openMenuPosition != null) AmberAction("Меню", { menuVenue = selected.getString("id") })
                 AmberAction("Чекин в этом месте",{onCheckin(selected)})
                 OutlinedButton(model::toggleSaved, Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     enabled = !state.selectionBusy) {

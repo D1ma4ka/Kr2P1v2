@@ -95,7 +95,7 @@ class AccountStore(context: Context) : SQLiteOpenHelper(context, "account-cache.
     fun removeDraft(user: String,id: String) { writableDatabase.delete("diary_drafts","user_id=? AND id=?",arrayOf(user,id)) }
     @Synchronized fun invalidateDiary(user: String) {
         if (session()?.optString("userId") != user) return
-        writableDatabase.delete("catalog", "user_id=? AND (path LIKE 'v1/checkins%' OR path LIKE 'v1/me/%' OR path LIKE '%/statistics')",arrayOf(user))
+        writableDatabase.delete("catalog", "user_id=? AND (path LIKE 'v1/checkins%' OR path LIKE 'v1/me/%' OR path LIKE '%/statistics' OR path LIKE 'v1/venues/%/menu')",arrayOf(user))
     }
     @Synchronized fun cacheCatalog(user: String, path: String, payload: JSONObject) {
         if (session()?.optString("userId") != user) return

@@ -66,13 +66,21 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         if (mutable.value.busy) return
         diaryRequest++; diaryEntry = entry; diaryPosition = position; diaryVenue=venue; navigate(AccountScreen.DIARY)
     }
-    fun openPosition(id: String) { if (!mutable.value.busy) mutable.value = mutable.value.copy(screen = AccountScreen.CATALOG,catalogPosition = id,error = null,notice = null) }
+    var menuPositionVenue by mutableStateOf<JSONObject?>(null)
+        private set
+    fun openMenuPosition(id: String, venue: JSONObject) {
+        if (mutable.value.busy) return
+        openPosition(id)
+        menuPositionVenue = venue
+    }
+    fun returnToMenu() = navigate(AccountScreen.VENUES)
+    fun openPosition(id: String) { if (!mutable.value.busy) { menuPositionVenue = null; mutable.value = mutable.value.copy(screen = AccountScreen.CATALOG,catalogPosition = id,error = null,notice = null) } }
     fun consumeCatalogPosition() { mutable.value = mutable.value.copy(catalogPosition = null) }
-    private suspend fun clearSession(preserveDrafts: Boolean = true) { catalogOwner.viewModelStore.clear(); discoveryCity = null; diaryPosition = null; diaryVenue=null;venueId=null;socialCheckinId = null; consumeCatalogPosition(); api.clear(preserveDrafts) }
+    private suspend fun clearSession(preserveDrafts: Boolean = true) { catalogOwner.viewModelStore.clear(); discoveryCity = null; menuPositionVenue = null; placesRequest++; diaryPosition = null; diaryVenue=null;venueId=null;socialCheckinId = null; consumeCatalogPosition(); api.clear(preserveDrafts) }
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
     init { restore() }
-    fun navigate(screen: AccountScreen, authEmail: String = mutable.value.authEmail) { if (!mutable.value.busy) mutable.value = mutable.value.copy(screen = screen, authEmail = authEmail, error = null, notice = null) }
+    fun navigate(screen: AccountScreen, authEmail: String = mutable.value.authEmail) { if (!mutable.value.busy) { menuPositionVenue = null; mutable.value = mutable.value.copy(screen = screen, authEmail = authEmail, error = null, notice = null) } }
     private fun task(action: suspend () -> Unit) {
         if (mutable.value.busy) return
         mutable.value = mutable.value.copy(busy = true, error = null, notice = null)
