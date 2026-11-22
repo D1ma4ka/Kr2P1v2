@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -29,6 +30,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
+private val comparedIdsSaver = listSaver<List<String>, String>(save = { it }, restore = { it })
+
 private data class MenuLoad(val menu: BarMenu?, val cached: Boolean)
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -42,7 +45,7 @@ internal fun BarMenuScreen(
     openPosition: (String) -> Unit,
     checkin: (MenuPosition) -> Unit,
 ) {
-    var comparedIds by rememberSaveable(venueId) { mutableStateOf(arrayListOf<String>()) }
+    var comparedIds by rememberSaveable(venueId, stateSaver = comparedIdsSaver) { mutableStateOf(emptyList<String>()) }
     var comparing by rememberSaveable(venueId) { mutableStateOf(false) }
     var filter by rememberSaveable(venueId, stateSaver = menuFilterSaver) { mutableStateOf(MenuFilter()) }
     var showFilters by rememberSaveable(venueId) { mutableStateOf(false) }
@@ -120,15 +123,15 @@ internal fun BarMenuScreen(
     val compared = remember(menu, comparedIds) { comparisonPositions(comparedIds, menu?.items.orEmpty()) }
     LaunchedEffect(data) {
         if (data == null) return@LaunchedEffect
-        comparedIds = ArrayList(compared.map(MenuPosition::positionId))
+        comparedIds = compared.map(MenuPosition::positionId)
         if (comparedIds.size < 2) comparing = false
     }
     fun clearComparison() {
-        comparedIds = arrayListOf()
+        comparedIds = emptyList()
         comparing = false
     }
     fun removeFromComparison(id: String) {
-        comparedIds = ArrayList(comparedIds - id)
+        comparedIds = comparedIds - id
         if (comparedIds.size < 2) comparing = false
     }
     LaunchedEffect(api, session, venueId, retry, menu != null) {
@@ -264,7 +267,7 @@ internal fun BarMenuScreen(
             items(rows, key = MenuPosition::positionId) { position ->
                 MenuPositionCard(position, menu?.sections?.get(position.sectionId), position.positionId in comparedIds,
                     compared.size < MAX_MENU_COMPARISON, { openPosition(position.positionId) }) {
-                    comparedIds = ArrayList(toggleComparedPosition(comparedIds, position.positionId, menu?.items.orEmpty()))
+                    comparedIds = toggleComparedPosition(comparedIds, position.positionId, menu?.items.orEmpty())
                 }
             }
         } else menu?.sections?.forEach { (id, title) ->
@@ -275,7 +278,7 @@ internal fun BarMenuScreen(
             items(sectionRows, key = MenuPosition::positionId) { position ->
                 MenuPositionCard(position, selected = position.positionId in comparedIds, canAdd = compared.size < MAX_MENU_COMPARISON,
                     open = { openPosition(position.positionId) }) {
-                    comparedIds = ArrayList(toggleComparedPosition(comparedIds, position.positionId, menu.items))
+                    comparedIds = toggleComparedPosition(comparedIds, position.positionId, menu.items)
                 }
             }
         }
