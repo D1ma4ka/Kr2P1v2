@@ -95,13 +95,15 @@ class AccountApi(private val store: AccountStore) {
             cached to true
         }
     }
-    suspend fun localDocument(name: String): JSONObject = withContext(Dispatchers.IO) {
+    suspend fun localDocument(name: String, expectedOwner: String? = null): JSONObject = withContext(Dispatchers.IO) {
         val user = ownerId() ?: throw ApiFailure(401,"Требуется вход")
+        check(expectedOwner == null || expectedOwner == user) { "Аккаунт изменился" }
         store.localDocument(user,name) ?: JSONObject()
     }
-    suspend fun editLocalDocument(name: String, edit: (JSONObject) -> Unit): JSONObject = localMutex.withLock {
+    suspend fun editLocalDocument(name: String, expectedOwner: String? = null, edit: (JSONObject) -> Unit): JSONObject = localMutex.withLock {
         withContext(Dispatchers.IO) {
             val user = ownerId() ?: throw ApiFailure(401,"Требуется вход")
+            check(expectedOwner == null || expectedOwner == user) { "Аккаунт изменился" }
             val data = store.localDocument(user,name) ?: JSONObject()
             edit(data)
             store.saveLocalDocument(user,name,data)

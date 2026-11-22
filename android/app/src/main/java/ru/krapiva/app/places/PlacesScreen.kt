@@ -123,9 +123,10 @@ import kotlin.coroutines.resume
         onDiscoveryCity(name.takeIf { it.isNotBlank() }?.let { DiscoveryCity(it, center) })
         cities = false
     }
-    var menuVenue by rememberSaveable(userId, request) { mutableStateOf<String?>(null) }
+    var menuVenue by rememberSaveable { mutableStateOf<String?>(null) }
+    var menuRequest by rememberSaveable { mutableIntStateOf(-1) }
     val selected = state.selected
-    val showingMenu = selected != null && selected.optString("id") == menuVenue && state.detail
+    val showingMenu = menuRequest == request && selected != null && selected.optString("id") == menuVenue && state.detail
     val back = {
         if (showingMenu) menuVenue = null
         else if (state.selected != null) model.back()
@@ -139,8 +140,8 @@ import kotlin.coroutines.resume
             state.error?.let { Text(it,color=KraPivaColors.Error,modifier=Modifier.weight(1f)) }
             if (state.error != null) TextButton(model::retry,enabled=!state.busy&&!state.selectionBusy){Text("Повторить")}
         }
-        if (showingMenu && selected != null) {
-            key(userId, menuVenue) {
+        if (showingMenu) {
+            key(userId, request, menuVenue) {
                 Box(Modifier.weight(1f)) {
                     ru.krapiva.app.menu.BarMenuScreen(api, selected.getString("id"), selected.getString("name"), expired) {
                         openMenuPosition?.invoke(it, selected)
@@ -152,7 +153,10 @@ import kotlin.coroutines.resume
                 VenueSummary(selected,api,true)
                 if(!selected.isNull("latitude"))AmberAction("На карте",{model.showOnMap(selected)})
                 else Text("Координаты не подтверждены. На карту место не наносится.",color=KraPivaColors.Muted)
-                if (openMenuPosition != null) AmberAction("Меню", { menuVenue = selected.getString("id") })
+                if (openMenuPosition != null) AmberAction("Меню", {
+                    menuVenue = selected.getString("id")
+                    menuRequest = request
+                })
                 AmberAction("Чекин в этом месте",{onCheckin(selected)})
                 OutlinedButton(model::toggleSaved, Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     enabled = !state.selectionBusy) {

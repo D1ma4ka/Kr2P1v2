@@ -10,6 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import ru.krapiva.app.account.AccountApi
 import ru.krapiva.app.account.ApiFailure
 import ru.krapiva.app.designsystem.ClubCard
@@ -36,6 +37,49 @@ internal fun BarMenuScreen(
 ) {
     var filter by rememberSaveable(venueId, stateSaver = menuFilterSaver) { mutableStateOf(MenuFilter()) }
     var showFilters by rememberSaveable(venueId) { mutableStateOf(false) }
+    var editing by rememberSaveable(venueId) { mutableStateOf<String?>(null) }
+    var defaultApplied by rememberSaveable(venueId) { mutableStateOf(false) }
+    val owner = api.ownerId()
+    val presets = remember(api, owner) { owner?.let { MenuPresetRepository(api, it) } }
+    var book by remember(presets) { mutableStateOf<MenuPresetBook?>(null) }
+    var presetError by remember(presets) { mutableStateOf<String?>(null) }
+    var presetBusy by remember(presets) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    fun changePresets(change: (MenuPresetBook) -> MenuPresetBook) {
+        if (presets == null || book == null || presetBusy) return
+        presetBusy = true
+        presetError = null
+        scope.launch {
+            try {
+                val next = presets.edit(change)
+                if (api.ownerId() == owner) book = next
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                presetError = "Не удалось сохранить настройки фильтра."
+            } finally {
+                presetBusy = false
+            }
+        }
+    }
+    LaunchedEffect(presets) {
+        if (presets != null) {
+            try {
+                val stored = presets.read()
+                if (api.ownerId() != owner) return@LaunchedEffect
+                book = stored
+                if (!defaultApplied) {
+                    stored.defaultId?.let(stored::filter)?.let { filter = it }
+                    defaultApplied = true
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                presetError = "Сохранённые фильтры недоступны."
+            }
+        }
+    }
     var relevance by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var retry by remember { mutableIntStateOf(0) }
     var data by remember { mutableStateOf<MenuLoad?>(null) }
@@ -79,9 +123,15 @@ internal fun BarMenuScreen(
     }
     val rows = remember(menu, filter, relevance) { filterMenu(menu?.items.orEmpty(), filter, relevance) }
     if (showFilters && menu != null) {
-        MenuFilterDialog(menu.items, filter, relevance.isNotEmpty(), { showFilters = false }) {
-            filter = it
+        val edit = book?.active?.firstOrNull { it.id == editing }
+        MenuFilterDialog(menu.items, edit?.filter ?: filter, relevance.isNotEmpty(), {
             showFilters = false
+            editing = null
+        }) { next ->
+            if (edit == null) { filter = next; defaultApplied = true }
+            else changePresets { it.update(edit.id, next, Instant.now()) }
+            showFilters = false
+            editing = null
         }
     }
 
@@ -114,8 +164,17 @@ internal fun BarMenuScreen(
                         if (menu.isOld(Instant.now())) Text("Наличие могло измениться. Уточните в заведении.")
                         if (menu.items.isEmpty()) Text("В опубликованном меню пока нет позиций.")
                         else {
-                            OutlinedButton({ showFilters = true }) { Text("Фильтры") }
-                            ActiveMenuFilters(filter) { filter = it }
+                            OutlinedButton({ showFilters = true; editing = null }) { Text("Фильтры") }
+                            MenuPresetControls(book, filter, presetBusy, apply = { id, next ->
+                                filter = next
+                                defaultApplied = true
+                                changePresets { it.use(id) }
+                            }, editFilter = { preset ->
+                                editing = preset.id
+                                showFilters = true
+                            }, change = ::changePresets)
+                            presetError?.let { Text(it, color = KraPivaColors.Error) }
+                            ActiveMenuFilters(filter) { filter = it; defaultApplied = true }
                             if (filter.sort == MenuSort.RELEVANCE) {
                                 Text(if (relevance.isNotEmpty()) "Подбор по доступной истории на устройстве." else "Пока недостаточно данных для подбора. Сортировка по рейтингу.")
                             }
@@ -156,7 +215,8 @@ private fun MenuPositionCard(position: MenuPosition, section: String? = null, op
             val details = listOfNotNull(
                 position.abv?.let { "${it}%" },
                 position.averageRating?.let { "Рейтинг ${DiaryNumbers.average(it.toString())}" },
-                (position.servingFormat ?: position.packaging)?.let { formatTitle(formatKey(it)) },
+                position.packaging?.let { formatTitle(formatKey(it)) },
+                position.servingFormat?.let(::formatKey)?.takeUnless { it == position.packaging?.let(::formatKey) }?.let(::formatTitle),
                 position.volumeMl?.let { "$it мл" },
                 position.price?.let { "${it.toPlainString()} ${position.currency}" },
             )
