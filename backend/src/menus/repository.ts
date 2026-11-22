@@ -35,14 +35,16 @@ export async function readMenu(pool: pg.Pool, user: string, venue: string, allow
   WITH menu AS (
    SELECT m.* FROM venue_menus m WHERE m.venue_id=$2 AND m.state=$4
   ), items AS MATERIALIZED (
-   SELECT i.*, r.name, r.abv, r.ibu, r.style_id, r.id AS release_id, b.id AS brewery_id,
+   SELECT i.*, r.name, r.abv, r.ibu, r.description, r.style_id, r.id AS release_id, b.id AS brewery_id,
     b.name AS brewery_name, b.country, bp.packaging, bp.volume_ml AS catalog_volume_ml, st.name AS style_name
    FROM menu m JOIN venue_menu_items i USING (venue_id,state)
    ${catalogJoin} LEFT JOIN styles st ON st.id=r.style_id
    WHERE $4='draft' OR (${verifiedPosition})
   ), ratings AS (
    SELECT c.position_id,(avg(c.rating_quarters)/4)::float8 AS rating,
-    bool_or(c.user_id=$1) AS tried
+    count(c.rating_quarters)::int AS rated,
+    count(*) FILTER (WHERE c.user_id=$1)::int AS personal_checkins,
+    (avg(c.rating_quarters) FILTER (WHERE c.user_id=$1)/4)::float8 AS personal_rating
    FROM items i JOIN checkins c ON c.position_id=i.position_id
     JOIN users u ON u.id=c.user_id JOIN user_profiles p ON p.user_id=u.id
    WHERE ${active} AND ${visible}
@@ -58,7 +60,9 @@ export async function readMenu(pool: pg.Pool, user: string, venue: string, allow
      'styleId',i.style_id,'styleName',i.style_name,'releaseId',i.release_id,
      'abv',i.abv,'ibu',i.ibu,'packaging',i.packaging,'catalogVolumeMl',i.catalog_volume_ml,
      'price',i.price,'currency',i.currency,'volumeMl',i.volume_ml,'servingFormat',i.serving_format,
-     'available',i.available,'averageRating',a.rating,'tried',COALESCE(a.tried,false)
+     'available',i.available,'averageRating',a.rating,'ratedCheckins',COALESCE(a.rated,0),
+     'personalCheckins',COALESCE(a.personal_checkins,0),'personalAverageRating',a.personal_rating,
+     'tried',COALESCE(a.personal_checkins>0,false),'description',i.description
     ) ORDER BY s.ordinal,i.ordinal,i.position_id)
      FROM items i JOIN venue_menu_sections s ON (s.venue_id,s.state,s.id)=(i.venue_id,i.state,i.section_id)
      LEFT JOIN ratings a USING(position_id)),'[]'::jsonb)

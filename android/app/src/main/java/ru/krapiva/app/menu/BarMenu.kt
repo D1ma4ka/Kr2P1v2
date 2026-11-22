@@ -26,6 +26,10 @@ internal data class MenuPosition(
     val volumeMl: Int?,
     val available: Boolean,
     val tried: Boolean,
+    val ratedCheckins: Int? = null,
+    val personalCheckins: Int? = null,
+    val personalAverageRating: Double? = null,
+    val description: String? = null,
 )
 
 internal data class BarMenu(
@@ -51,9 +55,18 @@ internal data class BarMenu(
                         row.text("price")?.toBigDecimalOrNull(), row.text("currency"),
                         row.text("volumeMl")?.toIntOrNull() ?: row.text("catalogVolumeMl")?.toIntOrNull(),
                         row.getBoolean("available"), row.getBoolean("tried"),
+                        row.text("ratedCheckins")?.toIntOrNull(), row.text("personalCheckins")?.toIntOrNull(),
+                        row.text("personalAverageRating")?.toDoubleOrNull(), row.text("description")?.takeIf { it.isNotBlank() },
                     )
                 },
             )
         }
     }
 }
+
+internal fun MenuPosition.checkinSeed(): JSONObject = JSONObject()
+    .put("canonicalId", positionId)
+    .put("id", positionId)
+    .put("name", name)
+    .put("breweryName", brewery)
+    .put("styleName", style)

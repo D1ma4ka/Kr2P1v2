@@ -1,6 +1,7 @@
 package ru.krapiva.app.menu
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -27,6 +29,7 @@ import java.time.format.FormatStyle
 
 private data class MenuLoad(val menu: BarMenu?, val cached: Boolean)
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun BarMenuScreen(
     api: AccountApi,
@@ -34,7 +37,10 @@ internal fun BarMenuScreen(
     venueName: String,
     expired: () -> Unit,
     openPosition: (String) -> Unit,
+    checkin: (MenuPosition) -> Unit,
 ) {
+    var comparedIds by rememberSaveable(venueId) { mutableStateOf(arrayListOf<String>()) }
+    var comparing by rememberSaveable(venueId) { mutableStateOf(false) }
     var filter by rememberSaveable(venueId, stateSaver = menuFilterSaver) { mutableStateOf(MenuFilter()) }
     var showFilters by rememberSaveable(venueId) { mutableStateOf(false) }
     var editing by rememberSaveable(venueId) { mutableStateOf<String?>(null) }
@@ -105,6 +111,20 @@ internal fun BarMenuScreen(
     }
 
     val menu = data?.menu
+    val compared = remember(menu, comparedIds) { comparisonPositions(comparedIds, menu?.items.orEmpty()) }
+    LaunchedEffect(data) {
+        if (data == null) return@LaunchedEffect
+        comparedIds = ArrayList(compared.map(MenuPosition::positionId))
+        if (comparedIds.size < 2) comparing = false
+    }
+    fun clearComparison() {
+        comparedIds = arrayListOf()
+        comparing = false
+    }
+    fun removeFromComparison(id: String) {
+        comparedIds = ArrayList(comparedIds - id)
+        if (comparedIds.size < 2) comparing = false
+    }
     LaunchedEffect(menu, api) {
         relevance = emptyMap()
         if (menu != null) {
@@ -133,6 +153,13 @@ internal fun BarMenuScreen(
             showFilters = false
             editing = null
         }
+    }
+
+    if (comparing && compared.size >= 2 && menu != null) {
+        MenuComparisonScreen(venueName, compared, data?.cached == true, menu.isOld(Instant.now()),
+            back = { comparing = false }, remove = ::removeFromComparison, clear = ::clearComparison,
+            open = openPosition, checkin = checkin)
+        return
     }
 
     LazyColumn(
@@ -164,7 +191,17 @@ internal fun BarMenuScreen(
                         if (menu.isOld(Instant.now())) Text("Наличие могло измениться. Уточните в заведении.")
                         if (menu.items.isEmpty()) Text("В опубликованном меню пока нет позиций.")
                         else {
-                            OutlinedButton({ showFilters = true; editing = null }) { Text("Фильтры") }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton({ showFilters = true; editing = null }) { Text("Фильтры") }
+                                if (compared.isNotEmpty()) {
+                                    Button({ comparing = true }, enabled = compared.size >= 2) {
+                                        Text("Сравнить (${compared.size})")
+                                    }
+                                    TextButton(::clearComparison) { Text("Очистить") }
+                                }
+                            }
+                            if (compared.size == 1) Text("Выберите ещё одну позицию.", color = KraPivaColors.Muted)
+                            if (compared.size == MAX_MENU_COMPARISON) Text("Выбраны четыре позиции.", color = KraPivaColors.Muted)
                             MenuPresetControls(book, filter, presetBusy, apply = { id, next ->
                                 filter = next
                                 defaultApplied = true
@@ -191,7 +228,10 @@ internal fun BarMenuScreen(
         }
         if (filter.sort != MenuSort.MENU) {
             items(rows, key = MenuPosition::positionId) { position ->
-                MenuPositionCard(position, menu?.sections?.get(position.sectionId)) { openPosition(position.positionId) }
+                MenuPositionCard(position, menu?.sections?.get(position.sectionId), position.positionId in comparedIds,
+                    compared.size < MAX_MENU_COMPARISON, { openPosition(position.positionId) }) {
+                    comparedIds = ArrayList(toggleComparedPosition(comparedIds, position.positionId, menu?.items.orEmpty()))
+                }
             }
         } else menu?.sections?.forEach { (id, title) ->
             val sectionRows = rows.filter { it.sectionId == id }
@@ -199,14 +239,24 @@ internal fun BarMenuScreen(
                 Text(title, style = MaterialTheme.typography.titleMedium)
             }
             items(sectionRows, key = MenuPosition::positionId) { position ->
-                MenuPositionCard(position) { openPosition(position.positionId) }
+                MenuPositionCard(position, selected = position.positionId in comparedIds, canAdd = compared.size < MAX_MENU_COMPARISON,
+                    open = { openPosition(position.positionId) }) {
+                    comparedIds = ArrayList(toggleComparedPosition(comparedIds, position.positionId, menu.items))
+                }
             }
         }
     }
 }
 
 @Composable
-private fun MenuPositionCard(position: MenuPosition, section: String? = null, open: () -> Unit) {
+private fun MenuPositionCard(
+    position: MenuPosition,
+    section: String? = null,
+    selected: Boolean,
+    canAdd: Boolean,
+    open: () -> Unit,
+    compare: () -> Unit,
+) {
     ClubCard {
         Column(Modifier.fillMaxWidth().clickable(onClick = open)) {
             section?.let { Text(it, color = KraPivaColors.Muted) }
@@ -222,6 +272,15 @@ private fun MenuPositionCard(position: MenuPosition, section: String? = null, op
             )
             if (details.isNotEmpty()) Text(details.joinToString(" · "))
             Text(if (position.available) "В наличии по меню" else "Нет в наличии", color = KraPivaColors.Muted)
+        }
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                .toggleable(selected, enabled = selected || canAdd, role = Role.Checkbox) { compare() },
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Checkbox(selected, onCheckedChange = null, enabled = selected || canAdd)
+            Text(if (selected) "В сравнении" else "Сравнить")
         }
     }
 }

@@ -40,10 +40,11 @@ import ru.krapiva.app.catalog.text
 import ru.krapiva.app.designsystem.*
 import ru.krapiva.app.diary.DiaryNumbers
 import ru.krapiva.app.moderation.ReportAction
+import ru.krapiva.app.menu.checkinSeed
 import kotlin.coroutines.resume
 
 @OptIn(ExperimentalLayoutApi::class)
-@Composable fun PlacesApp(api: AccountApi,userId: String,request: Int,requestedId: String?,onBack: ()->Unit,onCheckin: (JSONObject)->Unit,expired: ()->Unit,chooseCityOnEntry: Boolean = false, onDiscoveryCity: (DiscoveryCity?) -> Unit = {},openMenuPosition: ((String, JSONObject) -> Unit)? = null, bottomBar: @Composable ()->Unit) {
+@Composable fun PlacesApp(api: AccountApi,userId: String,request: Int,requestedId: String?,onBack: ()->Unit,onCheckin: (JSONObject)->Unit,expired: ()->Unit,chooseCityOnEntry: Boolean = false, onDiscoveryCity: (DiscoveryCity?) -> Unit = {},openMenuPosition: ((String, JSONObject) -> Unit)? = null, onMenuCheckin: (JSONObject, JSONObject) -> Unit = { _, _ -> }, bottomBar: @Composable ()->Unit) {
     val model=viewModel<PlacesViewModel>(key="places-$userId",factory=object: ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T=PlacesViewModel(api,expired) as T
     })
@@ -143,9 +144,9 @@ import kotlin.coroutines.resume
         if (showingMenu) {
             key(userId, request, menuVenue) {
                 Box(Modifier.weight(1f)) {
-                    ru.krapiva.app.menu.BarMenuScreen(api, selected.getString("id"), selected.getString("name"), expired) {
-                        openMenuPosition?.invoke(it, selected)
-                    }
+                    ru.krapiva.app.menu.BarMenuScreen(api, selected.getString("id"), selected.getString("name"), expired,
+                        openPosition = { openMenuPosition?.invoke(it, selected) },
+                        checkin = { onMenuCheckin(it.checkinSeed(), selected) })
                 }
             }
         } else if(state.detail && selected!=null) {

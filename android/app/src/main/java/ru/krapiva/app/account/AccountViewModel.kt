@@ -47,6 +47,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     var placesReturn = AccountScreen.HOME; private set
     var chooseCityOnPlacesEntry = false; private set
     var diaryVenue: JSONObject? = null; private set
+    var diaryReturnsToMenu = false; private set
     fun openVenues(id: String? = null) = openPlaces(id, chooseCity = false)
     fun openVenueCities() = openPlaces(null, chooseCity = true)
     private fun openPlaces(id: String?, chooseCity: Boolean) {
@@ -58,6 +59,11 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         navigate(AccountScreen.VENUES)
     }
     fun checkinAt(venue: JSONObject) { openDiary("new",venue=venue) }
+    fun checkinFromMenu(position: JSONObject?, venue: JSONObject) {
+        if (mutable.value.busy) return
+        openDiary("new", position, venue)
+        diaryReturnsToMenu = true
+    }
     var diaryRequest = 0; private set
     var diaryEntry = "HOME"; private set
     var diaryPosition: JSONObject? = null; private set
@@ -76,11 +82,11 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     fun returnToMenu() = navigate(AccountScreen.VENUES)
     fun openPosition(id: String) { if (!mutable.value.busy) { menuPositionVenue = null; mutable.value = mutable.value.copy(screen = AccountScreen.CATALOG,catalogPosition = id,error = null,notice = null) } }
     fun consumeCatalogPosition() { mutable.value = mutable.value.copy(catalogPosition = null) }
-    private suspend fun clearSession(preserveDrafts: Boolean = true) { catalogOwner.viewModelStore.clear(); discoveryCity = null; menuPositionVenue = null; placesRequest++; diaryPosition = null; diaryVenue=null;venueId=null;socialCheckinId = null; consumeCatalogPosition(); api.clear(preserveDrafts) }
+    private suspend fun clearSession(preserveDrafts: Boolean = true) { catalogOwner.viewModelStore.clear(); discoveryCity = null; menuPositionVenue = null; placesRequest++; diaryReturnsToMenu = false; diaryPosition = null; diaryVenue=null;venueId=null;socialCheckinId = null; consumeCatalogPosition(); api.clear(preserveDrafts) }
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
     init { restore() }
-    fun navigate(screen: AccountScreen, authEmail: String = mutable.value.authEmail) { if (!mutable.value.busy) { menuPositionVenue = null; mutable.value = mutable.value.copy(screen = screen, authEmail = authEmail, error = null, notice = null) } }
+    fun navigate(screen: AccountScreen, authEmail: String = mutable.value.authEmail) { if (!mutable.value.busy) { menuPositionVenue = null; diaryReturnsToMenu = false; mutable.value = mutable.value.copy(screen = screen, authEmail = authEmail, error = null, notice = null) } }
     private fun task(action: suspend () -> Unit) {
         if (mutable.value.busy) return
         mutable.value = mutable.value.copy(busy = true, error = null, notice = null)

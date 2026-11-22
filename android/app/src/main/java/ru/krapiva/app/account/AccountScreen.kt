@@ -105,7 +105,7 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
                 savedScreens.SaveableStateProvider("places-$userId") {
                     ru.krapiva.app.places.PlacesApp(model.api,userId,model.placesRequest,model.venueId,{model.navigate(model.placesReturn)},model::checkinAt,model::sessionExpired,
                         chooseCityOnEntry = model.chooseCityOnPlacesEntry, onDiscoveryCity = model::selectDiscoveryCity,
-                        openMenuPosition = model::openMenuPosition) { navigation { it() } }
+                        openMenuPosition = model::openMenuPosition, onMenuCheckin = model::checkinFromMenu) { navigation { it() } }
                 }
             }
             else ru.krapiva.app.badges.BadgesApp(model.api,{model.navigate(AccountScreen.PROFILE)},model::sessionExpired) {navigation {it()}}
@@ -134,7 +134,7 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
             val menuVenue = model.menuPositionVenue
             ru.krapiva.app.catalog.CatalogApp(model.api, state.profile!!.getString("userId"), model::upload,
                 { if (menuVenue != null) model.returnToMenu() else model.navigate(AccountScreen.PROFILE) }, model::sessionExpired,
-                onHome = model::openHome, onCheckin = { model.openDiary("new",it,menuVenue) }, requestedPosition = model.catalogPosition,
+                onHome = model::openHome, onCheckin = { if (menuVenue != null) model.checkinFromMenu(it, menuVenue) else model.openDiary("new", it) }, requestedPosition = model.catalogPosition,
                 consumePosition = model::consumeCatalogPosition,onOwnCheckin = model::openOwnCheckin, bottomBar = { navigation { it() } },
                 onSettings = {model.navigate(AccountScreen.SETTINGS)}, standalonePosition = menuVenue != null)
         }
@@ -149,7 +149,7 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
     if (state.screen == AccountScreen.DIARY && authenticated) {
         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides model.catalogOwner) {
             ru.krapiva.app.diary.DiaryApp(model.api,state.profile!!.getString("userId"),model.diaryRequest,model.diaryEntry,model.diaryPosition,model::upload,
-                { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.CATALOG) },model::openPosition,model::sessionExpired,onSocial = model::openSocial,onHome = model::openHome,bottomBar = navigation,venue=model.diaryVenue,onVenue={model.openVenues(it)},onBadges={model.navigate(AccountScreen.BADGES)},onPlaces={model.openVenues()})
+                { model.navigate(AccountScreen.PROFILE) },{ model.navigate(AccountScreen.CATALOG) },model::openPosition,model::sessionExpired,onSocial = model::openSocial,onHome = model::openHome,bottomBar = navigation,venue=model.diaryVenue,onVenue={model.openVenues(it)},onBadges={model.navigate(AccountScreen.BADGES)},onPlaces={model.openVenues()}, returnFromMenu = (model::returnToMenu).takeIf { model.diaryReturnsToMenu })
         }
         return
     }

@@ -25140,6 +25140,18 @@ paths:
                               nullable: true
                             tried:
                               type: boolean
+                            ratedCheckins:
+                              type: integer
+                              minimum: 0
+                            personalCheckins:
+                              type: integer
+                              minimum: 0
+                            personalAverageRating:
+                              type: number
+                              nullable: true
+                            description:
+                              type: string
+                              nullable: true
                           required:
                             - positionId
                             - sectionId
@@ -25162,6 +25174,10 @@ paths:
                             - catalogVolumeMl
                             - averageRating
                             - tried
+                            - ratedCheckins
+                            - personalCheckins
+                            - personalAverageRating
+                            - description
                     required:
                       - state
                       - revision
@@ -25539,6 +25555,18 @@ paths:
                               nullable: true
                             tried:
                               type: boolean
+                            ratedCheckins:
+                              type: integer
+                              minimum: 0
+                            personalCheckins:
+                              type: integer
+                              minimum: 0
+                            personalAverageRating:
+                              type: number
+                              nullable: true
+                            description:
+                              type: string
+                              nullable: true
                           required:
                             - positionId
                             - sectionId
@@ -25561,6 +25589,10 @@ paths:
                             - catalogVolumeMl
                             - averageRating
                             - tried
+                            - ratedCheckins
+                            - personalCheckins
+                            - personalAverageRating
+                            - description
                     required:
                       - state
                       - revision

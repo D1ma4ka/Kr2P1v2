@@ -5,6 +5,7 @@ import * as menus from './repository.js';
 
 const text = (maxLength: number) => ({type:'string',minLength:1,maxLength,pattern:'\\S'});
 const nullable = (value: object) => ({anyOf:[value,{type:'null'}]});
+const count = {type:'integer',minimum:0};
 const number = {type:['number','null']};
 const section = s.object({id:s.uuid,name:text(120)});
 const offer = {
@@ -21,6 +22,7 @@ const menu = s.object({
   name:{type:'string'},breweryId:s.uuid,breweryName:{type:'string'},country:{type:['string','null']},
   styleId:nullable(s.uuid),styleName:{type:['string','null']},releaseId:s.uuid,packaging:{type:['string','null']},
   abv:number,ibu:number,catalogVolumeMl:{type:['integer','null']},averageRating:number,tried:{type:'boolean'},
+  ratedCheckins:count,personalCheckins:count,personalAverageRating:number,description:{type:['string','null']},
  })},
 });
 const expected = {expectedRevision:s.version};

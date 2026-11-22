@@ -32,14 +32,14 @@ import ru.krapiva.app.catalog.text
 import ru.krapiva.app.designsystem.*
 
 @Composable
-fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position: JSONObject?,upload: suspend (Uri) -> String,onProfile: () -> Unit,onCatalog: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,providedModel: DiaryViewModel? = null,onSocial: (String?) -> Unit = {}, onHome: () -> Unit = onProfile, bottomBar: @Composable ((() -> Unit) -> Unit) -> Unit = {},venue: JSONObject?=null,onVenue: (String)->Unit={},onBadges: ()->Unit={},onPlaces: ()->Unit={}) {
+fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position: JSONObject?,upload: suspend (Uri) -> String,onProfile: () -> Unit,onCatalog: () -> Unit,onPosition: (String) -> Unit,expired: () -> Unit,providedModel: DiaryViewModel? = null,onSocial: (String?) -> Unit = {}, onHome: () -> Unit = onProfile, bottomBar: @Composable ((() -> Unit) -> Unit) -> Unit = {},venue: JSONObject?=null,onVenue: (String)->Unit={},onBadges: ()->Unit={},onPlaces: ()->Unit={}, returnFromMenu: (() -> Unit)? = null) {
     val model = providedModel ?: viewModel<DiaryViewModel>(key = "diary-$userId",factory = object: ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T = DiaryViewModel(api,upload,expired) as T
     })
     val state by model.state.collectAsStateWithLifecycle()
     LaunchedEffect(request) { model.entry(request,entry,position,venue) }
     if(state.success && state.data != null) {
-        BackHandler { model.dismissSuccess() }
+        BackHandler { model.dismissSuccess(); returnFromMenu?.invoke() }
         CheckinSuccess(state.data!!,api,model::dismissSuccess,{ model.new() },{ model.dismissSuccess();onSocial(null) })
         return
     }
@@ -69,7 +69,14 @@ fun DiaryApp(api: AccountApi,userId: String,request: Int,entry: String,position:
     }
     var leave by remember { mutableStateOf(false) }
     var pendingNavigation by remember { mutableStateOf<(() -> Unit)?>(null) }
-    val back = { if(state.page == DiaryPage.EDITOR) leave = true else if(state.page == DiaryPage.HOME) onHome() else model.open(DiaryPage.HOME) }
+    val back = {
+        if (state.page == DiaryPage.EDITOR) {
+            pendingNavigation = returnFromMenu
+            leave = true
+        } else if (returnFromMenu != null) returnFromMenu()
+        else if (state.page == DiaryPage.HOME) onHome()
+        else model.open(DiaryPage.HOME)
+    }
     BackHandler { back() }
     KraPivaBackdrop {
         Column(Modifier.safeDrawingPadding().imePadding()) {
