@@ -49,6 +49,12 @@ import kotlin.coroutines.resume
         @Suppress("UNCHECKED_CAST") override fun <T: ViewModel> create(modelClass: Class<T>): T=PlacesViewModel(api,expired) as T
     })
     val state by model.state.collectAsStateWithLifecycle()
+    var findsRequest by rememberSaveable { mutableIntStateOf(-1) }
+    if (findsRequest == request && openMenuPosition != null) {
+        NearbyFindsScreen(api, userId, state, { findsRequest = -1 }, expired,
+            openMenuPosition, onMenuCheckin, bottomBar)
+        return
+    }
     val owner=LocalLifecycleOwner.current
     var menuVenue by rememberSaveable { mutableStateOf<String?>(null) }
     var menuName by rememberSaveable { mutableStateOf("") }
@@ -138,6 +144,11 @@ import kotlin.coroutines.resume
     KraPivaBackdrop {Column(Modifier.safeDrawingPadding()) {
         if (!showingMenu) {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {TextButton(back) {Text("Назад")};Text("Места и карта",style=MaterialTheme.typography.titleLarge,modifier=Modifier.padding(top=12.dp))}
+            if (openMenuPosition != null && selected == null) {
+                TextButton({ findsRequest = request }, Modifier.padding(horizontal = 8.dp).testTag("nearby-finds")) {
+                    Text("Находки рядом")
+                }
+            }
             Box(Modifier.fillMaxWidth().height(4.dp)) {if(state.busy||state.selectionBusy)LinearProgressIndicator(Modifier.fillMaxWidth())}
             Row(Modifier.fillMaxWidth().padding(horizontal=12.dp)) {
                 state.error?.let { Text(it,color=KraPivaColors.Error,modifier=Modifier.weight(1f)) }

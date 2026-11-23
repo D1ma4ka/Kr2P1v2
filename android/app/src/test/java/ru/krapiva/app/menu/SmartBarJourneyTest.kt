@@ -12,6 +12,12 @@ import java.net.HttpURLConnection
 import java.net.Proxy
 import java.net.URI
 import java.time.Instant
+import ru.krapiva.app.places.Coordinates
+import ru.krapiva.app.places.FindConditions
+import ru.krapiva.app.places.FindMenu
+import ru.krapiva.app.places.FindMode
+import ru.krapiva.app.places.FindPage
+import ru.krapiva.app.places.FindSort
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.system.measureNanoTime
@@ -109,6 +115,18 @@ class SmartBarJourneyTest {
         val other = client.menu(second)
         assertEquals(5, filterMenu(other.items, restored).size)
         assertTrue(comparisonPositions(selected, other.items).isEmpty())
+        val center = Coordinates(55.7, 37.6)
+        val savedFilter = FindConditions(center, 5, FindMode.FILTER, restored)
+        val page = FindPage.read(client.call("/v1/venues/nearby-finds", savedFilter.search(FindSort.DISTANCE, null)))
+        assertEquals(listOf(first to 48, second to 5), page.items.map { it.id to it.matches })
+        val filtered = FindMenu.read(client.call("/v1/venues/$first/nearby-finds", savedFilter.request()))
+        assertEquals(matching.map(MenuPosition::positionId).toSet(), filtered.matches.map { it.positionId }.toSet())
+        assertTrue(filtered.matches.all { "filter" in it.reasons && "untried" in it.reasons })
+        val advisorConditions = FindConditions(center, 5, FindMode.RECOMMENDED)
+        val advisor = FindMenu.read(client.call("/v1/venues/$first/nearby-finds", advisorConditions.request()))
+        assertEquals(LocalDiscovery.advise(candidates, taste, AdvisorMode.MY_CHOICE).take(3).map { it.candidate.card.id },
+            advisor.matches.map { it.positionId })
+        assertTrue(advisor.matches.all { "advisor" in it.reasons })
         val id = picked.candidate.card.id
         assertEquals(id, client.call("/v1/positions/$id").getString("canonicalId"))
         val written = client.call("/v1/checkins", JSONObject().put("positionId", id).put("venueId", first)
@@ -123,6 +141,10 @@ class SmartBarJourneyTest {
         val newChoices = LocalDiscovery.advise(updated.items.map(MenuPosition::advisorCandidate), fresh, AdvisorMode.NEW)
         assertEquals(149, newChoices.size)
         assertFalse(newChoices.any { it.candidate.card.id == id })
+        val untried = FindConditions(center, 5, FindMode.UNTRIED)
+        val findsAfter = FindMenu.read(client.call("/v1/venues/$first/nearby-finds", untried.request()))
+        assertEquals(149, findsAfter.venue.matches)
+        assertFalse(findsAfter.matches.any { it.positionId == id })
 
         fun timings(action: () -> Unit): String {
             repeat(5) { action() }
