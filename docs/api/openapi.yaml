@@ -27600,9 +27600,1246 @@ paths:
                       - message
                 required:
                   - error
+  /v1/venues/nearby-finds:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                latitude:
+                  type: number
+                  minimum: -90
+                  maximum: 90
+                longitude:
+                  type: number
+                  minimum: -180
+                  maximum: 180
+                radiusKm:
+                  type: integer
+                  enum:
+                    - 1
+                    - 3
+                    - 5
+                    - 10
+                    - 25
+                    - 50
+                mode:
+                  type: string
+                  enum:
+                    - wishlist
+                    - untried
+                    - favorite
+                    - recommended
+                    - filter
+                filter:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    version:
+                      type: integer
+                      enum:
+                        - 1
+                    query:
+                      type: string
+                      maxLength: 250
+                    families:
+                      type: array
+                      maxItems: 250
+                      items:
+                        type: string
+                        maxLength: 80
+                    styles:
+                      type: array
+                      maxItems: 250
+                      items:
+                        type: string
+                        maxLength: 80
+                    breweries:
+                      type: array
+                      maxItems: 250
+                      items:
+                        type: string
+                        maxLength: 40
+                    countries:
+                      type: array
+                      maxItems: 250
+                      items:
+                        type: string
+                        maxLength: 120
+                    formats:
+                      type: array
+                      maxItems: 250
+                      items:
+                        type: string
+                        maxLength: 120
+                    tried:
+                      type: string
+                      enum:
+                        - ALL
+                        - YES
+                        - NO
+                    abvMin:
+                      type: string
+                      maxLength: 40
+                    abvMax:
+                      type: string
+                      maxLength: 40
+                    ibuMin:
+                      type: string
+                      maxLength: 40
+                    ibuMax:
+                      type: string
+                      maxLength: 40
+                    volumeMin:
+                      type: string
+                      maxLength: 40
+                    volumeMax:
+                      type: string
+                      maxLength: 40
+                    ratingMin:
+                      type: string
+                      maxLength: 40
+                    priceMin:
+                      type: string
+                      maxLength: 40
+                    priceMax:
+                      type: string
+                      maxLength: 40
+                    currency:
+                      type: string
+                      maxLength: 3
+                      nullable: true
+                    available:
+                      type: boolean
+                    sort:
+                      type: string
+                      enum:
+                        - MENU
+                        - NAME
+                        - STYLE
+                        - BREWERY
+                        - ABV_ASC
+                        - ABV_DESC
+                        - IBU_ASC
+                        - IBU_DESC
+                        - RATING
+                        - PRICE
+                        - NEW_FIRST
+                        - RELEVANCE
+                  required:
+                    - version
+                    - query
+                    - families
+                    - styles
+                    - breweries
+                    - countries
+                    - formats
+                    - tried
+                    - abvMin
+                    - abvMax
+                    - ibuMin
+                    - ibuMax
+                    - ratingMin
+                    - priceMin
+                    - priceMax
+                    - available
+                    - sort
+                sort:
+                  type: string
+                  enum:
+                    - distance
+                    - matches
+                    - untried
+                    - wishlist
+                    - relevance
+                    - freshness
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                cursor:
+                  type: string
+                  maxLength: 256
+                  pattern: ^[A-Za-z0-9_-]+$
+              required:
+                - latitude
+                - longitude
+                - radiusKm
+                - mode
+                - sort
+      security: &a7
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        venue:
+                          type: object
+                          additionalProperties: false
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            name:
+                              type: string
+                            type:
+                              type: string
+                              enum:
+                                - bar
+                                - beer_shop
+                            city:
+                              type: string
+                            latitude:
+                              type: number
+                              minimum: -90
+                              maximum: 90
+                            longitude:
+                              type: number
+                              minimum: -180
+                              maximum: 180
+                            distanceKm:
+                              type: number
+                              minimum: 0
+                            status:
+                              type: string
+                              enum:
+                                - current
+                                - stale
+                                - unpublished
+                                - empty
+                            updatedAt:
+                              type: string
+                              format: date-time
+                              nullable: true
+                          required:
+                            - id
+                            - name
+                            - type
+                            - city
+                            - latitude
+                            - longitude
+                            - distanceKm
+                            - status
+                            - updatedAt
+                        matches:
+                          type: integer
+                          minimum: 0
+                        untried:
+                          type: integer
+                          minimum: 0
+                        wishlist:
+                          type: integer
+                          minimum: 0
+                        favorite:
+                          type: integer
+                          minimum: 0
+                        styles:
+                          type: array
+                          items:
+                            type: string
+                        untriedStyle:
+                          type: object
+                          additionalProperties: false
+                          properties:
+                            name:
+                              type: string
+                            count:
+                              type: integer
+                              minimum: 0
+                          required:
+                            - name
+                            - count
+                          nullable: true
+                        relevance:
+                          type: integer
+                          minimum: 0
+                      required:
+                        - venue
+                        - matches
+                        - untried
+                        - wishlist
+                        - favorite
+                        - styles
+                        - untriedStyle
+                        - relevance
+                  nextCursor:
+                    type: string
+                    nullable: true
+                  totals:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      current:
+                        type: integer
+                        minimum: 0
+                      stale:
+                        type: integer
+                        minimum: 0
+                      unpublished:
+                        type: integer
+                        minimum: 0
+                      empty:
+                        type: integer
+                        minimum: 0
+                      withMatches:
+                        type: integer
+                        minimum: 0
+                    required:
+                      - current
+                      - stale
+                      - unpublished
+                      - empty
+                      - withMatches
+                  historySize:
+                    type: integer
+                    minimum: 0
+                  personalized:
+                    type: boolean
+                required:
+                  - items
+                  - nextCursor
+                  - totals
+                  - historySize
+                  - personalized
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/venues/{id}/nearby-finds:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                latitude:
+                  type: number
+                  minimum: -90
+                  maximum: 90
+                longitude:
+                  type: number
+                  minimum: -180
+                  maximum: 180
+                radiusKm:
+                  type: integer
+                  enum:
+                    - 1
+                    - 3
+                    - 5
+                    - 10
+                    - 25
+                    - 50
+                mode:
+                  type: string
+                  enum:
+                    - wishlist
+                    - untried
+                    - favorite
+                    - recommended
+                    - filter
+                filter:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    version:
+                      type: integer
+                      enum:
+                        - 1
+                    query:
+                      type: string
+                      maxLength: 250
+                    families:
+                      type: array
+                      maxItems: 250
+                      items:
+                        type: string
+                        maxLength: 80
+                    styles:
+                      type: array
+                      maxItems: 250
+                      items:
+                        type: string
+                        maxLength: 80
+                    breweries:
+                      type: array
+                      maxItems: 250
+                      items:
+                        type: string
+                        maxLength: 40
+                    countries:
+                      type: array
+                      maxItems: 250
+                      items:
+                        type: string
+                        maxLength: 120
+                    formats:
+                      type: array
+                      maxItems: 250
+                      items:
+                        type: string
+                        maxLength: 120
+                    tried:
+                      type: string
+                      enum:
+                        - ALL
+                        - YES
+                        - NO
+                    abvMin:
+                      type: string
+                      maxLength: 40
+                    abvMax:
+                      type: string
+                      maxLength: 40
+                    ibuMin:
+                      type: string
+                      maxLength: 40
+                    ibuMax:
+                      type: string
+                      maxLength: 40
+                    volumeMin:
+                      type: string
+                      maxLength: 40
+                    volumeMax:
+                      type: string
+                      maxLength: 40
+                    ratingMin:
+                      type: string
+                      maxLength: 40
+                    priceMin:
+                      type: string
+                      maxLength: 40
+                    priceMax:
+                      type: string
+                      maxLength: 40
+                    currency:
+                      type: string
+                      maxLength: 3
+                      nullable: true
+                    available:
+                      type: boolean
+                    sort:
+                      type: string
+                      enum:
+                        - MENU
+                        - NAME
+                        - STYLE
+                        - BREWERY
+                        - ABV_ASC
+                        - ABV_DESC
+                        - IBU_ASC
+                        - IBU_DESC
+                        - RATING
+                        - PRICE
+                        - NEW_FIRST
+                        - RELEVANCE
+                  required:
+                    - version
+                    - query
+                    - families
+                    - styles
+                    - breweries
+                    - countries
+                    - formats
+                    - tried
+                    - abvMin
+                    - abvMax
+                    - ibuMin
+                    - ibuMax
+                    - ratingMin
+                    - priceMin
+                    - priceMax
+                    - available
+                    - sort
+              required:
+                - latitude
+                - longitude
+                - radiusKm
+                - mode
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          in: path
+          name: id
+          required: true
+      security: *a7
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  summary:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      venue:
+                        type: object
+                        additionalProperties: false
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          name:
+                            type: string
+                          type:
+                            type: string
+                            enum:
+                              - bar
+                              - beer_shop
+                          city:
+                            type: string
+                          latitude:
+                            type: number
+                            minimum: -90
+                            maximum: 90
+                          longitude:
+                            type: number
+                            minimum: -180
+                            maximum: 180
+                          distanceKm:
+                            type: number
+                            minimum: 0
+                          status:
+                            type: string
+                            enum:
+                              - current
+                              - stale
+                              - unpublished
+                              - empty
+                          updatedAt:
+                            type: string
+                            format: date-time
+                            nullable: true
+                        required:
+                          - id
+                          - name
+                          - type
+                          - city
+                          - latitude
+                          - longitude
+                          - distanceKm
+                          - status
+                          - updatedAt
+                      matches:
+                        type: integer
+                        minimum: 0
+                      untried:
+                        type: integer
+                        minimum: 0
+                      wishlist:
+                        type: integer
+                        minimum: 0
+                      favorite:
+                        type: integer
+                        minimum: 0
+                      styles:
+                        type: array
+                        items:
+                          type: string
+                      untriedStyle:
+                        type: object
+                        additionalProperties: false
+                        properties:
+                          name:
+                            type: string
+                          count:
+                            type: integer
+                            minimum: 0
+                        required:
+                          - name
+                          - count
+                        nullable: true
+                      relevance:
+                        type: integer
+                        minimum: 0
+                    required:
+                      - venue
+                      - matches
+                      - untried
+                      - wishlist
+                      - favorite
+                      - styles
+                      - untriedStyle
+                      - relevance
+                  menu:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      state:
+                        type: string
+                        enum:
+                          - draft
+                          - published
+                      revision:
+                        type: integer
+                        minimum: 1
+                        maximum: 2147483646
+                      source:
+                        type: string
+                        minLength: 1
+                        maxLength: 500
+                        pattern: \S
+                      updatedAt:
+                        type: string
+                        format: date-time
+                      sections:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties: false
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                            name:
+                              type: string
+                              minLength: 1
+                              maxLength: 120
+                              pattern: \S
+                          required:
+                            - id
+                            - name
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          additionalProperties: false
+                          properties:
+                            positionId:
+                              type: string
+                              format: uuid
+                            sectionId:
+                              type: string
+                              format: uuid
+                            ordinal:
+                              type: integer
+                              minimum: 0
+                              maximum: 249
+                            price:
+                              type: number
+                              minimum: 0
+                              maximum: 9999999999.99
+                              nullable: true
+                            currency:
+                              type: string
+                              pattern: ^[A-Z]{3}$
+                              nullable: true
+                            volumeMl:
+                              type: integer
+                              minimum: 1
+                              maximum: 100000
+                              nullable: true
+                            servingFormat:
+                              type: string
+                              minLength: 1
+                              maxLength: 80
+                              pattern: \S
+                              nullable: true
+                            available:
+                              type: boolean
+                            name:
+                              type: string
+                            breweryId:
+                              type: string
+                              format: uuid
+                            breweryName:
+                              type: string
+                            country:
+                              type: string
+                              nullable: true
+                            styleId:
+                              type: string
+                              format: uuid
+                              nullable: true
+                            styleName:
+                              type: string
+                              nullable: true
+                            releaseId:
+                              type: string
+                              format: uuid
+                            packaging:
+                              type: string
+                              nullable: true
+                            abv:
+                              type: number
+                              nullable: true
+                            ibu:
+                              type: number
+                              nullable: true
+                            catalogVolumeMl:
+                              type: integer
+                              nullable: true
+                            averageRating:
+                              type: number
+                              nullable: true
+                            tried:
+                              type: boolean
+                            publicAverageRating:
+                              type: number
+                              nullable: true
+                            ratedCheckins:
+                              type: integer
+                              minimum: 0
+                            personalCheckins:
+                              type: integer
+                              minimum: 0
+                            personalAverageRating:
+                              type: number
+                              nullable: true
+                            description:
+                              type: string
+                              nullable: true
+                          required:
+                            - positionId
+                            - sectionId
+                            - ordinal
+                            - price
+                            - currency
+                            - volumeMl
+                            - servingFormat
+                            - available
+                            - name
+                            - breweryId
+                            - breweryName
+                            - country
+                            - styleId
+                            - styleName
+                            - releaseId
+                            - packaging
+                            - abv
+                            - ibu
+                            - catalogVolumeMl
+                            - averageRating
+                            - tried
+                            - publicAverageRating
+                            - ratedCheckins
+                            - personalCheckins
+                            - personalAverageRating
+                            - description
+                    required:
+                      - state
+                      - revision
+                      - source
+                      - updatedAt
+                      - sections
+                      - items
+                    nullable: true
+                  matches:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        positionId:
+                          type: string
+                          format: uuid
+                        wished:
+                          type: boolean
+                        reasons:
+                          type: array
+                          items:
+                            type: string
+                            enum:
+                              - wishlist
+                              - untried
+                              - favorite
+                              - advisor
+                              - neutral_advisor
+                              - advisor_brewery
+                              - advisor_style
+                              - advisor_public_rating
+                              - filter
+                      required:
+                        - positionId
+                        - wished
+                        - reasons
+                required:
+                  - summary
+                  - menu
+                  - matches
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
   /v1/me/badges:
     get:
-      security: &a7
+      security: &a8
         - bearerAuth: []
       responses:
         "200":
@@ -27910,7 +29147,7 @@ paths:
                     format: uuid
               required:
                 - ids
-      security: *a7
+      security: *a8
       responses:
         "200":
           description: Default Response
@@ -28207,7 +29444,7 @@ paths:
           in: path
           name: id
           required: true
-      security: *a7
+      security: *a8
       responses:
         "200":
           description: Default Response
@@ -28526,7 +29763,7 @@ paths:
                 - latitude
                 - longitude
                 - radiusKm
-      security: &a8
+      security: &a9
         - bearerAuth: []
       responses:
         "200":
@@ -29000,7 +30237,7 @@ paths:
           in: path
           name: id
           required: true
-      security: *a8
+      security: *a9
       responses:
         "200":
           description: Default Response
@@ -29304,7 +30541,7 @@ paths:
           in: path
           name: id
           required: true
-      security: *a8
+      security: *a9
       responses:
         "200":
           description: Default Response
@@ -29582,7 +30819,7 @@ paths:
           in: path
           name: id
           required: true
-      security: *a8
+      security: *a9
       responses:
         "200":
           description: Default Response
@@ -29864,7 +31101,7 @@ paths:
           in: path
           name: id
           required: true
-      security: &a9
+      security: &a10
         - bearerAuth: []
       responses:
         "200":
@@ -30164,7 +31401,7 @@ paths:
           in: query
           name: status
           required: false
-      security: *a9
+      security: *a10
       responses:
         "200":
           description: Default Response
@@ -30490,7 +31727,7 @@ paths:
           in: path
           name: id
           required: true
-      security: *a9
+      security: *a10
       responses:
         "200":
           description: Default Response
@@ -30790,7 +32027,7 @@ paths:
           in: query
           name: entityId
           required: false
-      security: *a9
+      security: *a10
       responses:
         "200":
           description: Default Response
@@ -31111,7 +32348,7 @@ paths:
           in: path
           name: id
           required: true
-      security: *a9
+      security: *a10
       responses:
         "200":
           description: Default Response
@@ -31369,13 +32606,13 @@ paths:
       requestBody:
         required: true
         content:
-          image/jpeg: &a10
+          image/jpeg: &a11
             schema:
               type: string
               format: binary
-          image/png: *a10
-          image/webp: *a10
-      security: &a11
+          image/png: *a11
+          image/webp: *a11
+      security: &a12
         - bearerAuth: []
       responses:
         "201":
@@ -31653,7 +32890,7 @@ paths:
           in: path
           name: id
           required: true
-      security: *a11
+      security: *a12
       responses:
         "200":
           description: Default Response
@@ -31901,7 +33138,7 @@ paths:
           in: path
           name: id
           required: true
-      security: *a11
+      security: *a12
       responses:
         "204":
           description: Default Response
@@ -32167,7 +33404,7 @@ paths:
           in: path
           name: id
           required: true
-      security: *a11
+      security: *a12
       responses:
         "200":
           description: Default Response
@@ -32430,7 +33667,7 @@ paths:
           in: path
           name: id
           required: true
-      security: *a11
+      security: *a12
       responses:
         "200":
           description: Default Response

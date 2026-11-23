@@ -18,8 +18,18 @@ export async function listCheckins(pool:pg.Pool,user:string,limit:number,oldCurs
  const items=rows.slice(0,limit),last=items.at(-1);
  return{items,nextCursor:rows.length>limit?d.encode(hash,rating?(last!.ratingQuarters??-1):last!.occurredAt,last!.id):null};
 }
-export async function advisorHistory(pool: pg.Pool, user: string) {
- const {rows} = await pool.query(`
+export interface AdvisorHistoryRow {
+ id: string;
+ positionId: string;
+ breweryId: string;
+ styleId: string | null;
+ occurredAt: string;
+ ratingQuarters: number | null;
+ firstForPosition: boolean;
+}
+
+export async function advisorHistory(pool: pg.Pool | pg.PoolClient, user: string) {
+ const {rows} = await pool.query<AdvisorHistoryRow>(`
   WITH recent AS MATERIALIZED (
    SELECT c.id,c.position_id,c.occurred_at,c.rating_quarters
    FROM checkins c WHERE c.user_id=$1 AND ${d.active}

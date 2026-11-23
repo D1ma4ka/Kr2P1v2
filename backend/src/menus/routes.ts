@@ -16,7 +16,7 @@ const offer = {
  servingFormat:nullable(text(80)),available:{type:'boolean'},
 };
 const item = s.object({positionId:s.uuid,...offer});
-const menu = s.object({
+export const menu = s.object({
  state:{type:'string',enum:['draft','published']},revision:s.version,source:text(500),updatedAt:s.timestamp,
  sections:{type:'array',items:section},items:{type:'array',items:s.object({...item.properties,
   name:{type:'string'},breweryId:s.uuid,breweryName:{type:'string'},country:{type:['string','null']},

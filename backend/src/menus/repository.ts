@@ -25,12 +25,14 @@ export interface Draft {
 const currencies = new Set(Intl.supportedValuesOf('currency'));
 const conflict = () => new ApiError(409, 'MENU_REVISION', 'Меню изменилось. Загрузите текущую версию.');
 const invalid = (message: string) => new ApiError(422, 'INVALID_MENU', message);
-const verifiedPosition = "bp.status='verified' AND b.verification_status='verified'";
+export const verifiedPosition = "bp.status='verified' AND b.verification_status='verified'";
 const catalogJoin = `JOIN beer_positions bp ON bp.id=i.position_id
  JOIN beer_releases r ON r.id=bp.release_id JOIN breweries b ON b.id=r.brewery_id`;
 
 // The snapshot and its enrichment come from one statement. No per-position HTTP calls.
-export async function readMenu(pool: pg.Pool, user: string, venue: string, allowTest: boolean, state: State) {
+export async function readMenu(
+ pool: pg.Pool | pg.PoolClient,user: string,venue: string,allowTest: boolean,state: State,positionIds: string[] | null = null,
+) {
  const result = await pool.query(`
   WITH menu AS (
    SELECT m.* FROM venue_menus m WHERE m.venue_id=$2 AND m.state=$4
@@ -39,7 +41,7 @@ export async function readMenu(pool: pg.Pool, user: string, venue: string, allow
     b.name AS brewery_name, b.country, bp.packaging, bp.volume_ml AS catalog_volume_ml, st.name AS style_name
    FROM menu m JOIN venue_menu_items i USING (venue_id,state)
    ${catalogJoin} LEFT JOIN styles st ON st.id=r.style_id
-   WHERE $4='draft' OR (${verifiedPosition})
+   WHERE ($4='draft' OR (${verifiedPosition})) AND ($5::uuid[] IS NULL OR i.position_id=ANY($5))
   ), ratings AS (
    SELECT c.position_id,(avg(c.rating_quarters)/4)::float8 AS rating,
     (avg(c.rating_quarters) FILTER (WHERE c.visibility='public' AND p.profile_visibility='public')/4)::float8 AS public_rating,
@@ -54,7 +56,8 @@ export async function readMenu(pool: pg.Pool, user: string, venue: string, allow
   SELECT v.id AS "venueId", (
    SELECT jsonb_build_object('state',m.state,'revision',m.revision,'source',m.source,'updatedAt',m.updated_at,
     'sections',COALESCE((SELECT jsonb_agg(jsonb_build_object('id',s.id,'name',s.name) ORDER BY s.ordinal)
-     FROM venue_menu_sections s WHERE (s.venue_id,s.state)=(m.venue_id,m.state)),'[]'::jsonb),
+     FROM venue_menu_sections s WHERE (s.venue_id,s.state)=(m.venue_id,m.state)
+      AND ($5::uuid[] IS NULL OR EXISTS(SELECT 1 FROM items i WHERE i.section_id=s.id))),'[]'::jsonb),
     'items',COALESCE((SELECT jsonb_agg(jsonb_build_object(
      'positionId',i.position_id,'sectionId',i.section_id,'ordinal',i.ordinal,
      'name',i.name,'breweryId',i.brewery_id,'breweryName',i.brewery_name,'country',i.country,
@@ -72,12 +75,12 @@ export async function readMenu(pool: pg.Pool, user: string, venue: string, allow
   WHERE v.id=$2 AND v.status='verified' AND ($3 OR NOT v.is_test)
   AND ($4='published' OR EXISTS (SELECT 1 FROM venue_menu_operators o WHERE o.venue_id=v.id AND o.user_id=$1)
    OR EXISTS (SELECT 1 FROM users WHERE id=$1 AND status='active' AND role IN ('moderator','admin')))
- `, [user, venue, allowTest, state]);
+ `, [user, venue, allowTest, state, positionIds]);
  if (!result.rowCount) {
   if (state === 'draft') throw new ApiError(403, 'FORBIDDEN', 'Нет доступа к черновику меню');
   throw notFound();
  }
- return result.rows[0];
+ return result.rows[0]!;
 }
 
 async function lockVenue(db: pg.PoolClient, venue: string, allowTest: boolean) {

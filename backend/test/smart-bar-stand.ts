@@ -30,7 +30,9 @@ try {
     offers.push(...positions.rows.map(row => row.id as string));
   }
 
-  const address = await app.listen({host: '127.0.0.1', port: 0});
+  const port = Number(process.env.KRAPIVA_SMART_BAR_STAND_PORT ?? 0);
+  assert.ok(Number.isInteger(port) && port >= 0 && port <= 65535, 'invalid stand port');
+  const address = await app.listen({host:'127.0.0.1',port});
   const write = async (path: string, method: string, body: object) => {
     const res = await fetch(address + path, {method, headers: {
       authorization: 'Bearer ' + a.token, 'content-type': 'application/json',
@@ -41,7 +43,7 @@ try {
     const venue = randomUUID(), section = randomUUID();
     await write('/v1/moderation/venues/' + venue, 'PUT', {
       version: 0, name, type: 'bar', city: 'QA', source: 'Isolated QA',
-      country: null, address: null, latitude: 55.7, longitude: 37.6, coordinatesSource: 'Isolated QA',
+      country: null, address: null, latitude: 55.7, longitude: name === 'A' ? 37.6 : 37.601, coordinatesSource: 'Isolated QA',
       imageAssetId: null, imageSource: null, rightsConfirmed: false, verified: true, testOnly: true,
     });
     const path = '/v1/venues/' + venue + '/menu';
