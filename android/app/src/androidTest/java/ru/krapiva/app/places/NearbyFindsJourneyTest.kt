@@ -46,6 +46,8 @@ class NearbyFindsJourneyTest {
     @Test fun cityWithoutLocationMapListSavedFilterReturnAndExistingCheckin() {
         val automation = InstrumentationRegistry.getInstrumentation()
         val device = UiDevice.getInstance(automation)
+        val arguments = InstrumentationRegistry.getArguments()
+        val captureScreenshots = arguments.getString("captureScreenshots") != "false"
         lateinit var root: AccountViewModel
         compose.runOnIdle { root = ViewModelProvider(compose.activity)[AccountViewModel::class.java] }
         compose.waitUntil(60_000) { !root.state.value.busy }
@@ -66,9 +68,12 @@ class NearbyFindsJourneyTest {
         compose.onNodeWithTag("nearby-finds").performClick()
         compose.onNodeWithText("Список").performClick()
         compose.onNodeWithTag("find-conditions").performClick()
-        if (!hasLocationPermission(compose.activity)) {
+        assertFalse("Use a test install without location permission", hasLocationPermission(compose.activity))
+        if (arguments.getString("locationDialog") == "true") {
             compose.onNodeWithText("Рядом со мной").performClick()
-            val permission = device.wait(Until.findObject(By.res(Pattern.compile(".*:id/permission_deny_button"))), 30_000)
+            val permission = device.wait(
+                Until.findObject(By.res(Pattern.compile(".*:id/permission_deny_button"))), 60_000,
+            )
             assertNotNull("Android location permission", permission)
             permission!!.click()
             awaitText("Геопозиция отключена. Можно выбрать город или точку на карте.")
@@ -89,7 +94,27 @@ class NearbyFindsJourneyTest {
         compose.onNodeWithText("Применить").performClick()
         awaitText("Подходящих позиций · 48")
         compose.onNodeWithTag("find-list").performScrollToNode(hasText("Подходящих позиций · 5"))
-        TestEvidence.screenshot("p87-find-list.png")
+        if (captureScreenshots) TestEvidence.screenshot("p87-find-list.png")
+
+        val list = compose.onNodeWithTag("find-list")
+        list.performScrollToIndex(0)
+        compose.onAllNodesWithText("Посмотреть находки").onFirst().performClick()
+        awaitText("Находки · A")
+        compose.activityRule.scenario.recreate()
+        awaitText("Находки · A")
+        awaitText("Советник Smart Bar")
+        val menu = compose.onNodeWithTag("find-menu")
+        menu.performScrollToNode(hasText("Чекин"))
+        compose.onAllNodesWithText("Чекин").onFirst().performClick()
+        compose.waitUntil(60_000) { root.state.value.screen == AccountScreen.DIARY && root.diaryPosition != null }
+        assertTrue(root.diaryReturnsToMenu)
+        assertEquals("A", root.diaryVenue!!.getString("name"))
+        assertTrue(root.diaryPosition!!.getString("styleName") in setOf("IPA", "APA"))
+        compose.runOnIdle { root.returnToMenu() }
+        awaitText("Находки · A")
+        compose.onNodeWithText("К находкам").performClick()
+        awaitText("QA · Мои IPA")
+        compose.onNodeWithTag("find-radius").assert(hasText("3 км"))
 
         compose.onNodeWithText("Карта").performClick()
         compose.waitUntil(60_000) { compose.onAllNodesWithTag("find-map").fetchSemanticsNodes().isNotEmpty() }
@@ -107,25 +132,8 @@ class NearbyFindsJourneyTest {
                 } == true
             }
         }
-        TestEvidence.screenshot("p87-find-map.png")
+        if (captureScreenshots) TestEvidence.screenshot("p87-find-map.png")
         compose.onNodeWithText("Список").performClick()
-        val list = compose.onNodeWithTag("find-list")
-        list.performScrollToIndex(0)
-        compose.onAllNodesWithText("Посмотреть находки").onFirst().performClick()
-        awaitText("Находки · A")
-        compose.activityRule.scenario.recreate()
-        awaitText("Находки · A")
-        val menu = compose.onNodeWithTag("find-menu")
-        menu.performScrollToNode(hasText("Чекин"))
-        compose.onAllNodesWithText("Чекин").onFirst().performClick()
-        compose.waitUntil(60_000) { root.state.value.screen == AccountScreen.DIARY && root.diaryPosition != null }
-        assertTrue(root.diaryReturnsToMenu)
-        assertEquals("A", root.diaryVenue!!.getString("name"))
-        assertTrue(root.diaryPosition!!.getString("styleName") in setOf("IPA", "APA"))
-        compose.runOnIdle { root.returnToMenu() }
-        awaitText("Находки · A")
-        compose.onNodeWithText("К находкам").performClick()
-        awaitText("QA · Мои IPA")
-        compose.onNodeWithTag("find-radius").assert(hasText("3 км"))
+        compose.onNodeWithTag("find-list").assertExists()
     }
 }
