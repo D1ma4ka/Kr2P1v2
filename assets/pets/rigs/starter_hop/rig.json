@@ -1,0 +1,530 @@
+{
+  "version": 1,
+  "id": "starter_hop",
+  "name": "Хмель",
+  "canvas": [
+    1254,
+    1254
+  ],
+  "neutral": {
+    "src": "neutral.webp",
+    "offset": [
+      177,
+      22
+    ],
+    "size": [
+      921,
+      1153
+    ]
+  },
+  "bones": {
+    "root": {
+      "pivot": [
+        612,
+        1166
+      ]
+    },
+    "arm_left": {
+      "parent": "root",
+      "pivot": [
+        314,
+        730
+      ]
+    },
+    "arm_right": {
+      "parent": "root",
+      "pivot": [
+        938,
+        685
+      ]
+    },
+    "leg_left": {
+      "parent": "root",
+      "pivot": [
+        494,
+        1063
+      ]
+    },
+    "leg_right": {
+      "parent": "root",
+      "pivot": [
+        700,
+        1063
+      ]
+    },
+    "eye_left": {
+      "parent": "root",
+      "pivot": [
+        505,
+        583
+      ]
+    },
+    "eye_right": {
+      "parent": "root",
+      "pivot": [
+        818,
+        558
+      ]
+    },
+    "mouth": {
+      "parent": "root",
+      "pivot": [
+        677,
+        668
+      ]
+    }
+  },
+  "layers": {
+    "body": {
+      "src": "body.webp",
+      "offset": [
+        244,
+        22
+      ],
+      "size": [
+        738,
+        1057
+      ],
+      "bone": "root",
+      "depth": 20
+    },
+    "leg_left": {
+      "src": "leg_left.webp",
+      "offset": [
+        387,
+        1037
+      ],
+      "size": [
+        161,
+        138
+      ],
+      "bone": "leg_left",
+      "depth": 24
+    },
+    "leg_right": {
+      "src": "leg_right.webp",
+      "offset": [
+        649,
+        1028
+      ],
+      "size": [
+        168,
+        144
+      ],
+      "bone": "leg_right",
+      "depth": 25
+    },
+    "arm_left": {
+      "src": "arm_left.webp",
+      "offset": [
+        177,
+        682
+      ],
+      "size": [
+        170,
+        189
+      ],
+      "bone": "arm_left",
+      "depth": 50
+    },
+    "arm_right": {
+      "src": "arm_right.webp",
+      "offset": [
+        933,
+        546
+      ],
+      "size": [
+        165,
+        199
+      ],
+      "bone": "arm_right",
+      "depth": 52
+    },
+    "eye_left": {
+      "src": "eye_left.webp",
+      "offset": [
+        414,
+        491
+      ],
+      "size": [
+        184,
+        185
+      ],
+      "bone": "eye_left",
+      "depth": 70,
+      "variants": {
+        "half": {
+          "src": "eye_left-half.webp",
+          "offset": [
+            396,
+            473
+          ],
+          "size": [
+            220,
+            221
+          ]
+        },
+        "closed": {
+          "src": "eye_left-closed.webp",
+          "offset": [
+            396,
+            473
+          ],
+          "size": [
+            220,
+            221
+          ]
+        }
+      }
+    },
+    "eye_right": {
+      "src": "eye_right.webp",
+      "offset": [
+        745,
+        469
+      ],
+      "size": [
+        147,
+        180
+      ],
+      "bone": "eye_right",
+      "depth": 71,
+      "variants": {
+        "half": {
+          "src": "eye_right-half.webp",
+          "offset": [
+            727,
+            451
+          ],
+          "size": [
+            183,
+            216
+          ]
+        },
+        "closed": {
+          "src": "eye_right-closed.webp",
+          "offset": [
+            727,
+            451
+          ],
+          "size": [
+            183,
+            216
+          ]
+        }
+      }
+    },
+    "mouth": {
+      "src": "mouth.webp",
+      "offset": [
+        615,
+        609
+      ],
+      "size": [
+        126,
+        120
+      ],
+      "bone": "mouth",
+      "depth": 72
+    }
+  },
+  "anchors": {
+    "head": {
+      "bone": "root",
+      "position": [
+        579,
+        218
+      ],
+      "rotation": -11,
+      "scale": 0.9,
+      "depth": 82
+    },
+    "face": {
+      "bone": "root",
+      "position": [
+        660,
+        572
+      ],
+      "rotation": -2,
+      "scale": 1.09,
+      "depth": 81
+    },
+    "neck": {
+      "bone": "root",
+      "position": [
+        619,
+        775
+      ],
+      "rotation": 0,
+      "scale": 0.94,
+      "depth": 38
+    },
+    "torso_base": {
+      "bone": "root",
+      "position": [
+        617,
+        888
+      ],
+      "rotation": 0,
+      "scale": 1.05,
+      "depth": 32
+    },
+    "torso_outer": {
+      "bone": "root",
+      "position": [
+        617,
+        888
+      ],
+      "rotation": 0,
+      "scale": 1.07,
+      "depth": 34
+    },
+    "wrist": {
+      "bone": "arm_right",
+      "position": [
+        1008,
+        647
+      ],
+      "rotation": -38,
+      "scale": 0.73,
+      "depth": 59
+    },
+    "accessory": {
+      "bone": "root",
+      "position": [
+        770,
+        863
+      ],
+      "rotation": 0,
+      "scale": 0.89,
+      "depth": 41
+    },
+    "effect": {
+      "bone": "root",
+      "position": [
+        630,
+        627
+      ],
+      "rotation": 0,
+      "scale": 1.1,
+      "depth": 100
+    }
+  },
+  "clips": {
+    "idle": {
+      "duration": 2600,
+      "loop": true,
+      "tracks": {
+        "root": [
+          {
+            "time": 0
+          },
+          {
+            "time": 1200,
+            "rotation": 1.45,
+            "y": -6.3,
+            "scaleY": 1.007
+          },
+          {
+            "time": 2600
+          }
+        ],
+        "arm_left": [
+          {
+            "time": 0
+          },
+          {
+            "time": 1150,
+            "rotation": 1.15
+          },
+          {
+            "time": 2600
+          }
+        ],
+        "arm_right": [
+          {
+            "time": 0
+          },
+          {
+            "time": 1150,
+            "rotation": -1.6
+          },
+          {
+            "time": 2600
+          }
+        ]
+      }
+    },
+    "greet": {
+      "duration": 1050,
+      "tracks": {
+        "root": [
+          {
+            "time": 0
+          },
+          {
+            "time": 280,
+            "rotation": -1.125,
+            "y": -5.0
+          },
+          {
+            "time": 650,
+            "rotation": 1.25,
+            "y": -5.0
+          },
+          {
+            "time": 1050
+          }
+        ],
+        "arm_right": [
+          {
+            "time": 0
+          },
+          {
+            "time": 170,
+            "rotation": -8.19
+          },
+          {
+            "time": 340,
+            "rotation": 2.6208
+          },
+          {
+            "time": 510,
+            "rotation": -7.3709999999999996
+          },
+          {
+            "time": 700,
+            "rotation": 2.2932
+          },
+          {
+            "time": 870,
+            "rotation": -3.7674
+          },
+          {
+            "time": 1050
+          }
+        ]
+      }
+    },
+    "blink": {
+      "duration": 220,
+      "variants": {
+        "eye_left": [
+          {
+            "time": 0,
+            "value": "open"
+          },
+          {
+            "time": 55,
+            "value": "half"
+          },
+          {
+            "time": 85,
+            "value": "closed"
+          },
+          {
+            "time": 130,
+            "value": "half"
+          },
+          {
+            "time": 170,
+            "value": "open"
+          }
+        ],
+        "eye_right": [
+          {
+            "time": 0,
+            "value": "open"
+          },
+          {
+            "time": 55,
+            "value": "half"
+          },
+          {
+            "time": 85,
+            "value": "closed"
+          },
+          {
+            "time": 130,
+            "value": "half"
+          },
+          {
+            "time": 170,
+            "value": "open"
+          }
+        ]
+      }
+    },
+    "react": {
+      "duration": 620,
+      "tracks": {
+        "root": [
+          {
+            "time": 0
+          },
+          {
+            "time": 135,
+            "y": -31.4
+          },
+          {
+            "time": 340,
+            "y": -7.5
+          },
+          {
+            "time": 470,
+            "scaleY": 0.988
+          },
+          {
+            "time": 620
+          }
+        ],
+        "leg_left": [
+          {
+            "time": 0
+          },
+          {
+            "time": 135,
+            "rotation": 2
+          },
+          {
+            "time": 460
+          },
+          {
+            "time": 620
+          }
+        ],
+        "leg_right": [
+          {
+            "time": 0
+          },
+          {
+            "time": 135,
+            "rotation": -2
+          },
+          {
+            "time": 460
+          },
+          {
+            "time": 620
+          }
+        ],
+        "mouth": [
+          {
+            "time": 0
+          },
+          {
+            "time": 130,
+            "scaleY": 1.045
+          },
+          {
+            "time": 310,
+            "scaleY": 1.02
+          },
+          {
+            "time": 620
+          }
+        ]
+      }
+    }
+  }
+}

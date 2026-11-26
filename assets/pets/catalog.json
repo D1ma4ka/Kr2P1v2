@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "pets": [
+    {"id": "starter_hop", "rig": "rigs/starter_hop/rig.json"},
+    {"id": "starter_cap", "rig": "rigs/starter_cap/rig.json"},
+    {"id": "starter_bottle", "rig": "rigs/starter_bottle/rig.json"},
+    {"id": "starter_nettle", "rig": "rigs/starter_nettle/rig.json"},
+    {"id": "starter_tap", "rig": "rigs/starter_tap/rig.json"}
+  ]
+}
