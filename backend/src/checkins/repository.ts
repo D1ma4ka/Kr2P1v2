@@ -1,3 +1,4 @@
+import {creditPublishedCheckin} from '../pets/repository.js';
 import type pg from 'pg';
 import {tokenHash} from '../identity/sessions.js';
 import {transaction} from '../db/pool.js';
@@ -84,6 +85,7 @@ export async function createCheckin(pool:pg.Pool,user:string,key:string,input:Ch
  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,[user,position,n.ratingQuarters,n.body,n.occurredAt,n.visibility,n.servingFormat,n.venueId,n.venueText])).rows[0]!;
  await attachments(client,user,row.id,n,true,allowTest);
  await client.query("INSERT INTO idempotency_keys(user_id,key,operation,request_hash,resource_id)VALUES($1,$2,'create-checkin',$3,$4)",[user,key,hash,row.id]);
+ await creditPublishedCheckin(client,user,row.id);
  return{row:await getCheckin(client,user,row.id),replay:false};
  });
 }

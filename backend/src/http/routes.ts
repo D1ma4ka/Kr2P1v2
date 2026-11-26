@@ -1,3 +1,4 @@
+import {petRoutes} from '../pets/routes.js';
 import {menuRoutes} from '../menus/routes.js';
 import {nearbyFindsRoutes} from "../nearby-finds/routes.js";
 import {discoveryRoutes} from '../discovery/routes.js';
@@ -52,6 +53,7 @@ export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media
     return reply.code(204).send();
   });
   await catalogRoutes(app,pool);
+  await petRoutes(app,pool,environment!=='production');
   await diaryRoutes(app,pool,environment!=='production');
   await socialRoutes(app,pool);
   await venueRoutes(app,pool,environment!=='production');

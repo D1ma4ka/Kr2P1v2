@@ -12,7 +12,7 @@ test("real PostgreSQL: concurrent/repeated migrations, checksums, rollback, rela
   try {
     await Promise.all([migrate(db.pool), migrate(db.pool)]);
     await migrate(db.pool);
-    assert.equal((await db.pool.query("SELECT * FROM schema_migrations")).rowCount, 16);
+    assert.equal((await db.pool.query("SELECT * FROM schema_migrations")).rowCount, 17);
     assert.equal((await db.pool.query("SELECT * FROM users")).rowCount, 0);
     const user = (await db.pool.query("INSERT INTO users(email,display_name,adult_confirmed_at) VALUES('a@example.invalid','Synthetic A',now()) RETURNING id")).rows[0].id;
     await assert.rejects(db.pool.query("INSERT INTO users(email,display_name,adult_confirmed_at) VALUES('a@example.invalid','Duplicate',now())"), { code: "23505" });
@@ -27,10 +27,10 @@ test("real PostgreSQL: concurrent/repeated migrations, checksums, rollback, rela
     await assert.rejects(db.pool.query("INSERT INTO barcode_mappings(position_id,gtin,source) VALUES($1,'12345678901234','test')", [position]), { code: "23514" });
     assert.equal((await db.pool.query("SELECT valid_gtin('00012345600012') AS valid")).rows[0].valid, true);
     await cp("migrations", directory, { recursive: true });
-    await writeFile(join(directory, "017_failure.sql"), "CREATE TABLE rollback_probe(id int); SELECT 1/0;");
+    await writeFile(join(directory, "018_failure.sql"), "CREATE TABLE rollback_probe(id int); SELECT 1/0;");
     await assert.rejects(migrate(db.pool,directory), { code: "22012" });
     assert.equal((await db.pool.query("SELECT to_regclass('rollback_probe') AS name")).rows[0].name, null);
-    assert.equal((await db.pool.query("SELECT * FROM schema_migrations")).rowCount, 16);
+    assert.equal((await db.pool.query("SELECT * FROM schema_migrations")).rowCount, 17);
     await writeFile(join(directory, "001_foundation.sql"), "SELECT 1;");
     await assert.rejects(migrate(db.pool,directory), /checksum changed/);
   } finally { await db.close(); await rm(directory, { recursive: true, force: true }); }
