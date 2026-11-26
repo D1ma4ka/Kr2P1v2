@@ -24,6 +24,13 @@ class PetAcceptanceTest {
     private fun text(value:String) = compose.onNodeWithText(value)
     private fun awaitTag(tag:String) = compose.waitUntil(75_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
     private fun awaitText(text:String) = compose.waitUntil(75_000) { compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
+    private fun awaitPet(equipped:Boolean=false) = compose.waitUntil(75_000) {
+        val marker=hasContentDescription("Питомец")
+        val match=if(equipped) marker and SemanticsMatcher.expectValue(
+            androidx.compose.ui.semantics.SemanticsProperties.StateDescription,"Предметов надето: 5"
+        ) else marker
+        compose.onAllNodes(match).fetchSemanticsNodes().isNotEmpty()
+    }
     private fun clickText(value:String) { awaitText(value);text(value).performScrollTo().performClick() }
 
     @Test fun realRoomCatalogWalletAndPartnerReward() {
@@ -77,17 +84,18 @@ class PetAcceptanceTest {
         awaitTag("pet-item-cookie")
         TestEvidence.screenshot("p10-kra-shop.png")
         tag("pet-item-cookie").performScrollTo().performClick()
-        awaitTag("pet-buy")
-        tag("pet-buy").performScrollTo()
+        val buy="Купить «Печенье» за 1 KC"
+        awaitText(buy)
+        text(buy).performScrollTo()
         TestEvidence.screenshot("p10-purchase.png")
-        tag("pet-buy").performClick()
-        awaitTag("kra-room")
+        text(buy).performClick()
+        awaitText("KraRoom")
         assertEquals(1,state().getInt("balance"))
         compose.onNodeWithContentDescription("Подойти к столу").performScrollTo().performClick()
         awaitTag("pet-item-cookie")
         tag("pet-item-cookie").performScrollTo().performClick()
-        awaitTag("kra-room")
-        compose.waitUntil(75_000) { state().getJSONArray("inventory").length()==0 }
+        awaitText("KraRoom")
+        assertEquals(0,state().getJSONArray("inventory").length())
 
         compose.onNodeWithContentDescription("Открыть шкаф").performScrollTo().performClick()
         awaitText("Гардероб")
@@ -100,7 +108,7 @@ class PetAcceptanceTest {
         awaitText("Код события")
         text("Код события").performScrollTo().performTextInput(data.getString("qr"))
         clickText("Получить награду")
-        awaitTag("kra-room")
+        awaitText("KraRoom")
         val reward=state().getJSONArray("inventory").getJSONObject(0)
         assertEquals("partner_badge",reward.getString("definitionId"))
         val replay=runBlocking { api.json("v1/pets/redeem","POST",JSONObject().put("code",data.getString("qr"))) }
@@ -111,11 +119,42 @@ class PetAcceptanceTest {
         tag("nav-PETS").performClick()
         awaitTag("kra-room")
         awaitText("Финик")
+        awaitPet()
         TestEvidence.screenshot("p10-room-light.png")
         compose.runOnIdle { model.navigate(ru.krapiva.app.account.AccountScreen.SETTINGS) }
         clickText("Тёмная")
         tag("nav-PETS").performClick()
         awaitTag("kra-room")
+        awaitPet()
         TestEvidence.screenshot("p10-room-dark.png")
     }
+
+    @Test fun equippedRoomAcrossThemes() {
+        val device=InstrumentationRegistry.getInstrumentation()
+        val data=ParcelFileDescriptor.AutoCloseInputStream(device.uiAutomation.executeShellCommand("cat /data/local/tmp/p10-equipment.json"))
+            .use { JSONObject(String(it.readBytes())) }
+        lateinit var model:AccountViewModel
+        compose.runOnIdle { model=ViewModelProvider(compose.activity)[AccountViewModel::class.java] }
+        compose.waitUntil(75_000) { !model.state.value.busy }
+        compose.runOnIdle { model.login(data.getString("email"),data.getString("password")) }
+        compose.waitUntil(75_000) { !model.state.value.busy && model.state.value.profile!=null }
+        val equipped=runBlocking { model.api.json("v1/pets/state").getJSONObject("equipped") }
+        assertEquals(setOf("torso_base","torso_outer","face","head","wrist"),equipped.keys().asSequence().toSet())
+        awaitTag("nav-PETS")
+        tag("nav-PETS").performClick()
+        awaitTag("kra-room")
+        awaitText("Солод")
+        compose.runOnIdle { model.navigate(ru.krapiva.app.account.AccountScreen.SETTINGS) }
+        clickText("Светлая")
+        tag("nav-PETS").performClick()
+        awaitPet(equipped=true)
+        TestEvidence.screenshot("p10-dressed-light.png")
+        compose.runOnIdle { model.navigate(ru.krapiva.app.account.AccountScreen.SETTINGS) }
+        clickText("Тёмная")
+        tag("nav-PETS").performClick()
+        awaitTag("kra-room")
+        awaitPet(equipped=true)
+        TestEvidence.screenshot("p10-dressed-dark.png")
+    }
+
 }

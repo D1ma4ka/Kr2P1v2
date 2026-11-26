@@ -118,6 +118,11 @@ class AccountApi(private val store: AccountStore) {
         val data = bytes(path, method, body?.toString()?.toByteArray(Charsets.UTF_8), secure = secure, requestId = requestId)
         return if (data.isEmpty()) JSONObject() else JSONObject(String(data, Charsets.UTF_8))
     }
+    suspend fun cachedCatalog(path: String, expectedOwner: String): JSONObject? = withContext(Dispatchers.IO) {
+        synchronized(sessionLock) {
+            if (ownerId() == expectedOwner) store.cachedCatalog(expectedOwner, path) else null
+        }
+    }
     suspend fun catalogGet(path: String): Pair<JSONObject, Boolean> = withContext(Dispatchers.IO) {
         val initial = login ?: throw ApiFailure(401, "Требуется вход")
         val user = initial.data.getString("userId")

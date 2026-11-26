@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
@@ -86,8 +87,6 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
     var wardrobeOpen by remember(owner) { mutableStateOf(false) }
     var fitting by remember(owner) { mutableStateOf<JSONObject?>(null) }
     var fittingSlot by remember(owner) { mutableStateOf<String?>(null) }
-    var pending by rememberSaveable(owner) { mutableStateOf<String?>(null) }
-    var requestId by rememberSaveable(owner) { mutableStateOf<String?>(null) }
     var gesture by remember(owner) { mutableStateOf(PetGesture("greet")) }
     var lastGesture by remember(owner) { mutableLongStateOf(0) }
     var tapped by remember(owner) { mutableStateOf(false) }
@@ -121,19 +120,22 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
         if(next==PetPage.FOOD) act("sit",2)
         else if(gesture.clip=="sit") act("idle",2)
     }
+    fun show(confirmed: JSONObject, starterList: JSONObject, shopList: JSONObject, cached: Boolean) {
+        snapshot=confirmed
+        definitions=starterList.getJSONArray("items").objects()
+        items=shopList.getJSONArray("items").objects()
+        offline=cached
+        if(confirmed.optJSONObject("pet")==null && definitions.none { it.optString("id")==selected })
+            selected=definitions.firstOrNull()?.getString("id") ?: selected
+    }
     suspend fun load()=coroutineScope {
         val state=async { api.catalogGet(Api+"state") }
         val starter=async { api.catalogGet(Api+"definitions") }
         val catalog=async { api.catalogGet(Api+"catalog") }
-        val loaded=state.await()
-        val starterList=starter.await()
-        val shopList=catalog.await()
-        snapshot=loaded.first
-        definitions=starterList.first.getJSONArray("items").objects()
-        items=shopList.first.getJSONArray("items").objects()
-        offline=loaded.second || starterList.second || shopList.second
-        if(loaded.first.optJSONObject("pet")==null && definitions.none { it.optString("id")==selected })
-            selected=definitions.firstOrNull()?.getString("id") ?: selected
+        val (confirmed,cachedState)=state.await()
+        val (starters,cachedDefinitions)=starter.await()
+        val (shop,cachedShop)=catalog.await()
+        show(confirmed,starters,shop,cachedState || cachedDefinitions || cachedShop)
     }
     fun run(action: suspend () -> Unit) {
         if(busy) return
@@ -149,22 +151,37 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
     }
     fun mutate(path: String, body: JSONObject, method: String="POST", clip: String?=null, onDone: ()->Unit={}) {
         run {
-            val idempotent=path in setOf("purchase","consume")
-            if(idempotent) {
-                val action=path+body.toString()
-                if(pending!=action) { pending=action;requestId=UUID.randomUUID().toString() }
-                body.put("requestId",requestId)
+            val action=when(path) {
+                "purchase" -> "purchase:"+body.getString("definitionId")
+                "consume" -> "consume:"+body.getString("itemId")
+                else -> null
+            }
+            if(action!=null) {
+                val requests=api.editLocalDocument("krapet_requests",owner) {
+                    if(!it.has(action)) it.put(action,UUID.randomUUID().toString())
+                }
+                body.put("requestId",requests.getString(action))
             }
             val result=api.json(Api+path,method,body)
-            if(idempotent) { pending=null;requestId=null }
             load()
+            // Keep the request ID until the confirmed state can replace the checkout UI.
+            if(action!=null) api.editLocalDocument("krapet_requests",owner) { it.remove(action) }
             if(path=="redeem" && result.optBoolean("replayed")) {
                 error="Эта награда уже в коллекции"
             } else clip?.let { act(it,3) }
             onDone()
         }
     }
-    LaunchedEffect(owner) { run { load();act("return",2) } }
+    LaunchedEffect(owner) {
+        run {
+            val state=api.cachedCatalog(Api+"state",owner)
+            val starters=api.cachedCatalog(Api+"definitions",owner)
+            val shop=api.cachedCatalog(Api+"catalog",owner)
+            if(state!=null && starters!=null && shop!=null) show(state,starters,shop,true)
+            load()
+            act("return",2)
+        }
+    }
     LaunchedEffect(pet?.optString("id"),page,offline) {
         if(pet!=null && !offline && page in setOf(PetPage.ROOM,PetPage.WARDROBE)) {
             val view=if(page==PetPage.ROOM) "room" else "wardrobe"
@@ -456,9 +473,9 @@ private fun KraRoom(api: AccountApi,rig:PetRig?,gesture:PetGesture,adornments:Ma
                 rect(Color(0xff886d47),.446f,.111f,.108f,.029f,5f)
                 rect(Color(0xffd0a668),.46f,.136f,.080f,.015f,8f)
             }
-            for(row in 0..4) {
-                val y=(.75f+row*.061f)*size.height
-                drawLine(Color(0x44311e13),Offset(0f,y),Offset(size.width,y),1.2f)
+            repeat(5) { row ->
+                val y = size.height * (0.75f + row * 0.061f)
+                drawLine(Color(0x44311e13), Offset(0f, y), Offset(size.width, y), 1.2f)
             }
             rect(Color(0xff604431),.26f,.37f,.46f,.037f,4f)
             rect(Color(0xffb88351),.26f,.37f,.46f,.013f,4f)
@@ -499,7 +516,10 @@ private fun KraRoom(api: AccountApi,rig:PetRig?,gesture:PetGesture,adornments:Ma
             Image(image.asImageBitmap(),item.optString("name"),Modifier.offset(w*.84f,h*.487f).size(w*.09f,h*.095f))
         } }
         rig?.let { AnimatedPet(it,gesture,Modifier.align(Alignment.BottomCenter).padding(bottom=30.dp).width(w*.63f).height(h*.66f)
-            .semantics { contentDescription="Питомец" }.clickable(onClick=petClick),fits) }
+            .semantics {
+                contentDescription="Питомец"
+                if(fits.isNotEmpty()) stateDescription="Предметов надето: ${fits.size}"
+            }.clickable(onClick=petClick),fits) }
         Box(Modifier.offset(w*.04f,h*.36f).width(w*.20f).height(h*.41f).semantics { contentDescription="Открыть шкаф" }
             .clickable(role=Role.Button){open(PetPage.WARDROBE)})
         Box(Modifier.offset(w*.27f,h*.24f).width(w*.43f).height(h*.17f).semantics { contentDescription="Осмотреть полку" }
