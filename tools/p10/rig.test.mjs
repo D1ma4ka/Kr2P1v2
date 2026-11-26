@@ -60,3 +60,26 @@ for (const entry of catalog.pets) {
     assert.deepEqual(result.map(layer => layer.depth), result.map(layer => layer.depth).sort((a, b) => a - b))
   })
 }
+
+test('the extended motion package resolves all sprite variants for all starter rigs', async () => {
+  const motion = await json(new URL('../../assets/pets/motion.json', import.meta.url))
+  for (const entry of catalog.pets) {
+    const rig = await json(new URL(entry.rig, catalogURL))
+    rig.clips = { ...motion, ...rig.clips }
+    assert.equal(Object.keys(rig.clips).length, 21)
+    for (const [name, clip] of Object.entries(rig.clips)) {
+      for (const bone of Object.keys(clip.tracks ?? {})) assert.ok(rig.bones[bone], name + ' ' + bone)
+      for (const [layer, keys] of Object.entries(clip.variants ?? {})) {
+        for (const key of keys) {
+          if (key.value === 'open') continue
+          assert.ok(rig.layers[layer].variants[key.value], name + ' ' + key.value)
+          assert.ok(pose(rig, name, key.time).layers.some(rendered =>
+            rendered.src === rig.layers[layer].variants[key.value].src))
+        }
+      }
+    }
+    const still = placeItem(rig, pose(rig, 'eat', 0), 'wrist')
+    const atTable = placeItem(rig, pose(rig, 'eat', 1040), 'wrist')
+    assert.ok(atTable.transform[4] - still.transform[4] > 250)
+  }
+})

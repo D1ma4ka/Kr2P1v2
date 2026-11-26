@@ -225,7 +225,53 @@
         111
       ],
       "bone": "mouth",
-      "depth": 72
+      "depth": 72,
+      "variants": {
+        "soft": {
+          "src": "mouth-soft.webp",
+          "offset": [
+            609,
+            670
+          ],
+          "size": [
+            100,
+            84
+          ]
+        },
+        "nibble": {
+          "src": "mouth-nibble.webp",
+          "offset": [
+            617,
+            688
+          ],
+          "size": [
+            84,
+            48
+          ]
+        },
+        "yawn": {
+          "src": "mouth-yawn.webp",
+          "offset": [
+            617,
+            651
+          ],
+          "size": [
+            85,
+            123
+          ]
+        },
+        "closed": {
+          "src": "mouth-closed.webp",
+          "offset": [
+            612,
+            702
+          ],
+          "size": [
+            94,
+            21
+          ]
+        }
+      }
     }
   },
   "anchors": {
