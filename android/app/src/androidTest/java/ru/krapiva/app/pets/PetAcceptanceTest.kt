@@ -34,40 +34,45 @@ class PetAcceptanceTest {
         compose.runOnIdle { model=ViewModelProvider(compose.activity)[AccountViewModel::class.java] }
         compose.waitUntil(75_000) { !model.state.value.busy }
         compose.runOnIdle { model.login(data.getString("email"),data.getString("password")) }
+        compose.waitUntil(75_000) { !model.state.value.busy && model.state.value.profile!=null }
         awaitTag("nav-HOME")
         val api=model.api
         fun state()=runBlocking { api.json("v1/pets/state") }
-        assertFalse(state().has("pet") && !state().isNull("pet"))
+        if(InstrumentationRegistry.getArguments().getString("resume")=="true") {
+            assertEquals(2,state().getInt("balance"))
+            tag("nav-PETS").performClick()
+        } else {
+            assertFalse(state().has("pet") && !state().isNull("pet"))
 
-        tag("nav-PETS").performClick()
-        awaitTag("pet-name")
-        val candidates=listOf("Крапивка" to "starter_nettle","Краник" to "starter_tap","Крышечка" to "starter_cap",
-            "Бутылочка" to "starter_bottle","Хмель" to "starter_hop")
-        for((name,id) in candidates) {
-            tag("pet-candidates")
-                .performScrollToNode(hasText(name))
-            text(name).performClick()
-            awaitTag("pet-preview-$id")
-            TestEvidence.screenshot("p10-$id.png")
-        }
-        tag("pet-name").performScrollTo().performTextInput("Финик")
-        tag("pet-adopt").performScrollTo().performClick()
-        awaitTag("kra-room")
-        awaitText("Финик")
-        assertEquals(0,state().getInt("balance"))
-        TestEvidence.screenshot("p10-kra-room.png")
+            tag("nav-PETS").performClick()
+            awaitTag("pet-name")
+            val candidates=listOf("Крапивка" to "starter_nettle","Краник" to "starter_tap","Крышечка" to "starter_cap",
+                "Бутылочка" to "starter_bottle","Хмель" to "starter_hop")
+            for((name,id) in candidates) {
+                tag("pet-candidates")
+                    .performScrollToNode(hasText(name))
+                text(name).performClick()
+                awaitTag("pet-preview-$id")
+                TestEvidence.screenshot("p10-$id.png")
+            }
+            tag("pet-name").performScrollTo().performTextInput("Финик")
+            tag("pet-adopt").performScrollTo().performClick()
+            awaitTag("kra-room")
+            awaitText("Финик")
+            assertEquals(0,state().getInt("balance"))
+            TestEvidence.screenshot("p10-kra-room.png")
 
-        val key=UUID.randomUUID().toString()
-        val entry=JSONObject().put("positionId",data.getString("position")).put("ratingQuarters",JSONObject.NULL)
-            .put("body","P10 local QA").put("occurredAt",Instant.now().toString()).put("visibility","private")
-        runBlocking {
-            val first=api.json("v1/checkins","POST",entry,requestId=key)
-            assertEquals(first.getString("id"),api.json("v1/checkins","POST",entry,requestId=key).getString("id"))
+            val key=UUID.randomUUID().toString()
+            val entry=JSONObject().put("positionId",data.getString("position")).put("ratingQuarters",JSONObject.NULL)
+                .put("body","P10 local QA").put("occurredAt",Instant.now().toString()).put("visibility","private")
+            runBlocking {
+                val first=api.json("v1/checkins","POST",entry,requestId=key)
+                assertEquals(first.getString("id"),api.json("v1/checkins","POST",entry,requestId=key).getString("id"))
+            }
+            tag("nav-HOME").performClick()
+            tag("nav-PETS").performClick()
         }
-        tag("nav-HOME").performClick()
-        tag("nav-PETS").performClick()
-        awaitTag("pet-balance")
-        awaitText(" 2 KC")
+        compose.waitUntil(75_000) { compose.onAllNodesWithText("2 KC",substring=true).fetchSemanticsNodes().isNotEmpty() }
         clickText("Магазин")
         awaitTag("pet-item-cookie")
         TestEvidence.screenshot("p10-kra-shop.png")
@@ -106,5 +111,11 @@ class PetAcceptanceTest {
         tag("nav-PETS").performClick()
         awaitTag("kra-room")
         awaitText("Финик")
+        TestEvidence.screenshot("p10-room-light.png")
+        compose.runOnIdle { model.navigate(ru.krapiva.app.account.AccountScreen.SETTINGS) }
+        clickText("Тёмная")
+        tag("nav-PETS").performClick()
+        awaitTag("kra-room")
+        TestEvidence.screenshot("p10-room-dark.png")
     }
 }

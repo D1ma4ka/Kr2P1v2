@@ -105,7 +105,9 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
     }
     fun act(clip: String, priority: Int=1) {
         val now=android.os.SystemClock.elapsedRealtime()
-        if(priority>=gesture.priority || (!((rig?.holds(gesture.clip)) ?: false) && now-lastGesture>(rig?.duration(gesture.clip) ?: 1200f))) {
+        val gestureCanEnd=rig?.holds(gesture.clip)!=true
+        val duration=rig?.duration(gesture.clip) ?: 1200f
+        if(priority>=gesture.priority || (gestureCanEnd && now-lastGesture>duration)) {
             lastGesture=now
             gesture=PetGesture(clip,priority,gesture.sequence+1)
         }
@@ -163,6 +165,14 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
         }
     }
     LaunchedEffect(owner) { run { load();act("return",2) } }
+    LaunchedEffect(pet?.optString("id"),page,offline) {
+        if(pet!=null && !offline && page in setOf(PetPage.ROOM,PetPage.WARDROBE)) {
+            val view=if(page==PetPage.ROOM) "room" else "wardrobe"
+            try { api.json(Api+"visit","POST",JSONObject().put("view",view)) }
+            catch(cancel:CancellationException) { throw cancel }
+            catch(_:Exception) { /* Analytics does not interrupt the room. */ }
+        }
+    }
     LaunchedEffect(serving) {
         if(serving!=null) {
             kotlinx.coroutines.delay(1800)
@@ -187,8 +197,10 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
     }
     if(fitting?.optString("kind")=="decor") fittingSlot?.let { decorations[it]=fitting!! }
 
+    val scroll=rememberScrollState()
+    LaunchedEffect(page) { scroll.scrollTo(0) }
     Scaffold(bottomBar={ Box(Modifier.navigationBarsPadding()) { bottomBar() } }) { padding ->
-        Column(Modifier.padding(padding).safeDrawingPadding().fillMaxSize().verticalScroll(rememberScrollState())
+        Column(Modifier.padding(padding).safeDrawingPadding().fillMaxSize().verticalScroll(scroll)
             .padding(horizontal=14.dp,vertical=10.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             error?.let { Text(it,color=MaterialTheme.colorScheme.error,modifier=Modifier.testTag("pet-error")) }
