@@ -8,8 +8,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -235,8 +234,9 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
                     .background(MaterialTheme.colorScheme.surfaceVariant),contentAlignment=Alignment.Center) {
                     rig?.let { AnimatedPet(it,gesture,Modifier.fillMaxSize().testTag("pet-preview-$petId").clickable { act("greet",2) }) }
                 }
-                LazyRow(Modifier.testTag("pet-candidates"),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    items(definitions,key={it.getString("id")}) { item ->
+                Row(Modifier.testTag("pet-candidates").horizontalScroll(rememberScrollState()),
+                    horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                    definitions.forEach { item ->
                         FilterChip(selected==item.getString("id"),{
                             selected=item.getString("id")
                             gesture=PetGesture("greet",2,gesture.sequence+1)
@@ -276,8 +276,9 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
                         open={drill(it)})
                 }
                 if(page==PetPage.ROOM) {
-                    LazyRow(Modifier.testTag("pet-room-actions"),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                        items(routes) { route -> OutlinedButton({drill(route)},Modifier.testTag("pet-page-${route.name}")) { Text(route.title) } }
+                    Row(Modifier.testTag("pet-room-actions").horizontalScroll(rememberScrollState()),
+                        horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                        routes.forEach { route -> OutlinedButton({drill(route)},Modifier.testTag("pet-page-${route.name}")) { Text(route.title) } }
                     }
                     snapshot?.optJSONArray("pets")?.objects()?.takeIf { it.size>1 }?.let { pets ->
                         pets.forEach { own ->
@@ -293,8 +294,8 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
                 when(page) {
                     PetPage.ROOM -> Unit
                     PetPage.SHOP -> {
-                        LazyRow(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-                            items(listOf("food" to "Лакомства","wear" to "Одежда","decor" to "Интерьер")) { (key,label) ->
+                        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                            listOf("food" to "Лакомства","wear" to "Одежда","decor" to "Интерьер").forEach { (key,label) ->
                                 FilterChip(storeFilter==key,{storeFilter=key;pageLimit=12;fitting=null;fittingSlot=null},{Text(label)})
                             }
                         }
@@ -352,8 +353,8 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
                             val own=relevant.firstOrNull { it.second.optString("id")==item.optString("id") }?.first
                             fittingSlot?.let { slot ->
                                 val slots=item.getJSONArray("slots")
-                                if(slots.length()>1) LazyRow(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-                                    items((0 until slots.length()).map { slots.getString(it) }) { newSlot ->
+                                if(slots.length()>1) Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+                                    (0 until slots.length()).map { slots.getString(it) }.forEach { newSlot ->
                                         FilterChip(newSlot==slot,{fittingSlot=newSlot},{Text(Slots[newSlot] ?: newSlot)})
                                     }
                                 }

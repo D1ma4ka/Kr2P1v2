@@ -56,9 +56,7 @@ class PetAcceptanceTest {
             val candidates=listOf("Крапивка" to "starter_nettle","Краник" to "starter_tap","Крышечка" to "starter_cap",
                 "Бутылочка" to "starter_bottle","Хмель" to "starter_hop")
             for((name,id) in candidates) {
-                tag("pet-candidates")
-                    .performScrollToNode(hasText(name))
-                text(name).performClick()
+                text(name).performScrollTo().performClick()
                 awaitTag("pet-preview-$id")
                 TestEvidence.screenshot("p10-$id.png")
             }
@@ -102,8 +100,6 @@ class PetAcceptanceTest {
         TestEvidence.screenshot("p10-wardrobe.png")
         clickText("В комнату")
         val event=compose.onNodeWithTag("pet-page-EVENTS")
-        tag("pet-room-actions")
-            .performScrollToNode(hasTestTag("pet-page-EVENTS"))
         event.performScrollTo().performClick()
         awaitText("Код события")
         text("Код события").performScrollTo().performTextInput(data.getString("qr"))
