@@ -120,7 +120,7 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
         page=next
         wardrobeOpen=next==PetPage.WARDROBE
         if(next==PetPage.FOOD) act("sit",3)
-        else if(gesture.clip=="sit") act("idle",3)
+        else if(gesture.clip=="sit") gesture=PetGesture("idle",sequence=gesture.sequence+1)
     }
     fun show(confirmed: JSONObject, starterList: JSONObject, shopList: JSONObject, cached: Boolean) {
         snapshot=confirmed
