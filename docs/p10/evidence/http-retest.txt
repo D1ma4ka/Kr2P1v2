@@ -3,3 +3,4 @@ PASS HTTP: client price/balance rejected, 1 KC purchase, stable receipt after pr
 PASS HTTP: hot import temporary seasonal partner food, verified WebP and expiration, no API restart.
 PASS HTTP: five equipped items in two torso layers, fern placement and balance restored in a new session.
 PASS cleanup: original price restored and temporary package removed.
+PASS PostgreSQL: reward changed by inserting economy version 2 from 2 to 5 KC, new ledger entry retained version 2.

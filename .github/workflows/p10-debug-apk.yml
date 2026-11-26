@@ -50,3 +50,83 @@ jobs:
           path: p10-artifact/
           if-no-files-found: error
           retention-days: 7
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+      - name: Start local P10 acceptance services
+        run: |
+          python3 scripts/init_dev.py
+          chmod 644 infra/postgres/01-runtime-role.sql
+          docker compose up -d --wait db mailpit
+          mkdir -p work
+          cd backend
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          node --env-file=../.env dist/src/db/migrate.js
+          node --env-file=../.env dist/src/operations/pet-content.js ../assets/pets/items/catalog.json
+          (umask 077; node --env-file=../.env dist/src/operations/pet-content.js --test-reward > ../work/p10-reward.txt)
+          PORT=53000 node --env-file=../.env dist/src/main.js > ../work/p10-api.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:53000/health/ready; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Boot compact Android emulator
+        timeout-minutes: 7
+        run: |
+          test -e /dev/kvm
+          sdkmanager 'emulator' 'system-images;android-35;default;x86_64'
+          export ANDROID_AVD_HOME="$PWD/work/p10-avd"
+          export ANDROID_EMULATOR_HOME="$PWD/work/p10-emulator"
+          mkdir -p "$ANDROID_AVD_HOME" "$ANDROID_EMULATOR_HOME"
+          echo no | avdmanager create avd --name krapet --package 'system-images;android-35;default;x86_64' --device pixel_2
+          krapet_run=()
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            krapet_groups="$(id -G | tr ' ' ','),$(stat -c %g /dev/kvm)"
+            krapet_run=(sudo -n -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --groups="$krapet_groups" --no-new-privs)
+          fi
+          "${krapet_run[@]}" env ANDROID_HOME="$ANDROID_HOME" ANDROID_AVD_HOME="$ANDROID_AVD_HOME" ANDROID_EMULATOR_HOME="$ANDROID_EMULATOR_HOME" \
+            "$ANDROID_HOME/emulator/emulator" -avd krapet -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -accel on > work/p10-emulator.log 2>&1 &
+          emulator_pid=$!
+          for attempt in $(seq 1 90); do
+            if ! kill -0 "$emulator_pid" 2>/dev/null; then break; fi
+            if [ "$(timeout 5 adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; then
+              adb shell wm size 320x640
+              adb shell wm density 160
+              python3 scripts/prepare_android_emulator.py
+              exit 0
+            fi
+            sleep 2
+          done
+          tail -n 60 work/p10-emulator.log
+          exit 1
+      - name: Run P10 instrumented acceptance against real PostgreSQL
+        timeout-minutes: 8
+        run: |
+          node --env-file=.env tools/p10/device-fixture.mjs work/p10-reward.txt
+          adb reverse tcp:53000 tcp:53000
+          adb install p10-artifact/KraPiva-P10-debug.apk
+          adb install android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb push work/p10-device-fixture.json /data/local/tmp/p10-fixture.json
+          adb shell am instrument -w -r -e class 'ru.krapiva.app.pets.PetAcceptanceTest#realRoomCatalogWalletAndPartnerReward' ru.krapiva.app.debug.test/androidx.test.runner.AndroidJUnitRunner > work/p10-instrumentation.log
+          grep -E '^Time:|^OK|^Tests run:|^INSTRUMENTATION_RESULT: shortMsg=' work/p10-instrumentation.log
+          grep -Fxq 'OK (1 test)' work/p10-instrumentation.log
+      - name: Retain P10 synthetic device evidence
+        if: always()
+        run: |
+          mkdir -p work/p10-device-evidence
+          if [ -f work/p10-instrumentation.log ]; then
+            grep -E '^Time:|^OK|^Tests run:|^INSTRUMENTATION_RESULT: shortMsg=' work/p10-instrumentation.log > work/p10-device-evidence/result.txt || true
+          fi
+          adb pull /sdcard/Download/KraPivaP3/. work/p10-device-evidence/ || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: KraPiva-P10-device-evidence
+          path: work/p10-device-evidence/
+          retention-days: 7
+      - name: Stop isolated acceptance services
+        if: always()
+        run: |
+          adb emu kill || true
+          docker compose stop db mailpit

@@ -1,0 +1,19 @@
+✔ starter_hop exports its neutral pose, layer files and clips (41.53117ms)
+✔ starter_hop moves each equipment slot with its animated attachment (2.036753ms)
+✔ starter_cap exports its neutral pose, layer files and clips (26.996482ms)
+✔ starter_cap moves each equipment slot with its animated attachment (0.650773ms)
+✔ starter_bottle exports its neutral pose, layer files and clips (58.400796ms)
+✔ starter_bottle moves each equipment slot with its animated attachment (0.537446ms)
+✔ starter_nettle exports its neutral pose, layer files and clips (4.389003ms)
+✔ starter_nettle moves each equipment slot with its animated attachment (0.306864ms)
+✔ starter_tap exports its neutral pose, layer files and clips (18.564203ms)
+✔ starter_tap moves each equipment slot with its animated attachment (0.605666ms)
+✔ the extended motion package resolves all sprite variants for all starter rigs (11.183735ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 301.116756

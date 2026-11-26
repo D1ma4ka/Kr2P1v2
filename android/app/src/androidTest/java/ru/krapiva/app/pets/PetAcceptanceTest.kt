@@ -1,8 +1,16 @@
 package ru.krapiva.app.pets
 
 import android.os.ParcelFileDescriptor
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
@@ -31,7 +39,38 @@ class PetAcceptanceTest {
         ) else marker
         compose.onAllNodes(match).fetchSemanticsNodes().isNotEmpty()
     }
-    private fun clickText(value:String) { awaitText(value);text(value).performScrollTo().performClick() }
+    private fun clickText(value:String) { awaitText(value);reveal(text(value)).performClick() }
+
+    private fun reveal(target: SemanticsNodeInteraction): SemanticsNodeInteraction {
+        // Compose 1.8.0 performScrollTo reads live layout coordinates on the instrumentation thread.
+        repeat(4) {
+            val node = target.fetchSemanticsNode()
+            val scrolled = compose.runOnUiThread {
+                val bounds = Rect(node.positionInRoot, node.size.toSize())
+                for (parent in generateSequence(node.parent) { it.parent }) {
+                    val action = parent.config.getOrNull(SemanticsActions.ScrollBy)?.action ?: continue
+                    val coordinates = parent.layoutInfo.coordinates
+                    val viewport = coordinates.boundsInParent().translate(
+                        coordinates.parentLayoutCoordinates?.positionInRoot() ?: Offset.Zero
+                    )
+                    val x = parent.config.getOrNull(SemanticsProperties.HorizontalScrollAxisRange)
+                    val y = parent.config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
+                    val dx = if (x == null) 0f else scrollDelta(bounds.left, bounds.right, viewport.left, viewport.right)
+                    val dy = if (y == null) 0f else scrollDelta(bounds.top, bounds.bottom, viewport.top, viewport.bottom)
+                    if ((dx != 0f || dy != 0f) && action(dx, dy)) return@runOnUiThread true
+                }
+                false
+            }
+            if (!scrolled) return target
+        }
+        return target
+    }
+
+    private fun scrollDelta(start: Float, end: Float, visibleStart: Float, visibleEnd: Float): Float = when {
+        start < visibleStart && end <= visibleEnd -> start - visibleStart
+        end > visibleEnd && start >= visibleStart -> end - visibleEnd
+        else -> 0f
+    }
 
     @Test fun realRoomCatalogWalletAndPartnerReward() {
         val device=InstrumentationRegistry.getInstrumentation()
@@ -56,12 +95,12 @@ class PetAcceptanceTest {
             val candidates=listOf("Крапивка" to "starter_nettle","Краник" to "starter_tap","Крышечка" to "starter_cap",
                 "Бутылочка" to "starter_bottle","Хмель" to "starter_hop")
             for((name,id) in candidates) {
-                text(name).performScrollTo().performClick()
+                reveal(text(name)).performClick()
                 awaitTag("pet-preview-$id")
                 TestEvidence.screenshot("p10-$id.png")
             }
-            tag("pet-name").performScrollTo().performTextInput("Финик")
-            tag("pet-adopt").performScrollTo().performClick()
+            reveal(tag("pet-name")).performTextInput("Финик")
+            reveal(tag("pet-adopt")).performClick()
             awaitTag("kra-room")
             awaitText("Финик")
             assertEquals(0,state().getInt("balance"))
@@ -78,31 +117,32 @@ class PetAcceptanceTest {
             tag("nav-PETS").performClick()
         }
         compose.waitUntil(75_000) { compose.onAllNodesWithText("2 KC",substring=true).fetchSemanticsNodes().isNotEmpty() }
+        assertEquals(2,state().getInt("balance"))
         clickText("Магазин")
         awaitTag("pet-item-cookie")
         TestEvidence.screenshot("p10-kra-shop.png")
-        tag("pet-item-cookie").performScrollTo().performClick()
+        reveal(tag("pet-item-cookie")).performClick()
         val buy="Купить «Печенье» за 1 KC"
         awaitText(buy)
-        text(buy).performScrollTo()
+        reveal(text(buy))
         TestEvidence.screenshot("p10-purchase.png")
         text(buy).performClick()
         awaitText("KraRoom")
         assertEquals(1,state().getInt("balance"))
-        compose.onNodeWithContentDescription("Подойти к столу").performScrollTo().performClick()
+        reveal(compose.onNodeWithContentDescription("Подойти к столу")).performClick()
         awaitTag("pet-item-cookie")
-        tag("pet-item-cookie").performScrollTo().performClick()
+        reveal(tag("pet-item-cookie")).performClick()
         awaitText("KraRoom")
         assertEquals(0,state().getJSONArray("inventory").length())
 
-        compose.onNodeWithContentDescription("Открыть шкаф").performScrollTo().performClick()
+        reveal(compose.onNodeWithContentDescription("Открыть шкаф")).performClick()
         awaitText("Гардероб")
         TestEvidence.screenshot("p10-wardrobe.png")
         clickText("В комнату")
         val event=compose.onNodeWithTag("pet-page-EVENTS")
-        event.performScrollTo().performClick()
+        reveal(event).performClick()
         awaitText("Код события")
-        text("Код события").performScrollTo().performTextInput(data.getString("qr"))
+        reveal(text("Код события")).performTextInput(data.getString("qr"))
         clickText("Получить награду")
         awaitText("KraRoom")
         val reward=state().getJSONArray("inventory").getJSONObject(0)
