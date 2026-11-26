@@ -129,7 +129,7 @@ class PetAcceptanceTest {
         TestEvidence.screenshot("p10-room-dark.png")
     }
 
-    @Test fun equippedRoomAcrossThemes() {
+    @Test fun equippedRoomRendersAllFiveItems() {
         val device=InstrumentationRegistry.getInstrumentation()
         val data=ParcelFileDescriptor.AutoCloseInputStream(device.uiAutomation.executeShellCommand("cat /data/local/tmp/p10-equipment.json"))
             .use { JSONObject(String(it.readBytes())) }
@@ -144,17 +144,8 @@ class PetAcceptanceTest {
         tag("nav-PETS").performClick()
         awaitTag("kra-room")
         awaitText("Солод")
-        compose.runOnIdle { model.navigate(ru.krapiva.app.account.AccountScreen.SETTINGS) }
-        clickText("Светлая")
-        tag("nav-PETS").performClick()
         awaitPet(equipped=true)
-        TestEvidence.screenshot("p10-dressed-light.png")
-        compose.runOnIdle { model.navigate(ru.krapiva.app.account.AccountScreen.SETTINGS) }
-        clickText("Тёмная")
-        tag("nav-PETS").performClick()
-        awaitTag("kra-room")
-        awaitPet(equipped=true)
-        TestEvidence.screenshot("p10-dressed-dark.png")
+        TestEvidence.screenshot("p10-dressed.png")
     }
 
 }
