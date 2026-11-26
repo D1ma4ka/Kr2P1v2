@@ -132,5 +132,13 @@ test('KraPet content import serves checked WebP and supports audited adjustments
     const accepted=await call('redeem',f.a.token,{code:reward});
     assert.equal(accepted.statusCode,200);
     assert.equal((await call('redeem',f.a.token,{code:reward})).json().replayed,true);
+    await app.inject({url:'/v1/pets/decor/shelf_slot_01',method:'PUT',headers:{authorization:'Bearer '+f.a.token,
+      'content-type':'application/json'},payload:{itemId:accepted.json().itemId}});
+    assert.equal((await call('state')).json().decor.shelf_slot_01,accepted.json().itemId);
+    await db.pool.query("UPDATE kra_item_definitions SET enabled=false WHERE id='partner_badge'");
+    const disabled=(await call('state')).json();
+    assert.equal(disabled.decor.shelf_slot_01,undefined);
+    assert.equal(disabled.inventory[0].id,accepted.json().itemId);
+    assert.equal((await call('catalog')).json().items.find((item:{id:string})=>item.id==='partner_badge').assetHash,null);
   } finally { await app.close(); await db.close(); }
 });

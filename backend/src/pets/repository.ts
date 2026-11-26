@@ -116,12 +116,15 @@ export async function state(pool:pg.Pool,user:string) {
     (SELECT coalesce(json_agg(json_build_object('id',i.id,'definitionId',i.definition_id,'source',i.source) ORDER BY i.created_at,i.id),'[]')
      FROM kra_items i WHERE i.user_id=$1 AND i.consumed_at IS NULL) AS inventory,
     (SELECT coalesce(json_object_agg(e.slot,e.item_id),'{}') FROM kra_equipped e JOIN kra_rooms r ON r.active_pet_id=e.pet_id
-     WHERE e.user_id=$1) AS equipped,
-    (SELECT coalesce(json_object_agg(slot,item_id),'{}') FROM kra_room_decor WHERE user_id=$1) AS decor`,[user])).rows[0]!;
+     JOIN kra_items i ON i.id=e.item_id JOIN kra_item_definitions d ON d.id=i.definition_id
+     WHERE e.user_id=$1 AND d.enabled) AS equipped,
+    (SELECT coalesce(json_object_agg(p.slot,p.item_id),'{}') FROM kra_room_decor p
+     JOIN kra_items i ON i.id=p.item_id JOIN kra_item_definitions d ON d.id=i.definition_id
+     WHERE p.user_id=$1 AND d.enabled) AS decor`,[user])).rows[0]!;
 }
 export async function catalog(pool:pg.Pool) {
   const {rows}=await pool.query(`SELECT id,name,kind,category,rarity,price,slots,render,
-   compatible_pets AS "compatiblePets",asset_version AS "assetVersion",asset_hash AS "assetHash",series,partner_id AS "partnerId",
+   compatible_pets AS "compatiblePets",asset_version AS "assetVersion",CASE WHEN enabled THEN asset_hash END AS "assetHash",series,partner_id AS "partnerId",
    enabled AND (available_from IS NULL OR available_from<=now())
     AND (available_until IS NULL OR available_until>now()) AND price IS NOT NULL AS "forSale"
    FROM kra_item_definitions ORDER BY kind,price NULLS LAST,id`);
