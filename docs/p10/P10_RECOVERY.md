@@ -2,9 +2,11 @@
 
 ## Повторная приёмка после `85fe55c`
 
-Стартовая точка `85fe55cd018ba7d2dbe07d6a8fa0868642ebd802` совпала с удалённой веткой. Рабочая версия приложения после исправления угощения — `981965b4b78a431978cca5c25884f8813a30374f`. На изолированном PostgreSQL 17.7 с Mailpit подтверждены backend build, 52 серверных теста и HTTP-проверки экономики и контента. Повтор на устройстве использует `realRoomCatalogWalletAndPartnerReward` на новом синтетическом аккаунте. Риги прошли 11 проверок, включая стыки поз для всех пяти персонажей.
+Стартовая точка `85fe55cd018ba7d2dbe07d6a8fa0868642ebd802` совпала с удалённой веткой. Исправление приложения находится в `981965b4b78a431978cca5c25884f8813a30374f`. Финальная сборка и инструментальный прогон относятся к `8c18716fc82cc3f584d9b29d2bff384920595ea5`. В этот коммит входит поправка реакции после выхода от стола. GitHub Actions завершил `realRoomCatalogWalletAndPartnerReward` на API 35 при 320 dp с настоящим PostgreSQL. На API 26 отдельно прошёл `equippedRoomRendersAllFiveItems`. Результаты, снимки и открытые проверки перечислены в [отчёте QA](P10_QA_REPORT.md).
 
-В архиве `KraPiva-P10-debug` лежит `KraPiva-P10-debug.apk` с SHA-256 `e242400aded9f7e085c1689ea5dd02fde6f8bdbb27d10a7d71478345002f7ed9`. Сумма, подпись и выравнивание проверены после скачивания. В архиве есть `source-commit.txt` и `SHA256SUMS.txt`. [Скачать APK из GitHub Actions](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/45893334606/artifacts/15153225693)
+В архиве `KraPiva-P10-debug` лежит `KraPiva-P10-debug.apk` с SHA-256 `1da76102609a6624dd9342e5824c07a2303132ed99f4424881865ddced906b55`. Сумма, подпись и выравнивание проверены после скачивания. В архиве есть `source-commit.txt` и `SHA256SUMS.txt`. [Скачать APK из GitHub Actions](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/45896927244/artifacts/15154496584)
+
+При следующей приёмке на телефоне проверьте напечатанный QR и обычный GTIN, плавность, память и батарею. Для воспроизведения используйте раздел чистого запуска ниже, затем подготовьте новый синтетический аккаунт. Матрица отмечает 13 полностью закрытых строк из 18. [Матрица](P10_REQUIREMENTS.md)
 
 ## Точка остановки по просьбе владельца · 26 ноября 2026
 
@@ -29,6 +31,8 @@
 Инструментальный сценарий `ru.krapiva.app.pets.PetAcceptanceTest` запускается только на тестовом окружении. Подготовить QR в файл, затем из корня выполнить `node --env-file=.env tools/p10/device-fixture.mjs путь-к-коду` и передать `work/p10-device-fixture.json` на устройство по адресу `/data/local/tmp/p10-fixture.json`. Это локальный файл с синтетическими данными доступа. После установки обоих APK выбрать класс через `adb shell am instrument -w -r -e class 'ru.krapiva.app.pets.PetAcceptanceTest#realRoomCatalogWalletAndPartnerReward' ru.krapiva.app.debug.test/androidx.test.runner.AndroidJUnitRunner`.
 
 Для APK из [GitHub Actions](https://github.com/D1ma4ka/Kr2P1v2/actions/workflows/p10-debug-apk.yml) адрес сервера — loopback устройства. После запуска backend на рабочем компьютере выполните `adb reverse tcp:53000 tcp:53000` и установите APK через `adb install -r KraPiva-P10-debug.apk`. На эмуляторе работает тот же проброс. Настройки production хранятся отдельно от debug-сборки. Архив Actions содержит SHA-256 и SHA исходного коммита.
+
+Если Android сообщает о несовпадении подписи с установленной debug-версией, используйте отдельный тестовый эмулятор или соберите обновление прежним ключом подписи. Это сохраняет данные установленного приложения.
 
 ## Запуск чистого локального стенда
 

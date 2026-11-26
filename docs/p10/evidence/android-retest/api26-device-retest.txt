@@ -1,0 +1,9 @@
+PASS Android: cookie purchased from KraShop at 1 KC, remaining balance 1 KC.
+PASS Android: used the purchased cookie and returned to KraRoom.
+PASS Android: manual partner QR code redeemed without changing the 1 KC balance.
+PASS Android: cold process reconstructed offline room and exact 1 KC with the API unreachable.
+PASS Android: bought Зелёная футболка for 15 KC.
+PASS Android: tried on and equipped the purchased shirt from wardrobe.
+PASS Android: bought Папоротник в горшке for 35 KC.
+PASS Android: tried and placed the purchased fern in the left floor slot.
+PASS HTTP: separate session recovered the natively purchased and placed shirt and fern, with exact 51 KC.

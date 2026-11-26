@@ -1,0 +1,12 @@
+{
+  "enabled_motion_pet_frames_differ": true,
+  "foreground_frames": {
+    "Total frames rendered": 88,
+    "Janky frames": 88
+  },
+  "room_pss_kb": 51015,
+  "background_4s": {
+    "Total frames rendered": 0,
+    "Janky frames": 0
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "room_pss_kb": 49680,
+  "active_5s": {
+    "Total frames rendered": 0,
+    "Janky frames": 0
+  },
+  "animated_pet_frames_differ": false,
+  "background_5s": {
+    "Total frames rendered": 0,
+    "Janky frames": 0
+  },
+  "after_leaving_room_pss_kb": 48475,
+  "room_ui_hierarchy_wait_ms": 9982,
+  "reduced_motion_pet_frames_equal": true
+}
