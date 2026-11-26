@@ -59,7 +59,7 @@ android {
     }
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"; versionNameSuffix = "-p8.7.2"
+            applicationIdSuffix = ".debug"; versionNameSuffix = "-p10"
             buildConfigField("String", "API_BASE_URL", quoted(devApi))
             buildConfigField("String", "API_ENVIRONMENT", quoted("development"))
             buildConfigField("boolean", "ALLOW_LOCAL_HTTP", "true")
@@ -136,3 +136,13 @@ tasks.matching { it.name in setOf("preStagingBuild", "generateStagingBuildConfig
 tasks.matching { it.name in setOf("preReleaseBuild", "generateReleaseBuildConfig") }.configureEach {
     doFirst { require(productionApi.isNotEmpty()) { "Set KRAPIVA_PROD_API_BASE_URL" } }
 }
+
+val copyPetRigs by tasks.registering(Sync::class) {
+    from(rootProject.file("../assets/pets")) {
+        include("catalog.json", "rigs/**", "motion.json")
+        into("pets")
+    }
+    into(layout.buildDirectory.dir("generated/petAssets"))
+}
+android.sourceSets.getByName("main").assets.srcDir(copyPetRigs.map { it.destinationDir })
+tasks.named("preBuild") { dependsOn(copyPetRigs) }

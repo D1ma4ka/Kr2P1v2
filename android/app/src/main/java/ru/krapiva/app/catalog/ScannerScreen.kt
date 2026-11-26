@@ -87,9 +87,9 @@ internal fun luma(image: ImageProxy): ByteArray {
     }
 }
 @Composable
-private fun CameraPreview(context: Context, result: (String,String) -> Unit, failure: (String) -> Unit, ready: () -> Unit) {
+internal fun CameraPreview(context: Context, result: (String,String) -> Unit, failure: (String) -> Unit, ready: () -> Unit, accept: (String,String) -> Boolean = { _, _ -> true }) {
     val owner = LocalLifecycleOwner.current
-    val onResult by rememberUpdatedState(result); val onFailure by rememberUpdatedState(failure); val onReady by rememberUpdatedState(ready)
+    val accepts by rememberUpdatedState(accept); val onResult by rememberUpdatedState(result); val onFailure by rememberUpdatedState(failure); val onReady by rememberUpdatedState(ready)
     val previewView = remember { PreviewView(context).apply { implementationMode = PreviewView.ImplementationMode.COMPATIBLE; clipToOutline = true; outlineProvider = android.view.ViewOutlineProvider.BOUNDS } }
     AndroidView({ previewView },Modifier.fillMaxSize().clipToBounds())
     DisposableEffect(owner,previewView) {
@@ -108,7 +108,7 @@ private fun CameraPreview(context: Context, result: (String,String) -> Unit, fai
                     lastAttempt = now
                     val data = luma(frame)
                     decoder.decode(data,frame.width,frame.height)?.let { hit ->
-                        if (consumed.compareAndSet(false,true)) ContextCompat.getMainExecutor(context).execute { if (!disposed.get()) onResult(hit.code,hit.kind) }
+                        if (accepts(hit.code,hit.kind) && consumed.compareAndSet(false,true)) ContextCompat.getMainExecutor(context).execute { if (!disposed.get()) onResult(hit.code,hit.kind) }
                     }
                 }
             } catch (_: Exception) { /* A malformed frame is discarded; subsequent frames remain usable. */ }

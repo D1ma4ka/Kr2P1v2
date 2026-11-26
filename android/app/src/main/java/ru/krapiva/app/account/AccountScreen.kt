@@ -82,6 +82,7 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
     }
     val selected = when(state.screen) {
         AccountScreen.HOME -> ClubDestination.HOME
+        AccountScreen.PETS -> ClubDestination.PETS
         AccountScreen.CATALOG -> ClubDestination.CATALOG
         AccountScreen.DIARY -> ClubDestination.COLLECTION
         AccountScreen.SOCIAL -> ClubDestination.FEED
@@ -91,6 +92,7 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
         ClubNavigation(selected,!state.busy) { destination -> guard {
             when(destination) {
                 ClubDestination.HOME -> model.openHome()
+                ClubDestination.PETS -> model.navigate(AccountScreen.PETS)
                 ClubDestination.CATALOG -> model.navigate(AccountScreen.CATALOG)
                 ClubDestination.COLLECTION -> model.openDiary()
                 ClubDestination.FEED -> model.openSocial()
@@ -109,6 +111,13 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
                 }
             }
             else ru.krapiva.app.badges.BadgesApp(model.api,{model.navigate(AccountScreen.PROFILE)},model::sessionExpired) {navigation {it()}}
+        }
+        return
+    }
+    if (state.screen == AccountScreen.PETS && authenticated) {
+        val owner = state.profile!!.getString("userId")
+        savedScreens.SaveableStateProvider("pets-$owner") {
+            ru.krapiva.app.pets.PetScreen(model.api, owner, model::sessionExpired) { navigation { it() } }
         }
         return
     }
@@ -187,7 +196,7 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
                         AccountScreen.PROFILE -> Profile(state, model)
                         AccountScreen.EDIT -> ProfileEditor(state, model)
                         AccountScreen.SETTINGS -> Settings(state, model)
-                        AccountScreen.CATALOG, AccountScreen.DIARY, AccountScreen.SOCIAL, AccountScreen.HOME, AccountScreen.VENUES, AccountScreen.BADGES -> Unit
+                        AccountScreen.CATALOG, AccountScreen.DIARY, AccountScreen.SOCIAL, AccountScreen.HOME, AccountScreen.VENUES, AccountScreen.BADGES, AccountScreen.PETS -> Unit
                     }
                 }
             }

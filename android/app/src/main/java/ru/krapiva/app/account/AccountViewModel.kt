@@ -19,7 +19,7 @@ import ru.krapiva.app.places.DiscoveryCity
 import androidx.compose.runtime.mutableStateOf
 import java.io.IOException
 
-enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG, DIARY, SOCIAL, HOME, VENUES, BADGES }
+enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, RESET, PROFILE, EDIT, SETTINGS, CATALOG, DIARY, SOCIAL, HOME, VENUES, BADGES, PETS }
 data class AccountState(
     val authEmail: String = "", val screen: AccountScreen = AccountScreen.RESTORING, val busy: Boolean = false,
     val error: String? = null, val notice: String? = null, val profile: JSONObject? = null,

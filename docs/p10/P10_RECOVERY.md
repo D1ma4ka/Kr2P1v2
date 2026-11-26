@@ -7,3 +7,7 @@
 Миграция 017 и серверные операции реализованы. Повторить тесты из backend: `npm run build` и `node --env-file=../.env --test --test-concurrency=1 dist/test/*.test.js`. Следующая точка — проверка нативного клиента и импорт стартового каталога.
 
 После миграции 018 импортировать [каталог](P10_ADD_NEW_ITEM.md). Для проверки QR создать одноразовый тестовый набор по [инструкции](P10_ADD_PARTNER_EVENT.md).
+
+Для Android используется вход по существующему API. Собрать из `android/`: `./gradlew assembleDebug assembleDebugAndroidTest testDebugUnitTest lintDebug`. Debug-адрес эмулятора по умолчанию `http://10.0.2.2:53000/`. Запустить API с `PORT=53000` и применёнными миграциями.
+
+Инструментальный сценарий `ru.krapiva.app.pets.PetAcceptanceTest` запускается только на тестовом окружении. Подготовить QR в файл, затем из корня выполнить `node --env-file=.env tools/p10/device-fixture.mjs путь-к-коду` и передать `work/p10-device-fixture.json` на устройство по адресу `/data/local/tmp/p10-fixture.json`. Это локальный файл с синтетическими данными доступа. После установки обоих APK выбрать класс через `adb shell am instrument -w -r -e class ru.krapiva.app.pets.PetAcceptanceTest ru.krapiva.app.debug.test/androidx.test.runner.AndroidJUnitRunner`.
