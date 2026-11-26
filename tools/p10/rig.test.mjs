@@ -78,8 +78,13 @@ test('the extended motion package resolves all sprite variants for all starter r
         }
       }
     }
-    const still = placeItem(rig, pose(rig, 'eat', 0), 'wrist')
-    const atTable = placeItem(rig, pose(rig, 'eat', 1040), 'wrist')
-    assert.ok(atTable.transform[4] - still.transform[4] > 250)
+    const seated = pose(rig, 'sit', rig.clips.sit.duration)
+    const meal = pose(rig, 'eat', 0)
+    const wipe = pose(rig, 'eat', 2200)
+    assert.deepEqual(meal.layers, seated.layers)
+    assert.deepEqual(pose(rig, 'eat', rig.clips.eat.duration).layers, pose(rig).layers)
+    assert.deepEqual(wipe.bones.root, seated.bones.root)
+    assert.notDeepEqual(placeItem(rig, wipe, 'wrist'), placeItem(rig, seated, 'wrist'))
+    assert.equal(wipe.layers.find(layer => layer.bone === 'mouth').src, rig.layers.mouth.variants.closed.src)
   }
 })

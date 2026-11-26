@@ -1,7 +1,9 @@
 package ru.krapiva.app.pets
 
+import android.animation.ValueAnimator
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -39,6 +41,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -102,7 +105,7 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
         catch (_: Exception) { value=null }
     }
     fun act(clip: String, priority: Int=1) {
-        val now=android.os.SystemClock.elapsedRealtime()
+        val now=SystemClock.elapsedRealtime()
         val gestureCanEnd=rig?.holds(gesture.clip)!=true
         val duration=rig?.duration(gesture.clip) ?: 1200f
         if(priority>=gesture.priority || (gestureCanEnd && now-lastGesture>duration)) {
@@ -116,8 +119,8 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
         error=null
         page=next
         wardrobeOpen=next==PetPage.WARDROBE
-        if(next==PetPage.FOOD) act("sit",2)
-        else if(gesture.clip=="sit") act("idle",2)
+        if(next==PetPage.FOOD) act("sit",3)
+        else if(gesture.clip=="sit") act("idle",3)
     }
     fun show(confirmed: JSONObject, starterList: JSONObject, shopList: JSONObject, cached: Boolean) {
         snapshot=confirmed
@@ -167,7 +170,14 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
             if(action!=null) api.editLocalDocument("krapet_requests",owner) { it.remove(action) }
             if(path=="redeem" && result.optBoolean("replayed")) {
                 error="Эта награда уже в коллекции"
-            } else clip?.let { act(it,3) }
+            } else if(clip!=null) {
+                if(clip=="eat" && gesture.clip=="sit" && ValueAnimator.areAnimatorsEnabled()) {
+                    val remaining=(rig?.duration("sit")?.toLong() ?: 0L) -
+                        (SystemClock.elapsedRealtime()-lastGesture)
+                    delay(remaining.coerceAtLeast(0L))
+                }
+                act(clip,3)
+            }
             onDone()
         }
     }
@@ -191,7 +201,7 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
     }
     LaunchedEffect(serving) {
         if(serving!=null) {
-            kotlinx.coroutines.delay(1800)
+            delay(2400)
             serving=null
         }
     }

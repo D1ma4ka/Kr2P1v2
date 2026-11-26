@@ -702,42 +702,35 @@
     "tracks": {
       "root": [
         {
-          "time": 0
-        },
-        {
-          "time": 240,
-          "x": 130,
-          "y": -10
-        },
-        {
-          "time": 480,
-          "x": 260,
-          "y": -6
-        },
-        {
-          "time": 720,
-          "x": 340,
-          "y": 12,
-          "scaleY": 0.94
+          "time": 0,
+          "x": 332,
+          "y": 16,
+          "scaleY": 0.93
         },
         {
           "time": 1340,
-          "x": 340,
-          "y": 12,
-          "scaleY": 0.94
+          "x": 332,
+          "y": 16,
+          "scaleY": 0.93
         },
         {
           "time": 1660,
-          "x": 339,
-          "y": 10,
+          "x": 332,
+          "y": 14,
           "rotation": 2,
-          "scaleY": 0.94
+          "scaleY": 0.93
+        },
+        {
+          "time": 2040,
+          "x": 332,
+          "y": 16,
+          "scaleY": 0.93
         },
         {
           "time": 2380,
-          "x": 340,
-          "y": 12,
-          "scaleY": 0.94
+          "x": 332,
+          "y": 16,
+          "scaleY": 0.93
         },
         {
           "time": 2640,
@@ -758,20 +751,7 @@
           "time": 0
         },
         {
-          "time": 240,
-          "rotation": 3
-        },
-        {
-          "time": 480,
-          "rotation": -2
-        },
-        {
-          "time": 715,
-          "rotation": 2
-        },
-        {
-          "time": 2390,
-          "rotation": 2
+          "time": 2390
         },
         {
           "time": 2660,
@@ -790,20 +770,7 @@
           "time": 0
         },
         {
-          "time": 240,
-          "rotation": -4
-        },
-        {
-          "time": 480,
-          "rotation": 3
-        },
-        {
-          "time": 720,
-          "rotation": -2
-        },
-        {
-          "time": 2390,
-          "rotation": -2
+          "time": 2390
         },
         {
           "time": 2660,
@@ -822,7 +789,7 @@
           "time": 0
         },
         {
-          "time": 720,
+          "time": 400,
           "rotation": -4
         },
         {
@@ -843,7 +810,13 @@
         },
         {
           "time": 2040,
-          "rotation": -11
+          "rotation": -5
+        },
+        {
+          "time": 2200,
+          "rotation": -15,
+          "x": -8,
+          "y": -3
         },
         {
           "time": 2380,
@@ -861,15 +834,15 @@
           "value": "open"
         },
         {
-          "time": 860,
+          "time": 420,
           "value": "soft"
         },
         {
-          "time": 1000,
+          "time": 680,
           "value": "nibble"
         },
         {
-          "time": 1160,
+          "time": 960,
           "value": "yawn"
         },
         {
