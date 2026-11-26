@@ -1,0 +1,5 @@
+PASS HTTP: one verified non-alcoholic check-in and replay, balance 2 KC.
+PASS HTTP: client price/balance rejected, 1 KC purchase, stable receipt after price change, consumption replay.
+PASS HTTP: hot import temporary seasonal partner food, verified WebP and expiration, no API restart.
+PASS HTTP: five equipped items in two torso layers, fern placement and balance restored in a new session.
+PASS cleanup: original price restored and temporary package removed.
