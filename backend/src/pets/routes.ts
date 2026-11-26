@@ -7,6 +7,13 @@ const id={type:'string',pattern:'^[a-z][a-z0-9_]{2,63}$'};
 const secure={security:[{bearerAuth:[]}],response:s.errors};
 const root='/v1/pets';
 export async function petRoutes(app:FastifyInstance,pool:pg.Pool,allowTest:boolean) {
+  app.get(root+'/animations',{schema:secure},()=>r.animations(pool));
+  app.post<{Body:{view:'room'|'wardrobe'}}>(root+'/visit',{schema:{...secure,body:s.object({
+    view:{type:'string',enum:['room','wardrobe']}
+  })}},async(req,reply)=>{
+    await r.visit(pool,req.userId,req.body.view);
+    return reply.code(204).send();
+  });
   app.get(root+'/definitions',{schema:secure},()=>r.petDefinitions(pool));
   app.get(root+'/state',{schema:secure},req=>r.state(pool,req.userId));
   app.get(root+'/catalog',{schema:secure},()=>r.catalog(pool));

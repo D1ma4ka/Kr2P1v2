@@ -37,6 +37,31 @@ async function entry(db:pg.PoolClient,user:string,reason:string,event:string,del
   if(result.rowCount) await db.query('UPDATE kra_wallets SET balance=balance+$2 WHERE user_id=$1',[user,delta]);
   return Boolean(result.rowCount);
 }
+
+async function metric(db:Queryable,event:string,definition:string) {
+  await db.query(`INSERT INTO kra_metrics(day,event,definition_id,count)
+    VALUES((now() at time zone 'UTC')::date,$1,$2,1)
+    ON CONFLICT(day,event,definition_id) DO UPDATE SET count=kra_metrics.count+1`,[event,definition]);
+}
+export async function visit(pool:pg.Pool,user:string,view:'room'|'wardrobe') {
+  return transaction(pool,async db=>{
+    const room=(await db.query<{definition_id:string;visited:boolean;due:boolean}>(`
+      SELECT p.definition_id,r.last_visited_at IS NOT NULL AS visited,
+      r.last_visited_at IS NULL OR r.last_visited_at < now()-interval '30 minutes' AS due
+      FROM kra_rooms r JOIN kra_pets p ON p.id=r.active_pet_id WHERE r.user_id=$1 FOR UPDATE OF r`,[user])).rows[0];
+    if(!room) return;
+    if(view==='wardrobe') {
+      await metric(db,'wardrobe',room.definition_id);
+    } else if(room.due) {
+      await db.query('UPDATE kra_rooms SET last_visited_at=now() WHERE user_id=$1',[user]);
+      await metric(db,room.visited?'return_visit':'first_visit',room.definition_id);
+    }
+  });
+}
+export async function animations(pool:pg.Pool) {
+  return {items:(await pool.query('SELECT id, version, duration_ms AS "durationMs", priority FROM kra_animation_definitions ORDER BY id')).rows};
+}
+
 export async function creditPublishedCheckin(db:pg.PoolClient,user:string,checkin:string) {
   await lockAccount(db,user);
   if(!await active(db,user)) return;
@@ -70,6 +95,7 @@ export async function adopt(pool:pg.Pool,user:string,definition:string,name:stri
     await db.query('INSERT INTO kra_wallets(user_id) VALUES($1)',[user]);
     const settings=await config(db);
     await entry(db,user,'starter',row.id,settings.opening_balance,settings.version);
+    await metric(db,'adopt',definition);
   });
 }
 export async function selectPet(pool:pg.Pool,user:string,id:string) {
@@ -138,6 +164,7 @@ export async function purchase(pool:pg.Pool,user:string,key:string,definition:st
       'SELECT id FROM kra_items WHERE user_id=$1 AND definition_id=$2 AND consumed_at IS NULL',[user,definition])).rowCount)
       throw new ApiError(409,'ITEM_OWNED','Предмет уже в коллекции');
     const itemId=await grantItem(db,user,definition,'purchase');
+    await metric(db,'purchase',(await requirePet(db,user)).definition_id);
     await entry(db,user,'purchase',key,-row.price,(await config(db)).version);
     await db.query("INSERT INTO kra_actions VALUES($1,$2,'purchase',$3,$4)",[user,key,definition,itemId]);
     return {itemId};
@@ -172,7 +199,10 @@ export async function arrange(pool:pg.Pool,user:string,kind:'wear'|'decor',slot:
       if(item) await db.query('INSERT INTO kra_equipped(user_id,pet_id,slot,item_id) VALUES($1,$2,$3,$4)',[user,pet.id,slot,item]);
     } else {
       await db.query('DELETE FROM kra_room_decor WHERE user_id=$1 AND (slot=$2 OR item_id=$3)',[user,slot,item]);
-      if(item) await db.query('INSERT INTO kra_room_decor(user_id,slot,item_id) VALUES($1,$2,$3)',[user,slot,item]);
+      if(item) {
+        await db.query('INSERT INTO kra_room_decor(user_id,slot,item_id) VALUES($1,$2,$3)',[user,slot,item]);
+        await metric(db,'decor',pet.definition_id);
+      }
     }
   });
 }
@@ -181,8 +211,8 @@ export async function redeem(pool:pg.Pool,user:string,code:string,allowTest:bool
   return transaction(pool,async db=>{
     await wallet(db,user);
     await db.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`kra-reward:${hash}`]);
-    const row=(await db.query<{id:string;item_id:string;supply:number;active:boolean}>(`
-      SELECT r.id,r.item_id,r.supply,r.starts_at<=now() AND r.ends_at>now() AND d.enabled AS active
+    const row=(await db.query<{id:string;item_id:string;supply:number;active:boolean;min_published_checkins:number}>(`
+      SELECT r.id,r.item_id,r.supply,r.min_published_checkins,r.starts_at<=now() AND r.ends_at>now() AND d.enabled AS active
       FROM kra_partner_rewards r JOIN kra_item_definitions d ON d.id=r.item_id
       WHERE r.code_hash=$1 AND r.enabled AND (NOT r.test_only OR $2)`,[hash,allowTest])).rows[0];
     if(!row) throw notFound();
@@ -190,7 +220,14 @@ export async function redeem(pool:pg.Pool,user:string,code:string,allowTest:bool
     if(old) return {itemId:old.item_id,replayed:true};
     const sold=(await db.query<{count:number}>('SELECT count(*)::integer AS count FROM kra_redemptions WHERE reward_id=$1',[row.id])).rows[0]!.count;
     if(!row.active || sold>=row.supply) throw new ApiError(409,'REWARD_UNAVAILABLE','Награда недоступна');
+    if(row.min_published_checkins>0) {
+      const {count}=(await db.query<{count:number}>(`SELECT count(*)::integer AS count FROM
+        (SELECT 1 FROM checkins WHERE user_id=$1 AND deleted_at IS NULL AND hidden_at IS NULL LIMIT $2) eligible`,
+        [user,row.min_published_checkins])).rows[0]!;
+      if(count<row.min_published_checkins) throw new ApiError(409,'REWARD_INELIGIBLE','Условия события ещё не выполнены');
+    }
     const itemId=await grantItem(db,user,row.item_id,'partner');
+    await metric(db,'partner_reward',(await requirePet(db,user)).definition_id);
     await db.query('INSERT INTO kra_redemptions(reward_id,user_id,item_id) VALUES($1,$2,$3)',[row.id,user,itemId]);
     return {itemId,replayed:false};
   });

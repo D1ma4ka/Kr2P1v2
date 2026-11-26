@@ -107,7 +107,21 @@ test('KraPet content import serves checked WebP and supports audited adjustments
     const art=await call('art/'+items[0].assetHash);
     assert.equal(art.headers['content-type'],'image/webp');
     assert.equal(createHash('sha256').update(art.rawPayload).digest('hex'),items[0].assetHash);
+    for(const [index,definitionId] of ['starter_hop','starter_cap','starter_bottle','starter_tap'].entries()) {
+      const temporary=await fixtures(db.pool,`starter${index}`);
+      const picked=await call('adopt',temporary.a.token,{definitionId,name:'Тест'});
+      assert.equal(picked.json().pet.definitionId,definitionId);
+    }
     assert.equal((await call('adopt',f.a.token,{definitionId:'starter_nettle',name:'Мята'})).statusCode,200);
+    assert.equal((await call('animations')).json().items.length,21);
+    for(let i=0;i<2;i++) assert.equal((await call('visit',f.a.token,{view:'room'})).statusCode,204);
+    await db.pool.query("UPDATE kra_rooms SET last_visited_at=now()-interval '1 hour' WHERE user_id=$1",[f.a.id]);
+    assert.equal((await call('visit',f.a.token,{view:'room'})).statusCode,204);
+    assert.equal((await call('visit',f.a.token,{view:'wardrobe'})).statusCode,204);
+    assert.deepEqual((await db.pool.query(`SELECT event,count::integer FROM kra_metrics
+      WHERE definition_id='starter_nettle' ORDER BY event`)).rows,[
+      {event:'adopt',count:1},{event:'first_visit',count:1},{event:'return_visit',count:1},{event:'wardrobe',count:1}
+    ]);
     const adjust={userId:f.a.id,requestId:randomUUID(),delta:25,reason:'Synthetic adjustment'};
     assert.equal((await call('admin/adjust',f.b.token,adjust)).statusCode,403);
     await db.pool.query("UPDATE users SET role='admin' WHERE id=$1",[f.b.id]);
