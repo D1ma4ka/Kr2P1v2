@@ -10,6 +10,14 @@ export async function petRoutes(app:FastifyInstance,pool:pg.Pool,allowTest:boole
   app.get(root+'/definitions',{schema:secure},()=>r.petDefinitions(pool));
   app.get(root+'/state',{schema:secure},req=>r.state(pool,req.userId));
   app.get(root+'/catalog',{schema:secure},()=>r.catalog(pool));
+  app.get<{Params:{hash:string}}>(root+'/art/:hash',{schema:{...secure,params:s.object({
+    hash:{type:'string',pattern:'^[0-9a-f]{64}$'}
+  })}},async(req,reply)=>reply.type('image/webp').send(await r.artwork(pool,req.params.hash)));
+  app.post<{Body:{userId:string;requestId:string;delta:number;reason:string}}>(root+'/admin/adjust',{schema:{...secure,
+    body:s.object({userId:s.uuid,requestId:s.uuid,delta:{type:'integer',minimum:-100000,maximum:100000},
+      reason:{type:'string',minLength:1,maxLength:500,pattern:'\\S'}})}},req=>
+    r.adjustWallet(pool,req.userId,req.body.userId,req.body.requestId,req.body.delta,req.body.reason.trim()));
+
   app.get<{Querystring:{before?:string}}>(root+'/wallet',{schema:{...secure,
     querystring:s.object({before:{type:'string',pattern:'^[1-9][0-9]{0,17}$'}},[])}},req=>r.history(pool,req.userId,req.query.before));
   app.post<{Body:{definitionId:string;name:string}}>(root+'/adopt',{schema:{...secure,

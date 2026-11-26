@@ -86,3 +86,37 @@ test('KraPet real PostgreSQL: account isolation, verified publication, wallet, c
     assert.equal(await balance(),1);
   } finally { await app.close(); await db.close(); }
 });
+
+test('KraPet content import serves checked WebP and supports audited adjustments',async()=>{
+  const {importPetContent,createTestReward}=await import('../src/operations/pet-content.js');
+  const db=await testDatabase();
+  const app=buildApp(readConfig({NODE_ENV:'test',LOG_LEVEL:'silent'}),db.pool);
+  try {
+    await migrate(db.pool);
+    const f=await fixtures(db.pool);
+    const manifest='../assets/pets/items/catalog.json';
+    assert.equal(await importPetContent(db.pool,manifest),51);
+    assert.equal(await importPetContent(db.pool,manifest),51);
+    const call=(path:string,token=f.a.token,body?:unknown)=>app.inject({url:'/v1/pets/'+path,
+      method:body?'POST':'GET',headers:{authorization:'Bearer '+token,...(body?{'content-type':'application/json'}:{})},
+      ...(body?{payload:JSON.stringify(body)}:{})});
+    const {items}=(await call('catalog')).json();
+    for(const [kind,count] of [['wear',25],['food',10],['decor',15]]) {
+      assert.equal(items.filter((r:{kind:string;forSale:boolean})=>r.kind===kind && r.forSale).length,count);
+    }
+    const art=await call('art/'+items[0].assetHash);
+    assert.equal(art.headers['content-type'],'image/webp');
+    assert.equal(createHash('sha256').update(art.rawPayload).digest('hex'),items[0].assetHash);
+    assert.equal((await call('adopt',f.a.token,{definitionId:'starter_nettle',name:'Мята'})).statusCode,200);
+    const adjust={userId:f.a.id,requestId:randomUUID(),delta:25,reason:'Synthetic adjustment'};
+    assert.equal((await call('admin/adjust',f.b.token,adjust)).statusCode,403);
+    await db.pool.query("UPDATE users SET role='admin' WHERE id=$1",[f.b.id]);
+    assert.equal((await call('admin/adjust',f.b.token,adjust)).json().balance,25);
+    assert.equal((await call('admin/adjust',f.b.token,adjust)).json().balance,25);
+    assert.equal((await call('admin/adjust',f.b.token,{...adjust,delta:1})).statusCode,409);
+    const reward=await createTestReward(db.pool);
+    const accepted=await call('redeem',f.a.token,{code:reward});
+    assert.equal(accepted.statusCode,200);
+    assert.equal((await call('redeem',f.a.token,{code:reward})).json().replayed,true);
+  } finally { await app.close(); await db.close(); }
+});

@@ -17,7 +17,7 @@ import {FileStorage} from '../src/media/storage.js';
 test('P6 real HTTP/PostgreSQL/SMTP: two registered accounts, friendship state machine, feed, comments, reactions, privacy and restart',async()=>{
  const db=await testDatabase(),dir=await mkdtemp(join(tmpdir(),'krapiva-social-'));
  // Exercise upgrade from P5, retaining existing rows.
- const migrations=join(dir,'migrations');await cp('migrations',migrations,{recursive:true});await rm(join(migrations,'008_social.sql'));await rm(join(migrations,'009_email_verification_codes.sql'));await rm(join(migrations,'010_places_badges_moderation.sql'));await rm(join(migrations,'011_password_reset_codes.sql'));await rm(join(migrations,'012_user_handles.sql'));await rm(join(migrations,'013_local_discovery.sql'));await rm(join(migrations,'014_saved_venues.sql'));await rm(join(migrations,'015_venue_menus.sql'));await rm(join(migrations,'016_verified_release_dates.sql'));await rm(join(migrations,'017_krapet.sql'));await migrate(db.pool,migrations);
+ const migrations=join(dir,'migrations');await cp('migrations',migrations,{recursive:true,filter:source=>{const version=source.split('/').at(-1)?.match(/^([0-9]{3})_/);return !version || version[1]!<='007';}});await migrate(db.pool,migrations);
  const f=await fixtures(db.pool);await migrate(db.pool);
  assert.ok((await db.pool.query('SELECT id FROM users WHERE id=$1',[f.a.id])).rowCount);
  const media=new MediaService(db.pool,new FileStorage(join(dir,'media')));

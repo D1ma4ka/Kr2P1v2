@@ -95,11 +95,11 @@ export async function state(pool:pg.Pool,user:string) {
 }
 export async function catalog(pool:pg.Pool) {
   const {rows}=await pool.query(`SELECT id,name,kind,category,rarity,price,slots,render,
-   compatible_pets AS "compatiblePets",asset_version AS "assetVersion",series,partner_id AS "partnerId",
+   compatible_pets AS "compatiblePets",asset_version AS "assetVersion",asset_hash AS "assetHash",series,partner_id AS "partnerId",
    enabled AND (available_from IS NULL OR available_from<=now())
     AND (available_until IS NULL OR available_until>now()) AND price IS NOT NULL AS "forSale"
    FROM kra_item_definitions ORDER BY kind,price NULLS LAST,id`);
-  return {items:rows};
+  return {items:rows,economyVersion:(await config(pool)).version};
 }
 export async function history(pool:pg.Pool,user:string,before?:string) {
   const {rows}=await pool.query(`SELECT id::text,reason,event_id AS "eventId",amount,
@@ -193,5 +193,27 @@ export async function redeem(pool:pg.Pool,user:string,code:string,allowTest:bool
     const itemId=await grantItem(db,user,row.item_id,'partner');
     await db.query('INSERT INTO kra_redemptions(reward_id,user_id,item_id) VALUES($1,$2,$3)',[row.id,user,itemId]);
     return {itemId,replayed:false};
+  });
+}
+
+export async function artwork(pool:pg.Pool,hash:string) {
+  const row=(await pool.query<{bytes:Buffer}>('SELECT bytes FROM kra_art WHERE hash=$1',[hash])).rows[0];
+  if(!row) throw notFound();
+  return row.bytes;
+}
+export async function adjustWallet(pool:pg.Pool,actor:string,user:string,request:string,delta:number,note:string) {
+  return transaction(pool,async db=>{
+    if(!(await db.query("SELECT id FROM users WHERE id=$1 AND status='active' AND role='admin'",[actor])).rowCount)
+      throw new ApiError(403,'FORBIDDEN','Нужна роль администратора');
+    const balance=await wallet(db,user);
+    const old=(await db.query<{amount:number;actor_id:string;note:string}>(`SELECT amount,actor_id,note FROM kra_wallet_entries
+      WHERE user_id=$1 AND reason='admin' AND event_id=$2`,[user,request])).rows[0];
+    if(old) {
+      if(old.amount!==delta || old.actor_id!==actor || old.note!==note) throw conflict();
+      return {balance};
+    }
+    if(balance+delta<0) throw new ApiError(409,'INSUFFICIENT_KC','Недостаточно KrapiCoin');
+    await entry(db,user,'admin',request,delta,(await config(db)).version,actor,note);
+    return {balance:balance+delta};
   });
 }

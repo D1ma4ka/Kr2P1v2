@@ -1,0 +1,913 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "crew_tee",
+      "name": "Зелёная футболка",
+      "kind": "wear",
+      "category": "tee",
+      "price": 15,
+      "slots": [
+        "torso_base"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/crew_tee.webp",
+      "sha256": "7adf006009bdc3204d6074b54a4a13d0fe757c4e0b8aee041a7da7892d7bb655",
+      "render": {
+        "displayWidth": 400,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "raglan_tee",
+      "name": "Футболка реглан",
+      "kind": "wear",
+      "category": "raglan",
+      "price": 18,
+      "slots": [
+        "torso_base"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/raglan_tee.webp",
+      "sha256": "6bb96095eed05666e4e45c283ef856d7118b84fd68cd3d85660564227c5fe496",
+      "render": {
+        "displayWidth": 400,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "pocket_tee",
+      "name": "Футболка с карманом",
+      "kind": "wear",
+      "category": "pocket",
+      "price": 18,
+      "slots": [
+        "torso_base"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/pocket_tee.webp",
+      "sha256": "23c658841990180d54c23ebcb764956900e08ebc2ed88efcd701a32e228e8278",
+      "render": {
+        "displayWidth": 400,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "striped_tee",
+      "name": "Полосатая футболка",
+      "kind": "wear",
+      "category": "stripes",
+      "price": 18,
+      "slots": [
+        "torso_base"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/striped_tee.webp",
+      "sha256": "09732e03a14271a41a53fa54cf3b0f6a6c2d481e3564641fe916f39092697183",
+      "render": {
+        "displayWidth": 400,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "linen_shirt",
+      "name": "Льняная рубашка",
+      "kind": "wear",
+      "category": "shirt",
+      "price": 30,
+      "slots": [
+        "torso_outer"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/linen_shirt.webp",
+      "sha256": "287393bd4131766518dab3cb90c09bf2219d5c8b6eb17f3f6828d66cb0dc4b82",
+      "render": {
+        "displayWidth": 435,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "check_shirt",
+      "name": "Рубашка в клетку",
+      "kind": "wear",
+      "category": "check",
+      "price": 32,
+      "slots": [
+        "torso_outer"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/check_shirt.webp",
+      "sha256": "67acd37e5e1d39279991915e388150bb0a47252b51951a8bc467a65654ec0529",
+      "render": {
+        "displayWidth": 435,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "hoodie",
+      "name": "Худи на шнурках",
+      "kind": "wear",
+      "category": "hoodie",
+      "price": 45,
+      "slots": [
+        "torso_outer"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/hoodie.webp",
+      "sha256": "741bd2cf3e058dff441581e947bca83870fc89aeaf71d3c3af96f02b11a14a3e",
+      "render": {
+        "displayWidth": 435,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "zip_hoodie",
+      "name": "Толстовка на молнии",
+      "kind": "wear",
+      "category": "zip",
+      "price": 45,
+      "slots": [
+        "torso_outer"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/zip_hoodie.webp",
+      "sha256": "a7f9a3b48e6ec15abf9edfc945acc80502192ff27aa11e2b042443c133215726",
+      "render": {
+        "displayWidth": 435,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "bomber",
+      "name": "Бомбер",
+      "kind": "wear",
+      "category": "bomber",
+      "price": 60,
+      "slots": [
+        "torso_outer"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/bomber.webp",
+      "sha256": "0915cc9e16ad0fab1a359d74b2d811d6c9e12c496263254bd02faed7d25620f1",
+      "render": {
+        "displayWidth": 435,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "denim_jacket",
+      "name": "Джинсовая куртка",
+      "kind": "wear",
+      "category": "denim",
+      "price": 60,
+      "slots": [
+        "torso_outer"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/denim_jacket.webp",
+      "sha256": "34dee59f608d4dbe6abc5b8b9756ef96d4899be212d2881dfe2d6a3b0b4d72fb",
+      "render": {
+        "displayWidth": 435,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "baseball_cap",
+      "name": "Бейсболка",
+      "kind": "wear",
+      "category": "cap",
+      "price": 20,
+      "slots": [
+        "head"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/baseball_cap.webp",
+      "sha256": "0d0f4ec7adb27635e21cc1d1c26a62e8caf6d363a9cfd8a54af0e18bbfecf93d",
+      "render": {
+        "displayWidth": 375,
+        "originX": 0.5,
+        "originY": 0.76
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "trucker_cap",
+      "name": "Кепка с сеткой",
+      "kind": "wear",
+      "category": "trucker",
+      "price": 22,
+      "slots": [
+        "head"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/trucker_cap.webp",
+      "sha256": "b6a98e01b8810b8fab12d839c3d90a0be75873eb0615e52afa7589cdd6f2206d",
+      "render": {
+        "displayWidth": 375,
+        "originX": 0.5,
+        "originY": 0.76
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "bucket_hat",
+      "name": "Панама",
+      "kind": "wear",
+      "category": "bucket",
+      "price": 24,
+      "slots": [
+        "head"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/bucket_hat.webp",
+      "sha256": "3b20d58cc8155097a7ab21eb6c76ae484d451c26f2964321c4b508aff9f20c7a",
+      "render": {
+        "displayWidth": 375,
+        "originX": 0.5,
+        "originY": 0.76
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "bowler_hat",
+      "name": "Котелок",
+      "kind": "wear",
+      "category": "bowler",
+      "price": 26,
+      "slots": [
+        "head"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/bowler_hat.webp",
+      "sha256": "a19f26beb553ffec09298529bd6a5fd9d5f2cc6cd7c432ebbb78dd960bb575df",
+      "render": {
+        "displayWidth": 375,
+        "originX": 0.5,
+        "originY": 0.76
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "knit_hat",
+      "name": "Вязаная шапка",
+      "kind": "wear",
+      "category": "beanie",
+      "price": 23,
+      "slots": [
+        "head"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/knit_hat.webp",
+      "sha256": "7d7792037b9505aa967f6af16d45270be7e8e8c32f0a4976d9539fabdc11b3f5",
+      "render": {
+        "displayWidth": 375,
+        "originX": 0.5,
+        "originY": 0.76
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "round_glasses",
+      "name": "Круглые очки",
+      "kind": "wear",
+      "category": "round",
+      "price": 25,
+      "slots": [
+        "face"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/round_glasses.webp",
+      "sha256": "0c558f1c81d580bee0cf9a80c394ab0802428fda92c9ca7c78e5c6cb2ea48746",
+      "render": {
+        "displayWidth": 505,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "square_glasses",
+      "name": "Квадратные очки",
+      "kind": "wear",
+      "category": "square",
+      "price": 25,
+      "slots": [
+        "face"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/square_glasses.webp",
+      "sha256": "04e1e8842139a454b1b1bbfd52ce6e9d0a6ce6a10f0660b913836b205724a817",
+      "render": {
+        "displayWidth": 505,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "aviator_glasses",
+      "name": "Очки-авиаторы",
+      "kind": "wear",
+      "category": "aviator",
+      "price": 29,
+      "slots": [
+        "face"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/aviator_glasses.webp",
+      "sha256": "577317cc189c20699c297bf4c29cc676aa355282c81d6a6c678c6c05c2dec2a9",
+      "render": {
+        "displayWidth": 505,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "field_watch",
+      "name": "Походные часы",
+      "kind": "wear",
+      "category": "watch",
+      "price": 40,
+      "slots": [
+        "wrist"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/field_watch.webp",
+      "sha256": "3ed1893b6d45016aa4b9ecf54d69d4c4715c8e59fa4218053d8d6aa132a376f9",
+      "render": {
+        "displayWidth": 140,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "digital_watch",
+      "name": "Электронные часы",
+      "kind": "wear",
+      "category": "digital",
+      "price": 42,
+      "slots": [
+        "wrist"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/digital_watch.webp",
+      "sha256": "a0e8079460afe60f1575d39bb48a1623c0dea330ae59e3e605b50fe908634025",
+      "render": {
+        "displayWidth": 140,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "leaf_chain",
+      "name": "Цепочка с листком",
+      "kind": "wear",
+      "category": "chain",
+      "price": 33,
+      "slots": [
+        "neck"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/leaf_chain.webp",
+      "sha256": "7cb13f4fda342fe4f8e23cc56df3c80e983d0648b811db57bb19a80b3d309024",
+      "render": {
+        "displayWidth": 260,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "plaid_scarf",
+      "name": "Клетчатый шарф",
+      "kind": "wear",
+      "category": "scarf",
+      "price": 28,
+      "slots": [
+        "neck"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/plaid_scarf.webp",
+      "sha256": "145423ef657a5f70a401cf38d223c1bddb8688dbc13c5c86a3dc77c8320b30ed",
+      "render": {
+        "displayWidth": 260,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "bow_tie",
+      "name": "Галстук-бабочка",
+      "kind": "wear",
+      "category": "bow",
+      "price": 24,
+      "slots": [
+        "neck"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/bow_tie.webp",
+      "sha256": "5f804150d34e5232bd370fdad8c06c82546d0b6ca3869059ebe206b0bff9f0e7",
+      "render": {
+        "displayWidth": 260,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "hop_pin",
+      "name": "Значок «Хмель»",
+      "kind": "wear",
+      "category": "pin",
+      "price": 20,
+      "slots": [
+        "accessory"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/hop_pin.webp",
+      "sha256": "6970b0fb160a101fcaab67e83d817d5beb1954f5ea59ead7749dfc362ad4140e",
+      "render": {
+        "displayWidth": 105,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "star_pin",
+      "name": "Эмалевый значок «Звезда»",
+      "kind": "wear",
+      "category": "star",
+      "price": 22,
+      "slots": [
+        "accessory"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/star_pin.webp",
+      "sha256": "9c6ab955b1d9813df50b45f9e46022e95468b135249109310ed251a404a793e7",
+      "render": {
+        "displayWidth": 105,
+        "originX": 0.5,
+        "originY": 0.5
+      },
+      "compatiblePets": []
+    },
+    {
+      "id": "cookie",
+      "name": "Печенье",
+      "kind": "food",
+      "category": "cookie",
+      "price": 1,
+      "slots": [],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/cookie.webp",
+      "sha256": "022dd3e479f99a8dc74f04bf3bea092b44f47ba2914ba7452a8af40a4ea501fe",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "pretzel",
+      "name": "Крендель",
+      "kind": "food",
+      "category": "pretzel",
+      "price": 1,
+      "slots": [],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/pretzel.webp",
+      "sha256": "bc47a55cf058218e4eea72e97d18dc25551eab55c10f1067ccb30ae716b95fd8",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "nuts",
+      "name": "Миска орешков",
+      "kind": "food",
+      "category": "nuts",
+      "price": 1,
+      "slots": [],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/nuts.webp",
+      "sha256": "cfed366b634a31133f26cc7bd7d9c941f533aebc33d2acc96800a47f248f58f9",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "crisps",
+      "name": "Картофельные чипсы",
+      "kind": "food",
+      "category": "chips",
+      "price": 1,
+      "slots": [],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/crisps.webp",
+      "sha256": "a74c2dc0ef3a003bdc0842d9d6e2c12d7a9367cc8cb80c08c9902d31af1ac31a",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "cheese",
+      "name": "Ломтики сыра",
+      "kind": "food",
+      "category": "cheese",
+      "price": 1,
+      "slots": [],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/cheese.webp",
+      "sha256": "02bc7f9bb1a2dcb4ffb3ad0294947347c1f114dbcac7a3846384455f7c6679dd",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "pizza",
+      "name": "Кусочек пиццы",
+      "kind": "food",
+      "category": "pizza",
+      "price": 1,
+      "slots": [],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/pizza.webp",
+      "sha256": "7c84b732d0e12bae6ed1ef1b3f71efcacca0c6313362e609576521ef4293a745",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "burger",
+      "name": "Мини-бургер",
+      "kind": "food",
+      "category": "burger",
+      "price": 1,
+      "slots": [],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/burger.webp",
+      "sha256": "66e018a0c2e6b8f79bdef7200638b93560dca609e6917578d95f40c58522e457",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "lemonade",
+      "name": "Лимонад",
+      "kind": "food",
+      "category": "lemonade",
+      "price": 1,
+      "slots": [],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/lemonade.webp",
+      "sha256": "cfb66fc81ae573f49cf0b5ae749a7404237215e0b3da88f0b51158ccd171e162",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "malt_zero",
+      "name": "Безалкогольный солодовый напиток",
+      "kind": "food",
+      "category": "malt",
+      "price": 1,
+      "slots": [],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/malt_zero.webp",
+      "sha256": "c3ae7337ec0621ef79088040670bcfcbd9539e0784e6656383526bbddd65c25d",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "berry_cake",
+      "name": "Ягодное пирожное",
+      "kind": "food",
+      "category": "cake",
+      "price": 5,
+      "slots": [],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/berry_cake.webp",
+      "sha256": "285613422fd6c5b2141c0ffc76855fc5d2033471318029f472f41bc592849fdb",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "oak_shelf",
+      "name": "Дубовая полка",
+      "kind": "decor",
+      "category": "shelf",
+      "price": 30,
+      "slots": [
+        "wall_center"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/oak_shelf.webp",
+      "sha256": "6189d73c1d18b91654bb9252898763bf2a79ea0c98f70c9cc34b943e7fccaf99",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "leaf_poster",
+      "name": "Ботанический постер",
+      "kind": "decor",
+      "category": "poster",
+      "price": 25,
+      "slots": [
+        "wall_left"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/leaf_poster.webp",
+      "sha256": "7a76050141464b108bb38b5915491c71d6d75fbdba8c566ae2a46e7b9c61d6b6",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "gold_frame",
+      "name": "Картина в золотой раме",
+      "kind": "decor",
+      "category": "painting",
+      "price": 40,
+      "slots": [
+        "wall_right"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/gold_frame.webp",
+      "sha256": "2b551d722394028315015eef3a03441165ae3cb37f7694a0c68b6e5c1326582c",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "green_fern",
+      "name": "Папоротник в горшке",
+      "kind": "decor",
+      "category": "fern",
+      "price": 35,
+      "slots": [
+        "floor_left"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/green_fern.webp",
+      "sha256": "14b9fdcb1518b8f223ea9c48cba2f4bb31447a7b89c7bb211bfc8c578de0240d",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "bar_trophy",
+      "name": "Кубок",
+      "kind": "decor",
+      "category": "trophy",
+      "price": 45,
+      "slots": [
+        "shelf_slot_01",
+        "shelf_slot_02",
+        "shelf_slot_03",
+        "shelf_slot_04"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/bar_trophy.webp",
+      "sha256": "87699fcb9a1b8d10e4b5aab18c1fd1b96edb3fc994dcd694c5f47e138273a2e0",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "neon_leaf",
+      "name": "Неоновый лист",
+      "kind": "decor",
+      "category": "neon",
+      "price": 75,
+      "slots": [
+        "wall_right"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/neon_leaf.webp",
+      "sha256": "ed31cf71a9713f163fb2b18a87af37d44e984c05f351946ee4c8e8a4ec2b871e",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "wooden_figure",
+      "name": "Деревянная фигурка",
+      "kind": "decor",
+      "category": "figure",
+      "price": 65,
+      "slots": [
+        "shelf_slot_01",
+        "shelf_slot_02",
+        "shelf_slot_03",
+        "shelf_slot_04"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/wooden_figure.webp",
+      "sha256": "c4774b77ef7bdbff661a2460944662c9b2d7a72bbc783ce713b86efc15f763c1",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "amber_lamp",
+      "name": "Янтарный светильник",
+      "kind": "decor",
+      "category": "lamp",
+      "price": 90,
+      "slots": [
+        "lighting"
+      ],
+      "rarity": "rare",
+      "assetVersion": 1,
+      "asset": "art/amber_lamp.webp",
+      "sha256": "195469f38ebfe28bb1021322c042e129589cce92ffb58feb6d7d099f7c7a8ea4",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "club_wallpaper",
+      "name": "Обои с узором",
+      "kind": "decor",
+      "category": "wallpaper",
+      "price": 220,
+      "slots": [
+        "wallpaper"
+      ],
+      "rarity": "rare",
+      "assetVersion": 1,
+      "asset": "art/club_wallpaper.webp",
+      "sha256": "c4e77bb46c1608d5adeae75088d6d4da09d1bca597faef3cbd6f3bc1e83c9f70",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "oak_floor",
+      "name": "Дубовый паркет",
+      "kind": "decor",
+      "category": "floor",
+      "price": 240,
+      "slots": [
+        "flooring"
+      ],
+      "rarity": "rare",
+      "assetVersion": 1,
+      "asset": "art/oak_floor.webp",
+      "sha256": "f166fa50f51458fa5cde213fbe8816285a20ca378bad0286391d2da331b1c615",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "velvet_chair",
+      "name": "Бархатное кресло",
+      "kind": "decor",
+      "category": "chair",
+      "price": 250,
+      "slots": [
+        "floor_right"
+      ],
+      "rarity": "rare",
+      "assetVersion": 1,
+      "asset": "art/velvet_chair.webp",
+      "sha256": "b6d7ddcbda379b7856fe47a78ea2a0d91ed235d0f63ebd7e1c49dbdcca368e1e",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "table_vase",
+      "name": "Керамическая ваза",
+      "kind": "decor",
+      "category": "vase",
+      "price": 30,
+      "slots": [
+        "table_top"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/table_vase.webp",
+      "sha256": "4883b3e70ff1dfe671242d2481b7cee52c3c3a53fed8e8168fce07328523e291",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "bar_clock",
+      "name": "Часы на стену",
+      "kind": "decor",
+      "category": "clock",
+      "price": 60,
+      "slots": [
+        "wall_center"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/bar_clock.webp",
+      "sha256": "9c3d35fbcaabbceaab26c0e2c7c282856e687f44ac69998ad9dda5bd70adbe57",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "glass_terrarium",
+      "name": "Настольный террариум",
+      "kind": "decor",
+      "category": "terrarium",
+      "price": 38,
+      "slots": [
+        "table_top"
+      ],
+      "rarity": "common",
+      "assetVersion": 1,
+      "asset": "art/glass_terrarium.webp",
+      "sha256": "10b77b6e955a7ca4b4b47730fbb666d999842bafbbbcdc9a02df10602b42f3b0",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "city_souvenir",
+      "name": "Сувенир «Город»",
+      "kind": "decor",
+      "category": "city",
+      "price": 120,
+      "slots": [
+        "shelf_slot_01",
+        "shelf_slot_02",
+        "shelf_slot_03",
+        "shelf_slot_04"
+      ],
+      "rarity": "rare",
+      "assetVersion": 1,
+      "asset": "art/city_souvenir.webp",
+      "sha256": "b23aba94ac7c93af566cfc239b89193080d58123db5f200000fe530f59d3930f",
+      "render": {},
+      "compatiblePets": []
+    },
+    {
+      "id": "partner_badge",
+      "name": "Тестовый сувенир клуба",
+      "kind": "decor",
+      "category": "city",
+      "price": null,
+      "slots": [
+        "shelf_slot_01",
+        "shelf_slot_02",
+        "shelf_slot_03",
+        "shelf_slot_04"
+      ],
+      "rarity": "exclusive",
+      "assetVersion": 1,
+      "asset": "art/partner_badge.webp",
+      "sha256": "13d1103e6232a9ea184d58437d1de9c994a55031929d4c1dfcceb524fcbdd3be",
+      "render": {},
+      "compatiblePets": []
+    }
+  ]
+}
