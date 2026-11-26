@@ -72,6 +72,7 @@ internal fun NearbyFindsScreen(
     var originName by rememberSaveable { mutableStateOf(previous.city) }
     var mode by rememberSaveable { mutableStateOf(FindMode.UNTRIED) }
     var order by rememberSaveable { mutableStateOf(FindSort.DISTANCE) }
+    var releaseHeadline by rememberSaveable(userId) { mutableStateOf<String?>(null) }
     var selectedPreset by rememberSaveable { mutableStateOf<String?>(null) }
     var presetOverride by rememberSaveable { mutableStateOf<String?>(null) }
     var map by rememberSaveable { mutableStateOf(true) }
@@ -91,6 +92,15 @@ internal fun NearbyFindsScreen(
     var cameraLongitude by rememberSaveable { mutableStateOf<Double?>(previous.camera?.longitude) }
     var cameraZoom by rememberSaveable { mutableStateOf(previous.camera?.zoom ?: 2.0) }
     var cameraCommand by remember { mutableIntStateOf(0) }
+
+    val releaseHeadlines = remember(context) { NewReleaseHeadlines(context) }
+    LaunchedEffect(mode, userId) {
+        if (mode == FindMode.NEW_RELEASES) {
+            if (releaseHeadline == null) releaseHeadline = releaseHeadlines.next()
+        } else {
+            releaseHeadline = null
+        }
+    }
 
     fun useOrigin(point: Coordinates, name: String, device: Boolean) {
         latitude = point.latitude
@@ -261,7 +271,8 @@ internal fun NearbyFindsScreen(
                 val fallback = providerError != null || !configured
                 Row(Modifier.fillMaxWidth().padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     TextButton(back) { Text("Назад") }
-                    Text("Находки рядом", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                    val title = if (mode == FindMode.NEW_RELEASES) releaseHeadline ?: mode.title else "Находки рядом"
+                    Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
                 }
                 if (pickPoint) {
                     Text("Нажми на точку карты, чтобы искать от неё.", Modifier.padding(horizontal = 12.dp))
@@ -269,6 +280,11 @@ internal fun NearbyFindsScreen(
                         Modifier.padding(horizontal = 12.dp), color = KraPivaColors.Error)
                 } else {
                     FlowRow(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (mode != FindMode.NEW_RELEASES) FilterChip(false, {
+                            mode = FindMode.NEW_RELEASES
+                            order = FindSort.RELEVANCE
+                            selectedVenue = null
+                        }, { Text(FindMode.NEW_RELEASES.title) })
                         OutlinedButton({ options = true }, Modifier.testTag("find-conditions")) { Text("Параметры") }
                         TextButton({ radiusPicker = true }, Modifier.testTag("find-radius")) { Text("$radius км") }
                         FilterChip(map, { map = true; selectedVenue = null }, { Text("Карта") })
@@ -276,7 +292,7 @@ internal fun NearbyFindsScreen(
                     }
                     Text(listOfNotNull(
                         origin?.let { if (fromDevice) "Моё местоположение" else originName.ifBlank { "Точка на карте" } },
-                        selectedMode,
+                        selectedMode.takeUnless { mode == FindMode.NEW_RELEASES },
                     ).joinToString(" · "), Modifier.padding(horizontal = 16.dp), color = KraPivaColors.Muted,
                         style = MaterialTheme.typography.bodySmall)
                     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -444,7 +460,10 @@ private fun FindOptions(
                 TextButton(onPoint) { Text("Точка на карте") }
                 TextButton(onLocation) { Text(if (fromDevice) "Обновить геопозицию" else "Рядом со мной") }
             }
-            FindChoice("Что искать", selectedMode.title, FindMode.entries, FindMode::title) { selectedMode = it }
+            FindChoice("Что искать", selectedMode.title, FindMode.entries, FindMode::title) {
+                if (it == FindMode.NEW_RELEASES && selectedMode != it) selectedSort = FindSort.RELEVANCE
+                selectedMode = it
+            }
             if (selectedMode == FindMode.FILTER) {
                 if (presets.isEmpty()) Text(if (presetError) "Сохранённые фильтры недоступны." else "Именованные фильтры можно сохранить из меню заведения.")
                 else FindChoice("Фильтр", presets.firstOrNull { it.id == selectedPreset }?.name ?: "Выбрать",
@@ -523,8 +542,11 @@ private fun FindCityDialog(api: AccountApi, expired: () -> Unit, close: () -> Un
 @Composable
 private fun FindEmpty(mode: FindMode, historySize: Int, radius: Int, expand: () -> Unit, other: () -> Unit,
                       conditions: () -> Unit, filter: MenuFilter?) {
-    Text(if (mode == FindMode.FAVORITE && historySize == 0) "В дневнике пока нет данных о любимых стилях."
-        else "В этом радиусе нет подходящих позиций в свежих меню.")
+    Text(when {
+        mode == FindMode.NEW_RELEASES -> "Пока нет новых находок поблизости"
+        mode == FindMode.FAVORITE && historySize == 0 -> "В дневнике пока нет данных о любимых стилях."
+        else -> "В этом радиусе нет подходящих позиций в свежих меню."
+    })
     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         if (radius < nearbyRadii.last()) TextButton(expand) { Text("Увеличить радиус") }
         if (filter?.chips()?.any { it.label != "В наличии" } == true) TextButton(conditions) { Text("Убрать условие") }
@@ -539,7 +561,9 @@ private fun FindVenueCard(venue: FindVenue, open: () -> Unit, dismiss: (() -> Un
         Text(venue.name, style = MaterialTheme.typography.titleMedium)
         Text("${venue.city} · ${DiaryNumbers.average(venue.distanceKm.toString())} км", color = KraPivaColors.Muted)
         if (venue.matches > 0) {
-            Text("Подходящих позиций · ${venue.matches}", style = MaterialTheme.typography.titleSmall)
+            val countLabel = if (venue.newReleaseNames.isEmpty()) "Подходящих позиций" else "Новинки в меню"
+            Text("$countLabel · ${venue.matches}", style = MaterialTheme.typography.titleSmall)
+            venue.newReleaseNames.forEach { Text(it) }
             if (venue.styles.isNotEmpty()) Text(venue.styles.joinToString(" · "))
             val facts = buildList {
                 if (venue.wishlist > 0) add("Из wishlist · ${venue.wishlist}")

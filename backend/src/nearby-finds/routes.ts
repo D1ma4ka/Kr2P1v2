@@ -20,7 +20,8 @@ const venue = s.object({
 const summary = s.object({
  venue,matches:count,untried:count,wishlist:count,favorite:count,styles:list(text),
  untriedStyle:nullable(s.object({name:text,count})),relevance:count,
-});
+ newReleasePreview:{type:'array',maxItems:3,items:s.object({positionId:s.uuid,name:text})},
+},['venue','matches','untried','wishlist','favorite','styles','untriedStyle','relevance']);
 const totals = s.object({current:count,stale:count,unpublished:count,empty:count,withMatches:count});
 const secure = {security:[{bearerAuth:[]}]};
 
@@ -38,7 +39,8 @@ export async function nearbyFindsRoutes(app: FastifyInstance,pool: pg.Pool,allow
   bodyLimit:64*1024,
   schema:{...secure,params:s.idParams,body:s.object(fields,required),
    response:{...s.errors,200:s.object({summary,menu:nullable(menu),
-    matches:list(s.object({positionId:s.uuid,wished:{type:'boolean'},reasons:list({type:'string',enum:reasons})}))})}},
+    matches:list(s.object({positionId:s.uuid,wished:{type:'boolean'},reasons:list({type:'string',enum:reasons}),
+     releasedOn:{type:'string',format:'date'}},['positionId','wished','reasons']))})}},
  },(req,reply) => {
   reply.header('Cache-Control','private, no-store');
   return venueFinds(pool,req.userId,req.body,allowTest,req.params.id);

@@ -54,12 +54,12 @@ android {
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["class"] = "ru.krapiva.app.P3AcceptanceSuite"
-        versionCode = 1
+        versionCode = 2
         versionName = "0.1.0"
     }
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"; versionNameSuffix = "-p8.4"
+            applicationIdSuffix = ".debug"; versionNameSuffix = "-p8.7.2"
             buildConfigField("String", "API_BASE_URL", quoted(devApi))
             buildConfigField("String", "API_ENVIRONMENT", quoted("development"))
             buildConfigField("boolean", "ALLOW_LOCAL_HTTP", "true")

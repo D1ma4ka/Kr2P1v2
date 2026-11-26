@@ -198,8 +198,9 @@ internal fun BarMenuScreen(
     val positions = remember(menu) { menu?.items.orEmpty().associateBy(MenuPosition::positionId) }
     val finds = data?.finds
     val reasons = remember(finds) { finds?.matches.orEmpty().associateBy(FindMatch::positionId) }
-    val rows = remember(menu, filter, relevance, nearby, finds) {
-        if (nearby?.mode == FindMode.RECOMMENDED) finds?.matches.orEmpty().mapNotNull { positions[it.positionId] }
+    val rankFinds = nearby?.mode in listOf(FindMode.RECOMMENDED, FindMode.NEW_RELEASES)
+    val rows = remember(menu, filter, relevance, rankFinds, finds) {
+        if (rankFinds) finds?.matches.orEmpty().mapNotNull { positions[it.positionId] }
         else filterMenu(menu?.items.orEmpty(), filter, relevance)
     }
     if (showFilters && menu != null) {
@@ -308,7 +309,7 @@ internal fun BarMenuScreen(
                 selectMode = { advisorMode = it }, refresh = { retry++ }, showAll = { showAdvisor = true },
                 open = openPosition, checkin = checkin)
         }
-        if (filter.sort != MenuSort.MENU || nearby?.mode == FindMode.RECOMMENDED) {
+        if (filter.sort != MenuSort.MENU || rankFinds) {
             items(rows, key = MenuPosition::positionId) { position ->
                 MenuPositionCard(position, menu?.sections?.get(position.sectionId), position.positionId in comparedIds,
                     compared.size < MAX_MENU_COMPARISON, { openPosition(position.positionId) },

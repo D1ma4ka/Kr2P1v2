@@ -197,3 +197,109 @@ test('server uses the same Advisor weights and exact aliases as Android', async 
   .map(match => [match[1],families[match[2]!],JSON.parse('['+match[3]+']')]);
  assert.deepEqual(styleVocabulary,vocabulary);
 });
+
+test('new releases require verified dates, expand for sparse menus, and use release-wide checkin identity', async () => {
+ const db = await testDatabase();
+ const app = buildApp(readConfig({NODE_ENV:'test',LOG_LEVEL:'silent'}),db.pool);
+ try {
+  await migrate(db.pool);
+  const {a,b,position:historyPosition} = await fixtures(db.pool);
+  await db.pool.query("UPDATE users SET role='moderator' WHERE id=$1",[a.id]);
+  const {rows:[brewery]} = await db.pool.query<{id: string}>('SELECT id FROM breweries');
+  const venueIds = (await db.pool.query<{id: string}>(`
+   INSERT INTO venues(name,type,city,source,status,latitude,longitude,coordinates_source,coordinates_verified_at)
+   SELECT name,'bar','Fixture city','test','verified',0,179.997,'test',now()
+   FROM (VALUES ('Recent visit'),('Long absence'),('Sparse menu'),('Only old beers')) v(name)
+   RETURNING id
+  `)).rows.map(row => row.id);
+  const [recent,away,sparse,oldOnly] = venueIds as [string,string,string,string];
+  const day = (age: number) => new Date(Date.now()-age*86_400_000).toISOString().slice(0,10);
+  async function release(name: string) {
+   const {rows:[row]} = await db.pool.query<{releaseId:string; positionId:string}>(`
+    WITH release AS (INSERT INTO beer_releases(brewery_id,name) VALUES($1,$2) RETURNING id)
+    INSERT INTO beer_positions(release_id,source,status,packaging)
+    SELECT id,'fixture','verified','can' FROM release RETURNING id AS "positionId",release_id AS "releaseId"
+   `,[brewery!.id,name]);
+   return row!;
+  }
+  const request = (url: string,token: string,payload: object,method: 'POST' | 'PUT' = 'POST') =>
+   app.inject({method,url,headers:{authorization:'Bearer '+token},payload});
+  const sources = (id: string) => '/v1/moderation/beer-releases/'+id+'/release-date';
+  async function verify(id: string,age: number) {
+   const response = await request(sources(id),a.token,{releasedOn:day(age),source:'Publisher announcement'},'PUT');
+   assert.equal(response.statusCode,200,response.body);
+   assert.deepEqual(response.json(),{releaseId:id,releasedOn:day(age),source:'Publisher announcement'});
+  }
+
+  const [fresh,second,third,longAgo,widened,old,already,unknown,unavailable] = await Promise.all([
+   'Fresh','Second','Third','Long absence','Widened search','Old restock','Already tried','Unknown date','Unavailable',
+  ].map(release));
+  const ages = [[fresh,3],[second,7],[third,11],[longAgo,40],[widened,58],[old,120],[already,5],[unavailable,2]] as const;
+  await Promise.all(ages.map(([item,age]) => verify(item!.releaseId,age)));
+  const forbidden = await request(sources(unknown!.releaseId),b.token,{releasedOn:day(1),source:'Publisher'},'PUT');
+  assert.equal(forbidden.statusCode,403,forbidden.body);
+  const future = await request(sources(unknown!.releaseId),a.token,{releasedOn:day(-1),source:'Publisher'},'PUT');
+  assert.equal(future.statusCode,422,future.body);
+  await verify(fresh!.releaseId,3);
+  assert.equal((await db.pool.query(
+   "SELECT * FROM audit_events WHERE action='catalog.verify_release_date' AND entity_id=$1",[fresh!.releaseId],
+  )).rowCount,1);
+
+  const bottle = (await db.pool.query<{id: string}>(`
+   INSERT INTO beer_positions(release_id,source,status,packaging) VALUES($1,'fixture','verified','bottle') RETURNING id
+  `,[already!.releaseId])).rows[0]!.id;
+  await db.pool.query(`
+   INSERT INTO checkins(user_id,position_id,venue_id,rating_quarters,occurred_at)
+   VALUES($1,$2,$3,4,now()-interval '7 days'),($1,$2,$4,4,now()-interval '46 days'),
+    ($1,$5,NULL,4,now()-interval '8 days'),($6,$7,NULL,20,now()-interval '2 days')
+  `,[a.id,historyPosition,recent,away,bottle,b.id,fresh!.positionId]);
+  const ids = [fresh!,second!,third!,longAgo!,old!,already!,unknown!,unavailable!].map(row => row.positionId);
+  const menus = [[recent,ids],[away,ids],[sparse,[widened!.positionId]],[oldOnly,[old!.positionId]] ] as const;
+  for (const [venue,positions] of menus) {
+   await db.pool.query("INSERT INTO venue_menus(venue_id,state,revision,source) VALUES($1,'published',1,'fixture')",[venue]);
+   const section = randomUUID();
+   await db.pool.query("INSERT INTO venue_menu_sections VALUES($1,'published',$2,'Fixture menu',0)",[venue,section]);
+   await db.pool.query(`
+    INSERT INTO venue_menu_items(venue_id,state,section_id,position_id,ordinal,available)
+    SELECT $1,'published',$2,id,0,id<>$4 FROM unnest($3::uuid[]) AS id
+   `,[venue,section,positions,unavailable!.positionId]);
+  }
+  const query = {...origin,mode:'new_releases'};
+  const search = await request(endpoint,a.token,{...query,sort:'relevance'});
+  assert.equal(search.statusCode,200,search.body);
+  const results = search.json<{totals:{withMatches:number};items:{
+   venue:{id:string};matches:number;newReleasePreview:{positionId:string;name:string}[];
+  }[]}>();
+  assert.equal(results.totals.withMatches,3);
+  assert.deepEqual(Object.fromEntries(results.items.map(result => [result.venue.id,result.matches])),
+   {[recent]:3,[away]:4,[sparse]:1});
+  assert.deepEqual(results.items.find(row => row.venue.id === away)?.newReleasePreview.map(row => row.name),
+   ['Fresh','Second','Third']);
+
+  for (const [venue,expected] of [
+   [recent,[fresh,second,third]], [away,[fresh,second,third,longAgo]], [sparse,[widened]], [oldOnly,[]],
+  ] as const) {
+   const detail = await request('/v1/venues/'+venue+'/nearby-finds',a.token,query);
+   assert.equal(detail.statusCode,200,detail.body);
+   const body = detail.json<{matches:{positionId:string;reasons:string[];releasedOn:string}[]}>();
+   assert.deepEqual(body.matches.map(row => row.positionId),expected.map(row => row!.positionId));
+   for (const match of body.matches) {
+    assert.ok(match.reasons.includes('new_release'));
+    assert.ok(match.reasons.includes('advisor'));
+    assert.match(match.releasedOn,/^\d{4}-\d{2}-\d{2}$/);
+   }
+  }
+
+  // The new mode only excludes the requesting owner's checkins. The
+  // traditional package-level mode still includes an untried can.
+  const other = await request('/v1/venues/'+recent+'/nearby-finds',b.token,query);
+  assert.equal(other.statusCode,200,other.body);
+  assert.ok(other.json<{matches:{positionId:string}[]}>().matches.some(row => row.positionId === already!.positionId));
+  const oldMode = await request('/v1/venues/'+recent+'/nearby-finds',a.token,{...query,mode:'untried'});
+  assert.equal(oldMode.statusCode,200,oldMode.body);
+  assert.ok(oldMode.json<{matches:{positionId:string}[]}>().matches.some(row => row.positionId === already!.positionId));
+ } finally {
+  await app.close();
+  await db.close();
+ }
+});

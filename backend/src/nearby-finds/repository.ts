@@ -9,11 +9,12 @@ import {distanceSql} from '../venues/repository.js';
 import {advisorProfile,advisorScore,advisorTop,AdvisorWeights,type AdvisorProfile} from './advisor.js';
 import {menuPredicate,type MenuFilter,type Offer} from './filter.js';
 import {classify} from './styles.js';
+import {newReleaseHistory,newReleaseMatches} from './new-releases.js';
 
-export const modes = ['wishlist','untried','favorite','recommended','filter'] as const;
+export const modes = ['wishlist','untried','favorite','recommended','filter','new_releases'] as const;
 export const sorts = ['distance','matches','untried','wishlist','relevance','freshness'] as const;
 export const statuses = ['current','stale','unpublished','empty'] as const;
-export const reasons = ['wishlist','untried','favorite','advisor','neutral_advisor','advisor_brewery','advisor_style','advisor_public_rating','filter'] as const;
+export const reasons = ['wishlist','untried','favorite','advisor','neutral_advisor','advisor_brewery','advisor_style','advisor_public_rating','filter','new_release'] as const;
 type Status = typeof statuses[number];
 type Reason = typeof reasons[number];
 
@@ -41,8 +42,9 @@ interface NearbyVenue {
  updatedAt: Date | null;
  status: Status;
 }
-interface VenueOffers extends NearbyVenue {offers: Offer[]}
-interface Match extends Offer {
+interface CatalogOffer extends Offer {releaseId: string; releasedOn: string | null}
+interface VenueOffers extends NearbyVenue {offers: CatalogOffer[]}
+interface Match extends CatalogOffer {
  favorite: boolean;
  score: number;
 }
@@ -55,11 +57,12 @@ interface VenueResult {
  styles: string[];
  untriedStyle: {name: string; count: number} | null;
  relevance: number;
+ newReleasePreview?: {positionId: string; name: string}[];
 }
 interface Evaluated {summary: VenueResult; rows: Match[]}
 
 type PublishedOffer = Pick<Offer,'positionId'|'price'|'currency'|'volumeMl'|'servingFormat'|'available'> & {venueId: string};
-type CatalogPosition = Omit<Offer,keyof PublishedOffer> & {positionId: string; catalogVolumeMl: number | null};
+type CatalogPosition = Omit<CatalogOffer,keyof PublishedOffer> & {positionId: string; catalogVolumeMl: number | null};
 
 async function candidateMenus(db: pg.PoolClient,user: string,query: SearchConditions,allowTest: boolean,id: string | null) {
  // Use the latitude index for a conservative band. Haversine decides
@@ -93,7 +96,8 @@ async function candidateMenus(db: pg.PoolClient,user: string,query: SearchCondit
    WHERE c.position_id=ANY($2::uuid[]) AND ${active} AND ${visible}
    GROUP BY c.position_id
   )
-  SELECT bp.id AS "positionId",r.name,b.id AS "breweryId",b.name AS "breweryName",
+  SELECT bp.id AS "positionId",r.id AS "releaseId",r.released_on::text AS "releasedOn",
+   r.name,b.id AS "breweryId",b.name AS "breweryName",
    r.style_id AS "styleId",st.name AS "styleName",b.country,bp.packaging,bp.volume_ml AS "catalogVolumeMl",
    r.abv::float8,r.ibu::float8,coalesce(a.tried,false) AS tried,
    a.rating AS "averageRating",a.public_rating AS "publicRating",w.position_id IS NOT NULL AS wished
@@ -144,7 +148,8 @@ function summarize(venue: NearbyVenue,rows: Match[],profile: AdvisorProfile): Ve
  };
 }
 
-function evaluate(input: VenueOffers,mode: SearchConditions['mode'],profile: AdvisorProfile,predicate: (offer: Offer) => boolean): Evaluated {
+function evaluate(input: VenueOffers,mode: SearchConditions['mode'],profile: AdvisorProfile,predicate: (offer: Offer) => boolean,
+ history: Awaited<ReturnType<typeof newReleaseHistory>> | null): Evaluated {
  const {offers,...venue} = input;
  const eligible = offers.filter(predicate).map(row => {
   const family = classify(row.styleName)?.family;
@@ -152,10 +157,15 @@ function evaluate(input: VenueOffers,mode: SearchConditions['mode'],profile: Adv
    (family !== undefined && profile.families.has(family) && (profile.styles.get(row.styleId)?.judgment ?? 0) >= 0);
   return {...row,favorite,score:advisorScore(row,profile)};
  });
- const rows = mode === 'recommended' ? advisorTop(eligible) : eligible.filter(row =>
+ const rows = history ? newReleaseMatches(eligible,venue.id,history) : mode === 'recommended' ? advisorTop(eligible) : eligible.filter(row =>
   mode === 'filter' || (mode === 'wishlist' && row.wished) || (mode === 'untried' && !row.tried) ||
   (mode === 'favorite' && row.favorite));
- return {summary:summarize(venue,rows,profile),rows};
+ const summary = summarize(venue,rows,profile);
+ if (history) {
+  summary.newReleasePreview = [...Map.groupBy(rows,row => row.releaseId).values()].slice(0,3)
+   .map(([row]) => ({positionId:row!.positionId,name:row!.name}));
+ }
+ return {summary,rows};
 }
 
 function validate(query: SearchConditions) {
@@ -204,16 +214,16 @@ export async function searchFinds(pool: pg.Pool,user: string,query: SearchReques
   await db.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
   const menus = await candidateMenus(db,user,query,allowTest,null);
   const profile = await profileForSearch(db,user);
+  const history = query.mode === 'new_releases' ? await newReleaseHistory(db,user) : null;
   const totals = {current:0,stale:0,unpublished:0,empty:0,withMatches:0};
-  const order = (summary: VenueResult): Order =>
-   [summary.matches ? 0 : 1,sortKey(summary,query.sort),summary.venue.id];
   const result = [];
   for (const menu of menus) {
    totals[menu.status]++;
-   const {summary} = evaluate(menu,query.mode,profile,predicate);
+   const {summary,rows} = evaluate(menu,query.mode,profile,predicate,history);
    if (summary.matches) totals.withMatches++;
-   if (!summary.matches && menu.status === 'current') continue;
-   const key = order(summary);
+   if (!summary.matches && (history || menu.status === 'current')) continue;
+   const relevance = history && query.sort === 'relevance' ? rows[0]?.score : undefined;
+   const key: Order = [summary.matches ? 0 : 1,relevance === undefined ? sortKey(summary,query.sort) : -relevance,menu.id];
    if (after === null || compare(key,after) > 0) result.push({summary,key});
   }
   result.sort((a,b) => compare(a.key,b.key));
@@ -230,7 +240,8 @@ function matchReasons(row: Match,mode: SearchConditions['mode'],profile: Advisor
  if (row.wished) result.push('wishlist');
  if (!row.tried) result.push('untried');
  if (row.favorite) result.push('favorite');
- if (mode === 'recommended') {
+ if (mode === 'new_releases') result.push('new_release');
+ if (mode === 'recommended' || mode === 'new_releases') {
   result.push(profile.personalized ? 'advisor' : 'neutral_advisor');
   if (profile.personalized && profile.breweries.has(row.breweryId)) result.push('advisor_brewery');
   if (profile.personalized && row.styleId !== null && profile.styles.has(row.styleId)) result.push('advisor_style');
@@ -247,8 +258,10 @@ export async function venueFinds(pool: pg.Pool,user: string,query: SearchConditi
   const [candidate] = await candidateMenus(db,user,query,allowTest,id);
   if (!candidate) throw notFound();
   const profile = await profileForSearch(db,user);
-  const {summary,rows} = evaluate(candidate,query.mode,profile,predicate);
-  const matches = rows.map(row => ({positionId:row.positionId,wished:row.wished,reasons:matchReasons(row,query.mode,profile)}));
+  const history = query.mode === 'new_releases' ? await newReleaseHistory(db,user) : null;
+  const {summary,rows} = evaluate(candidate,query.mode,profile,predicate,history);
+  const matches = rows.map(row => ({positionId:row.positionId,wished:row.wished,reasons:matchReasons(row,query.mode,profile),
+   ...(history ? {releasedOn:row.releasedOn} : {})}));
   const {menu} = summary.venue.status === 'current' ?
    await readMenu(db,user,id,allowTest,'published',matches.map(row => row.positionId)) : {menu:null};
   return {summary,menu,matches};

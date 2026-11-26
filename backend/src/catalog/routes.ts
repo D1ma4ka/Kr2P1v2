@@ -5,6 +5,7 @@ import * as c from './schemas.js';
 import * as repo from './repository.js';
 import * as p from './proposals.js';
 import {normalizeGtin} from './gtin.js';
+import {verifyReleaseDate,type ReleaseDateInput} from './release-dates.js';
 import {ApiError,notFound} from '../http/errors.js';
 import {transaction} from '../db/pool.js';
 export async function catalogRoutes(app:FastifyInstance,pool:pg.Pool) {
@@ -39,6 +40,12 @@ export async function catalogRoutes(app:FastifyInstance,pool:pg.Pool) {
   if(!row) throw notFound();return {items:await p.duplicates(pool,row.proposed_data)};
  });
  app.post<{Params:{id:string};Body:p.Decision}>('/v1/moderation/position-proposals/:id/decision',{schema:{...schema(c.proposal),params:s.idParams,body:s.object({version:s.version,action:{type:'string',enum:['accept','reject','link']},reason:{type:'string',minLength:1,maxLength:2000,pattern:'\\S'},positionId:s.uuid,breweryId:s.uuid,releaseId:s.uuid,allowDuplicate:{type:'boolean'}},['version','action','reason'])}},request=>p.decide(pool,request.userId,request.params.id,request.body));
+ const releasedOn = {type:'string',format:'date'};
+ const releaseDateSource = {type:'string',minLength:1,maxLength:2000,pattern:'\\S'};
+ app.put<{Params:{id:string};Body:ReleaseDateInput}>('/v1/moderation/beer-releases/:id/release-date',{
+  schema:{...schema(s.object({releaseId:s.uuid,releasedOn,source:releaseDateSource})),params:s.idParams,
+   body:s.object({releasedOn,source:releaseDateSource})},
+ },request=>verifyReleaseDate(pool,request.userId,request.params.id,request.body));
  app.post<{Params:{id:string};Body:{targetId:string;reason:string}}>('/v1/moderation/positions/:id/merge',{schema:{...schema(c.position),params:s.idParams,body:s.object({targetId:s.uuid,reason:{type:'string',minLength:1,maxLength:2000,pattern:'\\S'}})}},request=>p.merge(pool,request.userId,request.params.id,request.body.targetId,request.body.reason));
  app.put<{Body:{code:string;source:string}}>('/v1/moderation/barcode-exclusions',{schema:{...schema(s.object({gtin:{type:'string'}})),body:s.object({code:{type:'string',minLength:8,maxLength:14},source:{type:'string',minLength:1,maxLength:2000,pattern:'\\S'}})}},async request=>transaction(pool,async db=>{
   await p.requireModerator(db,request.userId);await db.query('SELECT pg_advisory_xact_lock(220024)');const gtin=normalizeGtin(request.body.code);

@@ -6,8 +6,13 @@ import ru.krapiva.app.diary.objects
 import ru.krapiva.app.menu.BarMenu
 import ru.krapiva.app.menu.MenuFilter
 import java.time.Instant
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 internal enum class FindMode(val wire: String, val title: String) {
+    NEW_RELEASES("new_releases", "Что нового рядом"),
     WISHLIST("wishlist", "В моём wishlist"),
     UNTRIED("untried", "Ещё не пробовал"),
     FAVORITE("favorite", "Мои любимые стили"),
@@ -49,6 +54,7 @@ internal data class FindMatch(
     val positionId: String,
     val wished: Boolean,
     val reasons: List<String>,
+    val releasedOn: LocalDate? = null,
 ) {
     val explanation: String get() = reasons.mapNotNull {
         when (it) {
@@ -61,15 +67,18 @@ internal data class FindMatch(
             "advisor_style" -> "Учтена твоя история по стилю"
             "advisor_public_rating" -> "Учтён публичный рейтинг"
             "filter" -> "Подходит под фильтр"
+            "new_release" -> releasedOn?.let { "Выпуск от ${it.format(releaseDateFormat)}" } ?: "Новый выпуск"
             else -> null
         }
     }.joinToString(" · ")
 
     companion object {
+        private val releaseDateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.forLanguageTag("ru"))
+
         fun read(row: JSONObject): FindMatch {
             val reasons = row.getJSONArray("reasons")
             return FindMatch(row.getString("positionId"), row.getBoolean("wished"),
-                (0 until reasons.length()).map(reasons::getString))
+                (0 until reasons.length()).map(reasons::getString), row.text("releasedOn")?.let(LocalDate::parse))
         }
     }
 }
@@ -89,6 +98,7 @@ internal data class FindVenue(
     val favorite: Int,
     val styles: List<String>,
     val untriedStyle: Pair<String, Int>?,
+    val newReleaseNames: List<String> = emptyList(),
 ) {
     fun point(): JSONObject = JSONObject().put("id", id).put("type", type).put("matchCount", matches)
         .put("latitude", coordinates.latitude).put("longitude", coordinates.longitude)
@@ -104,6 +114,7 @@ internal data class FindVenue(
                 venue.text("updatedAt")?.let(Instant::parse), row.getInt("matches"), row.getInt("untried"),
                 row.getInt("wishlist"), row.getInt("favorite"), (0 until styles.length()).map(styles::getString),
                 row.optJSONObject("untriedStyle")?.let { it.getString("name") to it.getInt("count") },
+                row.optJSONArray("newReleasePreview")?.objects().orEmpty().map { it.getString("name") },
             )
         }
     }
