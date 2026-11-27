@@ -179,8 +179,10 @@ jobs:
             echo "${name%.instrumentation}" >> work/p10-device-evidence/result.txt
             grep -E '^(Time:|OK|Tests run:|INSTRUMENTATION_RESULT: shortMsg=|INSTRUMENTATION_STATUS: stack=)|at ru\.krapiva\.app\.pets\.PetAcceptanceTest' "$result" >> work/p10-device-evidence/result.txt || true
           done
-          adb logcat -d -s KraPetPerf:I '*:S' > work/p10-device-evidence/renderer.txt || true
-          adb pull /sdcard/Download/KraPivaP3/. work/p10-device-evidence/ || true
+          if timeout 10s adb get-state >/dev/null 2>&1; then
+            timeout 15s adb logcat -d -s KraPetPerf:I '*:S' > work/p10-device-evidence/renderer.txt || true
+            timeout 30s adb pull /sdcard/Download/KraPivaP3/. work/p10-device-evidence/ || true
+          fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
