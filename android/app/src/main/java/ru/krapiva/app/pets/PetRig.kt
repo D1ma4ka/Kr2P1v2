@@ -107,12 +107,24 @@ internal class PetRig private constructor(
     private val anchors = data.getJSONObject("anchors")
     val width = data.point("canvas").first
     val height = data.point("canvas").second
+    private val root = bones.getValue("root")
+    private val footY = with(data.getJSONObject("neutral")) { point("offset").second + point("size").second }
+    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    fun drawGrounded(canvas: AndroidCanvas, width: Float, height: Float, draw: () -> Unit) {
+        val scale = minOf(width, height) * .50f / this.height
+        canvas.save()
+        canvas.translate(width * .515f - root.x * scale, height * .89f - footY * scale)
+        canvas.scale(scale, scale)
+        draw()
+        canvas.restore()
+    }
 
     fun holds(name: String): Boolean = clips[name]?.holds == true
     fun duration(name: String): Float = clips[name]?.duration ?: 600f
     fun transitionDuration(name: String): Float = clips[name]?.transitionDuration ?: 600f
 
-    private fun updateBone(bone: Bone, keys: List<Key>?, time: Float) {
+    private fun updateBone(bone: Bone, keys: List<Key>?, time: Float, direction: Float) {
         val transform = bone.matrix
         transform.reset()
         if (!keys.isNullOrEmpty()) {
@@ -128,12 +140,12 @@ internal class PetRig private constructor(
             transform.postTranslate(-bone.x, -bone.y)
             transform.postScale(interpolate(left.scaleX, right.scaleX), interpolate(left.scaleY, right.scaleY))
             transform.postRotate(interpolate(left.rotation, right.rotation))
-            transform.postTranslate(bone.x + interpolate(left.x, right.x), bone.y + interpolate(left.y, right.y))
+            transform.postTranslate(bone.x + direction * interpolate(left.x, right.x), bone.y + interpolate(left.y, right.y))
         }
         bone.parent?.let { transform.postConcat(it.matrix) }
     }
 
-    fun renderer(fits: List<PetFit>): (AndroidCanvas, String, Float) -> Unit {
+    fun renderer(fits: List<PetFit>, room: Boolean = false): (AndroidCanvas, String, Float) -> Unit {
         val parts = mutableListOf<Pair<Int, (AndroidCanvas, Clip?, Float) -> Unit>>()
         for (layer in layers) {
             parts += layer.depth to { canvas, clip, time ->
@@ -154,12 +166,18 @@ internal class PetRig private constructor(
             val b = y + fit.render.number("dy")
             val rotation = anchor.number("rotation") + fit.render.number("rotation")
             val scale = anchor.number("scale", 1f) * fit.render.number("scale", 1f)
+            val scaleX = scale * anchor.number("scaleX", 1f)
+            val scaleY = scale * anchor.number("scaleY", 1f)
             val w = fit.render.number("displayWidth", 300f)
             val h = w * fit.bitmap.height / fit.bitmap.width
             val ox = w * fit.render.number("originX", .5f)
             val oy = h * fit.render.number("originY", .5f)
             val bounds = RectF(-ox, -oy, w - ox, h - oy)
-            val placement = Matrix().apply { setScale(scale, scale); postRotate(rotation); postTranslate(a, b) }
+            val placement = Matrix().apply {
+                setScale(scaleX, scaleY)
+                postRotate(rotation)
+                postTranslate(a, b)
+            }
             parts += anchor.getInt("depth") to { canvas, _, _ ->
                 canvas.save()
                 canvas.concat(bone.matrix)
@@ -169,10 +187,32 @@ internal class PetRig private constructor(
             }
         }
         val ordered = parts.sortedBy { it.first }.map { it.second }
+        val shadowPoint = FloatArray(2)
+        val shadowBounds = RectF()
         return { canvas, name, elapsed ->
             val clip = if (full) clips[name] else null
             val time = if (clip == null) 0f else if (clip.loops) elapsed % clip.duration else elapsed.coerceAtMost(clip.duration)
-            for (bone in orderedBones) updateBone(bone, clip?.tracks?.get(bone.name), time)
+            val towardTable = room && (name == "sit" || name == "eat")
+            for (bone in orderedBones) {
+                val direction = if (towardTable && bone === root) -1f else 1f
+                updateBone(bone, clip?.tracks?.get(bone.name), time, direction)
+            }
+            if (room) {
+                shadowPoint[0] = root.x
+                shadowPoint[1] = footY
+                root.matrix.mapPoints(shadowPoint)
+                val x = shadowPoint[0]
+                val y = footY + 5f
+                val lift = ((footY - shadowPoint[1]) / 100f).coerceIn(0f, 1f)
+                val width = 301f + 38f * lift
+                shadowPaint.color = 0xff271b17.toInt()
+                shadowPaint.alpha = (53 - 23 * lift).toInt()
+                shadowBounds.set(x - width, y - 37f, x + width, y + 37f)
+                canvas.drawOval(shadowBounds, shadowPaint)
+                shadowPaint.alpha = (83 - 54 * lift).toInt()
+                shadowBounds.set(x - 236f, y - 22f, x + 236f, y + 22f)
+                canvas.drawOval(shadowBounds, shadowPaint)
+            }
             for (draw in ordered) draw(canvas, clip, time)
         }
     }
@@ -203,7 +243,13 @@ internal class PetRig private constructor(
 }
 
 @Composable
-internal fun AnimatedPet(rig: PetRig, gesture: PetGesture, modifier: Modifier, fits: List<PetFit> = emptyList()) {
+internal fun AnimatedPet(
+    rig: PetRig,
+    gesture: PetGesture,
+    modifier: Modifier,
+    fits: List<PetFit> = emptyList(),
+    room: Boolean = false,
+) {
     val state by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
     val active=state.isAtLeast(Lifecycle.State.STARTED)
     val motion=ValueAnimator.areAnimatorsEnabled()
@@ -244,20 +290,33 @@ internal fun AnimatedPet(rig: PetRig, gesture: PetGesture, modifier: Modifier, f
             frames(rig.duration(next)) { idleTime=it }
         }
     }
-    val drawPet = remember(rig, fits) { rig.renderer(fits) }
+    val drawPet = remember(rig, fits, room) { rig.renderer(fits, room) }
     Canvas(modifier) {
         val animated=active && motion
         val event=animated && gesture.clip!="idle" && (elapsed<rig.duration(gesture.clip) || rig.holds(gesture.clip))
-        val clip=if(!animated) "" else if(event) gesture.clip else idleClip
-        val time=if(event) elapsed else idleTime
-        val scale=minOf(size.width/rig.width,size.height/rig.height)*.89f
+        val staticSeat = room && !motion && gesture.clip == "sit"
+        val clip = when {
+            staticSeat || event -> gesture.clip
+            animated -> idleClip
+            else -> ""
+        }
+        val time = when {
+            staticSeat -> rig.transitionDuration(clip)
+            event -> elapsed
+            else -> idleTime
+        }
         drawIntoCanvas {
             val native=it.nativeCanvas
-            native.save()
-            native.translate((size.width-rig.width*scale)/2,(size.height-rig.height*scale)/2)
-            native.scale(scale,scale)
-            drawPet(native,clip,time)
-            native.restore()
+            if (room) {
+                rig.drawGrounded(native, size.width, size.height) { drawPet(native, clip, time) }
+            } else {
+                val scale = minOf(size.width / rig.width, size.height / rig.height) * .89f
+                native.save()
+                native.translate((size.width - rig.width * scale) / 2, (size.height - rig.height * scale) / 2)
+                native.scale(scale, scale)
+                drawPet(native, clip, time)
+                native.restore()
+            }
         }
     }
 }

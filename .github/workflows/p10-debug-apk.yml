@@ -1,7 +1,7 @@
 name: KraPet Android debug APK
 on:
   push:
-    branches: [p10/krapet]
+    branches: [p10/krapet, p10/kra-room-refinement]
     paths:
       - 'android/**'
       - 'assets/pets/**'
@@ -9,11 +9,13 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: p10-debug-apk
+  group: p10-debug-apk-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   debug-apk:
     runs-on: ubuntu-24.04
+    env:
+      P10_APK: android/app/build/outputs/apk/debug/app-debug.apk
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -36,25 +38,32 @@ jobs:
         env:
           KRAPIVA_DEV_API_BASE_URL: http://127.0.0.1:53000/
         run: ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest testDebugUnitTest lintDebug
-      - name: Verify APK and record source
+      - name: Verify APK signature and alignment
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$P10_APK"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 "$P10_APK"
+          sha256sum "$P10_APK"
+      - name: Record original P10 distribution
+        if: github.ref_name == 'p10/krapet'
         run: |
           mkdir -p p10-artifact
-          cp android/app/build/outputs/apk/debug/app-debug.apk p10-artifact/KraPiva-P10-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify p10-artifact/KraPiva-P10-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 p10-artifact/KraPiva-P10-debug.apk
+          cp "$P10_APK" p10-artifact/KraPiva-P10-debug.apk
           (cd p10-artifact && sha256sum KraPiva-P10-debug.apk > SHA256SUMS.txt)
           git rev-parse HEAD > p10-artifact/source-commit.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.ref_name == 'p10/krapet'
         with:
           name: KraPiva-P10-debug
           path: p10-artifact/
           if-no-files-found: error
           retention-days: 7
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: github.ref_name == 'p10/krapet'
         with:
           name: KraPiva-P10-debug
           path: p10-downloaded
       - name: Verify the downloaded APK
+        if: github.ref_name == 'p10/krapet'
         run: |
           cd p10-downloaded
           test "$(cat source-commit.txt)" = "$GITHUB_SHA"
@@ -63,6 +72,7 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 KraPiva-P10-debug.apk
           echo "zipalign: verified" >> signature.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.ref_name == 'p10/krapet'
         with:
           name: KraPiva-P10-APK-verification
           path: |
@@ -131,7 +141,10 @@ jobs:
         run: |
           node --env-file=.env tools/p10/device-fixture.mjs work/p10-reward.txt --all-starters
           adb reverse tcp:53000 tcp:53000
-          adb install p10-downloaded/KraPiva-P10-debug.apk
+          adb install "${P10_APK}"
+          if [ -f p10-downloaded/KraPiva-P10-debug.apk ]; then
+            cmp "$P10_APK" p10-downloaded/KraPiva-P10-debug.apk
+          fi
           adb install android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           adb shell pm grant ru.krapiva.app.debug android.permission.CAMERA
           adb push work/p10-device-fixture.json /data/local/tmp/p10-fixture.json

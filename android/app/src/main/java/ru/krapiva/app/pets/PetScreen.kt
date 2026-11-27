@@ -23,18 +23,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
@@ -67,6 +59,7 @@ private enum class PetPage(val title: String) {
     DECOR("Интерьер"), COLLECTION("Коллекция"), EVENTS("События"), WALLET("Кошелёк")
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PetScreen(
     api: AccountApi,
@@ -92,7 +85,6 @@ internal fun PetScreen(
     var storeFilter by rememberSaveable(owner) { mutableStateOf("food") }
     var pageLimit by rememberSaveable(owner) { mutableIntStateOf(12) }
     var serving by remember(owner) { mutableStateOf<JSONObject?>(null) }
-    var wardrobeOpen by remember(owner) { mutableStateOf(false) }
     var fitting by remember(owner) { mutableStateOf<JSONObject?>(null) }
     var fittingSlot by remember(owner) { mutableStateOf<String?>(null) }
     var gesture by remember(owner) { mutableStateOf(PetGesture("greet")) }
@@ -132,7 +124,6 @@ internal fun PetScreen(
         fittingSlot=null
         error=null
         page=next
-        wardrobeOpen=next==PetPage.WARDROBE
         if(next==PetPage.FOOD) act("sit",3)
         else if(gesture.clip=="sit") gesture=PetGesture("idle",sequence=gesture.sequence+1)
     }
@@ -223,7 +214,7 @@ internal fun PetScreen(
     }
     BackHandler(page!=PetPage.ROOM) { drill(PetPage.ROOM) }
 
-    val routes=listOf(PetPage.WARDROBE,PetPage.SHOP,PetPage.FOOD,PetPage.DECOR,PetPage.COLLECTION,PetPage.EVENTS)
+    val routes = listOf(PetPage.WARDROBE, PetPage.FOOD, PetPage.DECOR, PetPage.COLLECTION, PetPage.EVENTS)
     val adornments=mutableMapOf<String,JSONObject>()
     snapshot?.optJSONObject("equipped")?.let { equipped ->
         equipped.keys().forEach { slot -> byInstance[equipped.optString(slot)]?.let { instance ->
@@ -297,14 +288,24 @@ internal fun PetScreen(
                 }
                 if(page!=PetPage.ROOM) TextButton({drill(PetPage.ROOM)}) { Text("В комнату") }
                 if(page in setOf(PetPage.ROOM,PetPage.WARDROBE,PetPage.FOOD) || fitting!=null) {
-                    KraRoom(api,rig,gesture,adornments,decorations,offline,wardrobeOpen,serving,
-                        petClick={tapped=!tapped;act(if(tapped)"react" else "alternate",2)},
-                        open={drill(it)})
+                    KraRoom(
+                        api, rig, gesture, adornments, decorations, offline, page == PetPage.WARDROBE, serving,
+                        onPet = { tapped = !tapped; act(if (tapped) "react" else "alternate", 2) },
+                        onWardrobe = { drill(PetPage.WARDROBE) },
+                        onShelf = { drill(PetPage.DECOR) },
+                        onFood = { drill(PetPage.FOOD) },
+                    )
                 }
                 if(page==PetPage.ROOM) {
-                    Row(Modifier.testTag("pet-room-actions").horizontalScroll(rememberScrollState()),
-                        horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                        routes.forEach { route -> OutlinedButton({drill(route)},Modifier.testTag("pet-page-${route.name}")) { Text(route.title) } }
+                    FlowRow(
+                        Modifier.testTag("pet-room-actions"),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        routes.forEach { route ->
+                            TextButton({ drill(route) }, Modifier.testTag("pet-page-${route.name}")) {
+                                Text(route.title)
+                            }
+                        }
                     }
                     snapshot?.optJSONArray("pets")?.objects()?.takeIf { it.size>1 }?.let { pets ->
                         pets.forEach { own ->
@@ -453,7 +454,7 @@ private suspend fun loadArt(api:AccountApi,file:File,hash:String,offline:Boolean
       catch(_:Exception) { null }
 }
 @Composable
-private fun rememberItemArt(api:AccountApi,item:JSONObject,offline:Boolean):Bitmap? {
+internal fun rememberItemArt(api:AccountApi,item:JSONObject,offline:Boolean):Bitmap? {
     val context=LocalContext.current
     val hash=item.optString("assetHash")
     val art by produceState<Bitmap?>(null,hash,offline) {
@@ -463,100 +464,6 @@ private fun rememberItemArt(api:AccountApi,item:JSONObject,offline:Boolean):Bitm
     }
     return art
 }
-
-@Composable
-private fun KraRoom(api: AccountApi,rig:PetRig?,gesture:PetGesture,adornments:Map<String,JSONObject>,decor:Map<String,JSONObject>,
-    offline:Boolean,wardrobeOpen:Boolean,serving:JSONObject?,petClick:()->Unit,open:(PetPage)->Unit) {
-    val fits=adornments.mapNotNull { (slot,item) -> key(slot,item.optString("id")) {
-        rememberItemArt(api,item,offline)?.let { PetFit(slot,it,item.getJSONObject("render")) }
-    } }
-    val wallpaper=decor["wallpaper"]?.let { rememberItemArt(api,it,offline) }?.asImageBitmap()
-    val flooring=decor["flooring"]?.let { rememberItemArt(api,it,offline) }?.asImageBitmap()
-    val dark=MaterialTheme.colorScheme.surface.luminance()<.22f
-    val wall=if(dark) Color(0xff283c32) else Color(0xff58654a)
-    val wood=if(dark) Color(0xff372b26) else Color(0xff805544)
-    BoxWithConstraints(Modifier.fillMaxWidth().height(315.dp).clip(RoundedCornerShape(20.dp))
-        .background(Brush.verticalGradient(listOf(wall,wall,wood))).testTag("kra-room")) {
-        val w=maxWidth
-        val h=maxHeight
-        Canvas(Modifier.fillMaxSize()) {
-            fun rect(color:Color,x:Float,y:Float,a:Float,b:Float,r:Float=0f) =
-                drawRoundRect(color,Offset(x*size.width,y*size.height),Size(a*size.width,b*size.height),CornerRadius(r))
-            wallpaper?.let { tile ->
-                for (y in 0..3) for (x in 0..5) drawImage(tile,
-                    dstOffset=IntOffset((x*size.width/6).toInt(),(y*size.height*.185f).toInt()),
-                    dstSize=IntSize((size.width/6+1).toInt(),(size.height*.185f+1).toInt()),alpha=.24f)
-            }
-            drawRect(Brush.radialGradient(listOf(Color(0x70ffc46d),Color.Transparent),Offset(.5f*size.width,.23f*size.height),size.width*.63f))
-            rect(wood,0f,.75f,1f,.25f)
-            flooring?.let { tile ->
-                for (x in 0..4) drawImage(tile,dstOffset=IntOffset((x*size.width/5).toInt(),(.75f*size.height).toInt()),
-                    dstSize=IntSize((size.width/5+1).toInt(),(.25f*size.height).toInt()),alpha=.8f)
-            }
-            rect(Color(0xff796147),0f,.71f,1f,.028f)
-            rect(Color(0xff584335),0f,.734f,1f,.018f)
-            drawLine(Color(0xff907049),Offset(.50f*size.width,0f),Offset(.50f*size.width,.115f*size.height),2.2f)
-            if("lighting" !in decor) {
-                rect(Color(0xff886d47),.446f,.111f,.108f,.029f,5f)
-                rect(Color(0xffd0a668),.46f,.136f,.080f,.015f,8f)
-            }
-            repeat(5) { row ->
-                val y = size.height * (0.75f + row * 0.061f)
-                drawLine(Color(0x44311e13), Offset(0f, y), Offset(size.width, y), 1.2f)
-            }
-            rect(Color(0xff604431),.26f,.37f,.46f,.037f,4f)
-            rect(Color(0xffb88351),.26f,.37f,.46f,.013f,4f)
-            rect(Color(0xff5b3825),.04f,.35f,.20f,.42f,8f)
-            rect(Color(0xff956548),.052f,.37f,.176f,.37f,5f)
-            if(wardrobeOpen) {
-                rect(Color(0xff472f22),.068f,.392f,.147f,.32f,4f)
-                rect(Color(0xff876346),.076f,.51f,.13f,.018f,4f)
-                rect(Color(0xff876346),.076f,.65f,.13f,.018f,4f)
-                rect(Color(0xff78886b),.105f,.46f,.07f,.04f,6f)
-                rect(Color(0xffb46f5f),.094f,.60f,.09f,.04f,6f)
-            } else {
-                rect(Color(0xff69432d),.136f,.38f,.007f,.34f,3f)
-                rect(Color(0xffdba964),.105f,.54f,.013f,.035f,3f)
-                rect(Color(0xffdba964),.157f,.54f,.013f,.035f,3f)
-            }
-            rect(Color(0xff4b3026),.82f,.60f,.027f,.21f,4f)
-            rect(Color(0xff4b3026),.92f,.60f,.027f,.21f,4f)
-            rect(Color(0xffbd8754),.77f,.58f,.21f,.035f,6f)
-            rect(Color(0xff573a2d),.73f,.72f,.02f,.12f,4f)
-            rect(Color(0xff573a2d),.79f,.72f,.02f,.12f,4f)
-            rect(Color(0xffa86e45),.70f,.70f,.13f,.032f,7f)
-            drawOval(Color(0x490b0703),Offset(.37f*size.width,.84f*size.height),Size(.28f*size.width,.045f*size.height))
-        }
-        for((slot,item) in decor.filterKeys { it !in setOf("wallpaper","flooring") }) key(slot,item.optString("id")) {
-            val image=rememberItemArt(api,item,offline)
-            val spot=when(slot) {
-                "shelf_slot_01"->.29f to .25f;"shelf_slot_02"->.395f to .25f
-                "shelf_slot_03"->.50f to .25f;"shelf_slot_04"->.605f to .25f
-                "wall_left"->.12f to .12f;"wall_center"->.43f to .10f;"wall_right"->.76f to .12f
-                "table_top"->.82f to .47f;"floor_left"->.13f to .74f;"floor_right"->.84f to .74f
-                "lighting"->.44f to .02f;"wallpaper"->.03f to .02f;else->.04f to .90f
-            }
-            image?.let { Image(it.asImageBitmap(),item.optString("name"),Modifier.offset(w*spot.first,h*spot.second)
-                .size(w*.105f,h*.115f)) }
-        }
-        serving?.let { item -> rememberItemArt(api,item,offline)?.let { image ->
-            Image(image.asImageBitmap(),item.optString("name"),Modifier.offset(w*.84f,h*.487f).size(w*.09f,h*.095f))
-        } }
-        rig?.let { AnimatedPet(it,gesture,Modifier.align(Alignment.BottomCenter).padding(bottom=30.dp).width(w*.63f).height(h*.66f)
-            .testTag("pet-gesture-${gesture.clip}")
-            .semantics {
-                contentDescription="Питомец"
-                if(fits.isNotEmpty()) stateDescription="Предметов надето: ${fits.size}"
-            }.clickable(onClick=petClick),fits) }
-        Box(Modifier.offset(w*.04f,h*.36f).width(w*.20f).height(h*.41f).semantics { contentDescription="Открыть шкаф" }
-            .clickable(role=Role.Button){open(PetPage.WARDROBE)})
-        Box(Modifier.offset(w*.27f,h*.24f).width(w*.43f).height(h*.17f).semantics { contentDescription="Осмотреть полку" }
-            .clickable(role=Role.Button){open(PetPage.DECOR)})
-        Box(Modifier.offset(w*.77f,h*.51f).width(w*.21f).height(h*.32f).semantics { contentDescription="Подойти к столу" }
-            .clickable(role=Role.Button){open(PetPage.FOOD)})
-    }
-}
-
 
 @Composable
 private fun KrapiCoinMark() {
