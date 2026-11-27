@@ -19,7 +19,6 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
@@ -44,130 +43,159 @@ internal data class PetGesture(
 internal data class PetFit(val slot: String, val bitmap: Bitmap, val render: JSONObject)
 
 internal class PetRig private constructor(
-    private val data: JSONObject,
-    private val images: Map<String,Bitmap>,
-    private val additional: JSONObject
+    data: JSONObject,
+    images: Map<String, Bitmap>,
+    motion: JSONObject,
+    private val full: Boolean,
 ) {
+    private data class Sprite(val bitmap: Bitmap, val bounds: RectF)
+    private data class Bone(val name: String, val parent: Bone?, val x: Float, val y: Float, val matrix: Matrix = Matrix())
+    private data class Key(
+        val time: Float, val x: Float, val y: Float, val rotation: Float, val scaleX: Float, val scaleY: Float,
+    )
+    private data class Variant(val time: Float, val name: String)
+    private data class Clip(
+        val duration: Float, val loops: Boolean, val holds: Boolean,
+        val tracks: Map<String, List<Key>>, val variants: Map<String, List<Variant>>,
+    )
+    private data class Layer(
+        val name: String, val bone: Bone, val depth: Int, val sprite: Sprite, val variants: Map<String, Sprite>,
+    )
+
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-    private val layers = data.getJSONObject("layers").entries().map { it.second }
-    private val bones = data.getJSONObject("bones").entries()
-    val anchors = data.getJSONObject("anchors")
+    private val bones: Map<String, Bone> = buildMap {
+        val definitions = data.getJSONObject("bones")
+        fun resolve(name: String): Bone = get(name) ?: run {
+            val bone = definitions.getJSONObject(name)
+            val parent = bone.optString("parent").takeIf(String::isNotEmpty)?.let(::resolve)
+            val (x, y) = bone.point("pivot")
+            Bone(name, parent, x, y).also { put(name, it) }
+        }
+        definitions.keys().forEach { resolve(it) }
+    }
+    private val orderedBones = bones.values.toList()
+    private val clips = (motion.entries() + data.getJSONObject("clips").entries()).associate { (name, clip) ->
+        val tracks = clip.optJSONObject("tracks")?.let { tracks ->
+            tracks.keys().asSequence().associateWith { bone ->
+                tracks.getJSONArray(bone).objects().map { key ->
+                    Key(key.number("time"), key.number("x"), key.number("y"), key.number("rotation"),
+                        key.number("scaleX", 1f), key.number("scaleY", 1f))
+                }
+            }
+        }.orEmpty()
+        val variants = clip.optJSONObject("variants")?.let { variants ->
+            variants.keys().asSequence().associateWith { layer ->
+                variants.getJSONArray(layer).objects().map { Variant(it.number("time"), it.getString("value")) }
+            }
+        }.orEmpty()
+        name to Clip(clip.number("duration"), clip.optBoolean("loop"), clip.optBoolean("hold"), tracks, variants)
+    }
+
+    private fun sprite(data: JSONObject, images: Map<String, Bitmap>): Sprite {
+        val (x, y) = data.point("offset")
+        val (w, h) = data.point("size")
+        return Sprite(images.getValue(data.getString("src")), RectF(x, y, x + w, y + h))
+    }
+
+    private val layers = if (full) data.getJSONObject("layers").entries().map { (name, layer) ->
+        val variants = layer.optJSONObject("variants")?.entries()?.associate { (key, value) -> key to sprite(value, images) }.orEmpty()
+        Layer(name, bones.getValue(layer.getString("bone")), layer.getInt("depth"), sprite(layer, images), variants)
+    } else {
+        listOf(Layer("neutral", bones.getValue("root"), Int.MIN_VALUE, sprite(data.getJSONObject("neutral"), images), emptyMap()))
+    }
+    private val anchors = data.getJSONObject("anchors")
     val width = data.point("canvas").first
     val height = data.point("canvas").second
 
-    private fun clip(name: String) = data.getJSONObject("clips").optJSONObject(name) ?: additional.optJSONObject(name)
-    fun holds(name: String): Boolean = clip(name)?.optBoolean("hold")==true
-    fun duration(name: String): Float = clip(name)?.number("duration") ?: 600f
+    fun holds(name: String): Boolean = clips[name]?.holds == true
+    fun duration(name: String): Float = clips[name]?.duration ?: 600f
 
-    private fun keyframes(keys: JSONArray?, time: Float): Triple<JSONObject,JSONObject,Float> {
-        if(keys==null || keys.length()==0) return Triple(JSONObject(),JSONObject(),0f)
-        val first=keys.getJSONObject(0)
-        if(time<=first.number("time")) return Triple(first,first,0f)
-        for(i in 1 until keys.length()) {
-            val right=keys.getJSONObject(i)
-            if(time<right.number("time")) {
-                val left=keys.getJSONObject(i-1)
-                return Triple(left,right,(time-left.number("time"))/(right.number("time")-left.number("time")))
+    private fun updateBone(bone: Bone, keys: List<Key>?, time: Float) {
+        val transform = bone.matrix
+        transform.reset()
+        if (!keys.isNullOrEmpty()) {
+            val next = keys.indexOfFirst { it.time > time }
+            val left = when {
+                next < 0 -> keys.last()
+                next == 0 -> keys.first()
+                else -> keys[next - 1]
             }
+            val right = if (next > 0) keys[next] else left
+            val fraction = if (left === right) 0f else (time - left.time) / (right.time - left.time)
+            fun interpolate(a: Float, b: Float) = a + (b - a) * fraction
+            transform.postTranslate(-bone.x, -bone.y)
+            transform.postScale(interpolate(left.scaleX, right.scaleX), interpolate(left.scaleY, right.scaleY))
+            transform.postRotate(interpolate(left.rotation, right.rotation))
+            transform.postTranslate(bone.x + interpolate(left.x, right.x), bone.y + interpolate(left.y, right.y))
         }
-        val last=keys.getJSONObject(keys.length()-1)
-        return Triple(last,last,0f)
+        bone.parent?.let { transform.postConcat(it.matrix) }
     }
 
-    private fun drawSprite(canvas: AndroidCanvas, sprite: JSONObject) {
-        val bitmap=images[sprite.getString("src")] ?: return
-        val (x,y)=sprite.point("offset")
-        val (w,h)=sprite.point("size")
-        canvas.drawBitmap(bitmap,null,RectF(x,y,x+w,y+h),paint)
-    }
-
-    fun draw(canvas: AndroidCanvas, name: String, elapsed: Float, fits: List<PetFit>) {
-        if(images.size == 1) {
-            drawSprite(canvas,data.getJSONObject("neutral"))
-            drawFits(canvas, mapOf("root" to Matrix()), fits)
-            return
-        }
-        val clip=clip(name)
-        val duration=duration(name)
-        val time=if(clip?.optBoolean("loop")==true) elapsed%duration else elapsed.coerceAtMost(duration)
-        val tracks=clip?.optJSONObject("tracks")
-        val variants=clip?.optJSONObject("variants")
-        val transforms=mutableMapOf<String,Matrix>()
-        val allBones=bones.toMap()
-        fun matrix(bone: String): Matrix = transforms.getOrPut(bone) {
-            val metadata=allBones.getValue(bone)
-            val (px,py)=metadata.point("pivot")
-            val (left,right,f)=keyframes(tracks?.optJSONArray(bone),time)
-            fun value(field: String, fallback: Float=0f): Float {
-                val start=left.number(field,fallback)
-                return start+(right.number(field,fallback)-start)*f
-            }
-            val local=Matrix().apply {
-                postTranslate(-px,-py)
-                postScale(value("scaleX",1f),value("scaleY",1f))
-                postRotate(value("rotation"))
-                postTranslate(px+value("x"),py+value("y"))
-            }
-            metadata.optString("parent").takeIf(String::isNotEmpty)?.let { local.postConcat(matrix(it)) }
-            local
-        }
-        bones.forEach { matrix(it.first) }
-        val actions=mutableListOf<Pair<Int,()->Unit>>()
-        for(layer in layers) {
-            val bone=layer.getString("bone")
-            val variant=keyframes(variants?.optJSONArray(bone),time).first.optString("value")
-            val sprite=layer.optJSONObject("variants")?.optJSONObject(variant) ?: layer
-            actions += layer.getInt("depth") to {
-                canvas.save(); canvas.concat(matrix(bone)); drawSprite(canvas,sprite); canvas.restore()
+    fun renderer(fits: List<PetFit>): (AndroidCanvas, String, Float) -> Unit {
+        val parts = mutableListOf<Pair<Int, (AndroidCanvas, Clip?, Float) -> Unit>>()
+        for (layer in layers) {
+            parts += layer.depth to { canvas, clip, time ->
+                val keys = clip?.variants?.get(layer.name)
+                val variant = keys?.lastOrNull { it.time <= time } ?: keys?.firstOrNull()
+                val sprite = layer.variants[variant?.name] ?: layer.sprite
+                canvas.save()
+                canvas.concat(layer.bone.matrix)
+                canvas.drawBitmap(sprite.bitmap, null, sprite.bounds, paint)
+                canvas.restore()
             }
         }
-        for(fit in fits) {
-            val slot=anchors.optJSONObject(fit.slot) ?: continue
-            actions += slot.getInt("depth") to { drawFit(canvas,transforms,slot,fit) }
+        for (fit in fits) {
+            val anchor = anchors.optJSONObject(fit.slot) ?: continue
+            val bone = bones.getValue(anchor.getString("bone"))
+            val (x, y) = anchor.point("position")
+            val a = x + fit.render.number("dx")
+            val b = y + fit.render.number("dy")
+            val rotation = anchor.number("rotation") + fit.render.number("rotation")
+            val scale = anchor.number("scale", 1f) * fit.render.number("scale", 1f)
+            val w = fit.render.number("displayWidth", 300f)
+            val h = w * fit.bitmap.height / fit.bitmap.width
+            val ox = w * fit.render.number("originX", .5f)
+            val oy = h * fit.render.number("originY", .5f)
+            val bounds = RectF(-ox, -oy, w - ox, h - oy)
+            val placement = Matrix().apply { setScale(scale, scale); postRotate(rotation); postTranslate(a, b) }
+            parts += anchor.getInt("depth") to { canvas, _, _ ->
+                canvas.save()
+                canvas.concat(bone.matrix)
+                canvas.concat(placement)
+                canvas.drawBitmap(fit.bitmap, null, bounds, paint)
+                canvas.restore()
+            }
         }
-        actions.sortedBy { it.first }.forEach { it.second() }
-    }
-
-    private fun drawFits(canvas: AndroidCanvas, transforms: Map<String,Matrix>, fits: List<PetFit>) {
-        fits.sortedBy { anchors.optJSONObject(it.slot)?.optInt("depth") ?: 0 }.forEach { fit ->
-            anchors.optJSONObject(fit.slot)?.let { drawFit(canvas,transforms,it,fit) }
+        val ordered = parts.sortedBy { it.first }.map { it.second }
+        return { canvas, name, elapsed ->
+            val clip = if (full) clips[name] else null
+            val time = if (clip == null) 0f else if (clip.loops) elapsed % clip.duration else elapsed.coerceAtMost(clip.duration)
+            for (bone in orderedBones) updateBone(bone, clip?.tracks?.get(bone.name), time)
+            for (draw in ordered) draw(canvas, clip, time)
         }
-    }
-
-    private fun drawFit(canvas: AndroidCanvas, transforms: Map<String,Matrix>, anchor: JSONObject, fit: PetFit) {
-        val (x,y)=anchor.point("position")
-        val render=fit.render
-        canvas.save()
-        transforms[anchor.getString("bone")]?.let(canvas::concat)
-        canvas.translate(x+render.number("dx"),y+render.number("dy"))
-        canvas.rotate(anchor.number("rotation")+render.number("rotation"))
-        val scale=anchor.number("scale",1f)*render.number("scale",1f)
-        canvas.scale(scale,scale)
-        val w=render.number("displayWidth",300f)
-        val h=w*fit.bitmap.height/fit.bitmap.width
-        val ox=w*render.number("originX",.5f)
-        val oy=h*render.number("originY",.5f)
-        canvas.drawBitmap(fit.bitmap,null,RectF(-ox,-oy,w-ox,h-oy),paint)
-        canvas.restore()
     }
 
     companion object {
-        suspend fun load(assets: AssetManager,id: String,full: Boolean): PetRig = withContext(Dispatchers.IO) {
+        suspend fun load(assets: AssetManager, id: String, full: Boolean): PetRig = withContext(Dispatchers.IO) {
             require(id.matches(Regex("[a-z][a-z0-9_]{2,63}")))
-            val folder="pets/rigs/$id/"
-            val data=JSONObject(assets.open(folder+"rig.json").bufferedReader().use { it.readText() })
-            val references=mutableSetOf(data.getJSONObject("neutral").getString("src"))
-            if(full) for((_,layer) in data.getJSONObject("layers").entries()) {
-                references += layer.getString("src")
-                layer.optJSONObject("variants")?.entries()?.forEach { references += it.second.getString("src") }
+            val folder = "pets/rigs/$id/"
+            val data = JSONObject(assets.open(folder + "rig.json").bufferedReader().use { it.readText() })
+            val references = mutableSetOf<String>()
+            if (full) {
+                for ((_, layer) in data.getJSONObject("layers").entries()) {
+                    references += layer.getString("src")
+                    layer.optJSONObject("variants")?.entries()?.forEach { references += it.second.getString("src") }
+                }
+            } else references += data.getJSONObject("neutral").getString("src")
+            val images = references.associateWith { file ->
+                assets.open(folder + file).use {
+                    BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = 2 })
+                        ?: error("Нет изображения")
+                }
             }
-            val images=references.associateWith { file ->
-                assets.open(folder+file).use { BitmapFactory.decodeStream(it,null,
-                    BitmapFactory.Options().apply { inSampleSize=2 }) ?: error("Нет изображения") }
-            }
-            val motion=try { JSONObject(assets.open("pets/motion.json").bufferedReader().use { it.readText() }) }
-                catch(_: java.io.FileNotFoundException) { JSONObject() }
-            PetRig(data,images,motion)
+            val motion = try { JSONObject(assets.open("pets/motion.json").bufferedReader().use { it.readText() }) }
+                catch (_: java.io.FileNotFoundException) { JSONObject() }
+            PetRig(data, images, motion, full)
         }
     }
 }
@@ -206,6 +234,7 @@ internal fun AnimatedPet(rig: PetRig, gesture: PetGesture, modifier: Modifier, f
             frames(rig.duration(next)) { idleTime=it }
         }
     }
+    val drawPet = remember(rig, fits) { rig.renderer(fits) }
     Canvas(modifier) {
         val animated=active && motion
         val event=animated && gesture.clip!="idle" && (elapsed<rig.duration(gesture.clip) || rig.holds(gesture.clip))
@@ -217,7 +246,7 @@ internal fun AnimatedPet(rig: PetRig, gesture: PetGesture, modifier: Modifier, f
             native.save()
             native.translate((size.width-rig.width*scale)/2,(size.height-rig.height*scale)/2)
             native.scale(scale,scale)
-            rig.draw(native,clip,time,fits)
+            drawPet(native,clip,time)
             native.restore()
         }
     }
