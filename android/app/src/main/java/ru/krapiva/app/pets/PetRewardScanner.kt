@@ -16,6 +16,12 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import ru.krapiva.app.catalog.CameraPreview
 
+private val petRewardPattern = Regex("krapiva:reward:[A-Za-z0-9_-]{16,180}")
+
+internal fun isPetRewardCode(code: String): Boolean = petRewardPattern.matches(code)
+
+internal fun acceptsPetRewardScan(code: String, kind: String): Boolean = kind == "qr" && isPetRewardCode(code)
+
 @Composable
 internal fun PetRewardScanner(enabled:Boolean,onCode:(String)->Unit) {
     val context=LocalContext.current
@@ -32,7 +38,7 @@ internal fun PetRewardScanner(enabled:Boolean,onCode:(String)->Unit) {
     },enabled=enabled) {Text(if(camera)"Закрыть камеру" else "Сканировать QR")}
     if(camera && enabled) Box(Modifier.fillMaxWidth().height(200.dp)) {
         CameraPreview(context,{code,_->camera=false;onCode(code)},{error=it;camera=false},{},
-            accept={code,kind->kind=="qr" && code.matches(Regex("krapiva:reward:[A-Za-z0-9_-]{16,180}"))})
+            accept=::acceptsPetRewardScan)
     }
     error?.let { Text(it) }
 }

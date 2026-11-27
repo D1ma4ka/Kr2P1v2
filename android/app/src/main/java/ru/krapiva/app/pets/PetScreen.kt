@@ -104,14 +104,22 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
         catch (cancel: CancellationException) { throw cancel }
         catch (_: Exception) { value=null }
     }
-    fun act(clip: String, priority: Int=1) {
+    fun act(clip: String, priority: Int=1, followUp: String?=null) {
         val now=SystemClock.elapsedRealtime()
         val gestureCanEnd=rig?.holds(gesture.clip)!=true
         val duration=rig?.duration(gesture.clip) ?: 1200f
         if(priority>=gesture.priority || (gestureCanEnd && now-lastGesture>duration)) {
             lastGesture=now
-            gesture=PetGesture(clip,priority,gesture.sequence+1)
+            gesture=PetGesture(clip,priority,gesture.sequence+1,followUp)
         }
+    }
+    LaunchedEffect(gesture, page, rig) {
+        val next=gesture.followUp ?: return@LaunchedEffect
+        if(page!=PetPage.ROOM) return@LaunchedEffect
+        if(ValueAnimator.areAnimatorsEnabled()) {
+            delay(rig?.duration(gesture.clip)?.toLong() ?: 600L)
+        }
+        act(next,gesture.priority)
     }
     fun drill(next: PetPage) {
         fitting=null
@@ -176,7 +184,9 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
                         (SystemClock.elapsedRealtime()-lastGesture)
                     delay(remaining.coerceAtLeast(0L))
                 }
-                act(clip,3)
+                if(clip=="celebrate" && ValueAnimator.areAnimatorsEnabled()) {
+                    act("gift",3,followUp=clip)
+                } else act(clip,3)
             }
             onDone()
         }
@@ -188,7 +198,7 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
             val shop=api.cachedCatalog(Api+"catalog",owner)
             if(state!=null && starters!=null && shop!=null) show(state,starters,shop,true)
             load()
-            act("return",2)
+            act(if(state?.optJSONObject("pet")!=null) "return" else "greet",2)
         }
     }
     LaunchedEffect(pet?.optString("id"),page,offline) {
@@ -384,7 +394,7 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
                         PetRewardScanner(!busy && !offline) { code=it }
                         OutlinedTextField(code,{code=it.take(195)},Modifier.fillMaxWidth(),label={Text("Код события")},singleLine=true)
                         Button({mutate("redeem",JSONObject().put("code",code.trim()),clip="celebrate"){code="";page=PetPage.ROOM}},
-                            enabled=!offline && !busy && code.startsWith("krapiva:reward:")) {Text("Получить награду")}
+                            enabled=!offline && !busy && isPetRewardCode(code.trim())) {Text("Получить награду")}
                     }
                     PetPage.WALLET -> {
                         Text("История KrapiCoin",style=MaterialTheme.typography.titleMedium)

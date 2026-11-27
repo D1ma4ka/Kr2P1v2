@@ -35,7 +35,12 @@ private fun JSONObject.point(key: String): Pair<Float,Float> = getJSONArray(key)
     it.getDouble(0).toFloat() to it.getDouble(1).toFloat()
 }
 private fun JSONObject.number(key: String, fallback: Float = 0f) = optDouble(key, fallback.toDouble()).toFloat()
-internal data class PetGesture(val clip: String, val priority: Int = 1, val sequence: Long = 0)
+internal data class PetGesture(
+    val clip: String,
+    val priority: Int = 1,
+    val sequence: Long = 0,
+    val followUp: String? = null,
+)
 internal data class PetFit(val slot: String, val bitmap: Bitmap, val render: JSONObject)
 
 internal class PetRig private constructor(

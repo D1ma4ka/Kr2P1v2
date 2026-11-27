@@ -1,9 +1,38 @@
 package ru.krapiva.app.catalog
 import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter
 import org.junit.Assert.*
 import org.junit.Test
+import ru.krapiva.app.pets.acceptsPetRewardScan
+import ru.krapiva.app.pets.isPetRewardCode
 class BarcodeDecoderTest {
+    @Test fun partnerScannerAcceptsOnlyRewardQrAndProductGtinStillDecodes() {
+        val reward = "krapiva:reward:TestCampaign_2026"
+        val decoder = BarcodeDecoder()
+        fun scan(content: String, format: BarcodeFormat): ScannedCode {
+            val image = MultiFormatWriter().encode(content, format, 480, 240, mapOf(EncodeHintType.MARGIN to 20))
+            val luma = ByteArray(image.width * image.height) { index ->
+                if (image[index % image.width, index / image.width]) 0 else 255.toByte()
+            }
+            return requireNotNull(decoder.decode(luma, image.width, image.height))
+        }
+
+        val product = scan("4006381333931", BarcodeFormat.EAN_13)
+        assertEquals("gtin", product.kind)
+        assertEquals("04006381333931", Gtin.normalize(product.code))
+        assertFalse(acceptsPetRewardScan(product.code, product.kind))
+        for (value in listOf("https://example.invalid/reward", "krapiva:reward:too-short", reward + "/more")) {
+            val qr = scan(value, BarcodeFormat.QR_CODE)
+            assertFalse(acceptsPetRewardScan(qr.code, qr.kind))
+            assertFalse(isPetRewardCode(value))
+        }
+        val qr = scan(reward, BarcodeFormat.QR_CODE)
+        assertEquals(reward, qr.code)
+        assertTrue(acceptsPetRewardScan(qr.code, qr.kind))
+        assertFalse(acceptsPetRewardScan(reward, "gtin"))
+    }
+
     @Test fun generatedEanUpcGtinAndQrThroughActualDecoderAtEveryOrientation() {
         for ((format,code,kind) in listOf(Triple(BarcodeFormat.EAN_13,"2900000000018","gtin"),Triple(BarcodeFormat.EAN_8,"96385074","gtin"),Triple(BarcodeFormat.UPC_A,"012345600012","gtin"),Triple(BarcodeFormat.UPC_E,"01234565","gtin"),Triple(BarcodeFormat.ITF,"00012345600012","gtin"),Triple(BarcodeFormat.QR_CODE,"https://example.invalid/qr","qr"))) {
             // UPC-E/ITF need a full quiet zone; the writer default margin is too narrow.
