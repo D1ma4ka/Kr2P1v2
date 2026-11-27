@@ -55,7 +55,7 @@ internal class PetRig private constructor(
     )
     private data class Variant(val time: Float, val name: String)
     private data class Clip(
-        val duration: Float, val loops: Boolean, val holds: Boolean,
+        val duration: Float, val transitionDuration: Float, val loops: Boolean, val holds: Boolean,
         val tracks: Map<String, List<Key>>, val variants: Map<String, List<Variant>>,
     )
     private data class Layer(
@@ -88,7 +88,8 @@ internal class PetRig private constructor(
                 variants.getJSONArray(layer).objects().map { Variant(it.number("time"), it.getString("value")) }
             }
         }.orEmpty()
-        name to Clip(clip.number("duration"), clip.optBoolean("loop"), clip.optBoolean("hold"), tracks, variants)
+        val duration = clip.number("duration")
+        name to Clip(duration, clip.number("holdFrom", duration), clip.optBoolean("loop"), clip.optBoolean("hold"), tracks, variants)
     }
 
     private fun sprite(data: JSONObject, images: Map<String, Bitmap>): Sprite {
@@ -109,6 +110,7 @@ internal class PetRig private constructor(
 
     fun holds(name: String): Boolean = clips[name]?.holds == true
     fun duration(name: String): Float = clips[name]?.duration ?: 600f
+    fun transitionDuration(name: String): Float = clips[name]?.transitionDuration ?: 600f
 
     private fun updateBone(bone: Bone, keys: List<Key>?, time: Float) {
         val transform = bone.matrix
@@ -220,8 +222,16 @@ internal fun AnimatedPet(rig: PetRig, gesture: PetGesture, modifier: Modifier, f
                 frame(time.coerceAtMost(duration))
             }
         }
-        if(gesture.clip!="idle") frames(rig.duration(gesture.clip)) { elapsed=it }
-        if(rig.holds(gesture.clip)) return@LaunchedEffect
+        if(gesture.clip!="idle") frames(rig.transitionDuration(gesture.clip)) { elapsed=it }
+        if(rig.holds(gesture.clip)) {
+            val settled = rig.transitionDuration(gesture.clip)
+            val cycle = rig.duration(gesture.clip) - settled
+            if(cycle > 0) while(true) {
+                delay((900L..1700L).random())
+                frames(cycle) { elapsed = settled + it }
+            }
+            return@LaunchedEffect
+        }
         val options=listOf("blink","look","scratch","stretch","yawn")
         var previous=""
         while(true) {

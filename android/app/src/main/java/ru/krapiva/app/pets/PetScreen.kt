@@ -180,7 +180,7 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
                 error="Эта награда уже в коллекции"
             } else if(clip!=null) {
                 if(clip=="eat" && gesture.clip=="sit" && ValueAnimator.areAnimatorsEnabled()) {
-                    val remaining=(rig?.duration("sit")?.toLong() ?: 0L) -
+                    val remaining=(rig?.transitionDuration("sit")?.toLong() ?: 0L) -
                         (SystemClock.elapsedRealtime()-lastGesture)
                     delay(remaining.coerceAtLeast(0L))
                 }

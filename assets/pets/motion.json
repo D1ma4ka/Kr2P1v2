@@ -926,7 +926,7 @@
     }
   },
   "sit": {
-    "duration": 840,
+    "duration": 1080,
     "tracks": {
       "root": [
         {
@@ -982,7 +982,54 @@
         }
       ]
     },
-    "hold": true
+    "hold": true,
+    "holdFrom": 840,
+    "variants": {
+      "eye_left": [
+        {
+          "time": 0,
+          "value": "open"
+        },
+        {
+          "time": 890,
+          "value": "half"
+        },
+        {
+          "time": 940,
+          "value": "closed"
+        },
+        {
+          "time": 990,
+          "value": "half"
+        },
+        {
+          "time": 1080,
+          "value": "open"
+        }
+      ],
+      "eye_right": [
+        {
+          "time": 0,
+          "value": "open"
+        },
+        {
+          "time": 890,
+          "value": "half"
+        },
+        {
+          "time": 940,
+          "value": "closed"
+        },
+        {
+          "time": 990,
+          "value": "half"
+        },
+        {
+          "time": 1080,
+          "value": "open"
+        }
+      ]
+    }
   },
   "appear": {
     "duration": 690,
