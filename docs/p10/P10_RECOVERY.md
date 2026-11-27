@@ -1,12 +1,20 @@
 # Восстановление P10
 
-## Повторная приёмка после `85fe55c`
+## Точка остановки · 27 ноября 2026
 
-Стартовая точка `85fe55cd018ba7d2dbe07d6a8fa0868642ebd802` совпала с удалённой веткой. Исправление приложения находится в `981965b4b78a431978cca5c25884f8813a30374f`. Финальная сборка и инструментальный прогон относятся к `8c18716fc82cc3f584d9b29d2bff384920595ea5`. В этот коммит входит поправка реакции после выхода от стола. GitHub Actions завершил `realRoomCatalogWalletAndPartnerReward` на API 35 при 320 dp с настоящим PostgreSQL. На API 26 отдельно прошёл `equippedRoomRendersAllFiveItems`. Результаты, снимки и открытые проверки перечислены в [отчёте QA](P10_QA_REPORT.md).
+Рабочая ветка `p10/krapet` репозитория `D1ma4ka/Kr2P1v2`. Приёмка начата с `ca633ea5d6fc96665938e67db3b2aced275fa92a` после `git fetch`. Зафиксированы посадка одежды и аксессуаров, контраст системной строки и `celebrate` при первой партнёрской выдаче.
 
-В архиве `KraPiva-P10-debug` лежит `KraPiva-P10-debug.apk` с SHA-256 `1da76102609a6624dd9342e5824c07a2303132ed99f4424881865ddced906b55`. Сумма, подпись и выравнивание проверены после скачивания. В архиве есть `source-commit.txt` и `SHA256SUMS.txt`. [Скачать APK из GitHub Actions](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/45896927244/artifacts/15154496584)
+`KraPiva-P10-debug.apk` собран из `5e123e171569a82a18148f74d03c54e6f39d30b8`. SHA-256 APK `8d2e543f758b1f5dfab53d729414ec957c058d969d77a69118016cae627a8d53`. В скачанном из Actions архиве сверены `source-commit.txt`, подпись, выравнивание и сумма. Этот APK прошёл оба сценария `PetAcceptanceTest` на API 35 при 320 dp с настоящим PostgreSQL. [Скачать APK](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/45998540519/artifacts/15196988697) · [Протокол пакета](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/45998540519/artifacts/15197496863) · [Отчёт QA](P10_QA_REPORT.md)
 
-При следующей приёмке на телефоне проверьте напечатанный QR и обычный GTIN, плавность, память и батарею. Для воспроизведения используйте раздел чистого запуска ниже, затем подготовьте новый синтетический аккаунт. Матрица отмечает 13 полностью закрытых строк из 18. [Матрица](P10_REQUIREMENTS.md)
+Повторный прогон выполняйте на свежем синтетическом аккаунте. После `realRoomCatalogWalletAndPartnerReward` на API 35 запустите `systemStatusBarMatchesRoomThemeAcrossRecreation` с тем же `/data/local/tmp/p10-fixture.json`. Первый сценарий сохраняет светлую тему для обычного запуска во втором. Оптические QR и GTIN, холодная загрузка, плавность, память, фон и батарея требуют физического телефона. Замеры программного API 26 сохранены в отчёте. [Матрица](P10_REQUIREMENTS.md)
+
+Удалённая ветка проверяется через `git fetch origin` и `git ls-remote origin refs/heads/p10/krapet`. Локальный стенд остановлен, тома `krapiva_p10_db-data` и `krapiva_p10_mail-data` сохранены. Запустите их через `docker compose -p krapiva_p10 up -d --wait db mailpit` и обновите каталог текущим импортом. Команды для нового стенда приведены ниже.
+
+## Предыдущая приёмка после `85fe55c`
+
+Стартовая точка `85fe55cd018ba7d2dbe07d6a8fa0868642ebd802` совпала с удалённой веткой. Исправление приложения находится в `981965b4b78a431978cca5c25884f8813a30374f`. Сборка и инструментальный прогон этого этапа относятся к `8c18716fc82cc3f584d9b29d2bff384920595ea5`. В этот коммит входит поправка реакции после выхода от стола. GitHub Actions завершил `realRoomCatalogWalletAndPartnerReward` на API 35 при 320 dp с настоящим PostgreSQL. На API 26 отдельно прошёл `equippedRoomRendersAllFiveItems`. Результаты и снимки перечислены в [отчёте QA](P10_QA_REPORT.md).
+
+SHA-256 APK этой сборки `1da76102609a6624dd9342e5824c07a2303132ed99f4424881865ddced906b55`. [Предыдущий APK](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/45896927244/artifacts/15154496584)
 
 ## Точка остановки по просьбе владельца · 26 ноября 2026
 
