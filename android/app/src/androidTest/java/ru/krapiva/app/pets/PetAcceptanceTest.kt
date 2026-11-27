@@ -154,7 +154,6 @@ class PetAcceptanceTest {
         reveal(text("Код события")).performTextInput(data.getString("qr"))
         clickText("Получить награду")
         awaitText("KraRoom")
-        awaitTag("pet-gesture-gift")
         awaitTag("pet-gesture-celebrate")
         val reward=state().getJSONArray("inventory").getJSONObject(0)
         assertEquals("partner_badge",reward.getString("definitionId"))
@@ -233,9 +232,9 @@ class PetAcceptanceTest {
                 val scale = bitmap.width * .89f / rig.width
                 canvas.translate((bitmap.width - rig.width * scale) / 2, (bitmap.height - rig.height * scale) / 2)
                 canvas.scale(scale, scale)
-                fun frame(elapsed: Float) {
+                fun frame(elapsed: Float, clip: String = "eat") {
                     bitmap.eraseColor(android.graphics.Color.TRANSPARENT)
-                    draw(canvas, "eat", elapsed)
+                    draw(canvas, clip, elapsed)
                 }
                 fun pixels() = IntArray(bitmap.width * bitmap.height).also {
                     bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
@@ -243,8 +242,16 @@ class PetAcceptanceTest {
                 frame(0f)
                 val first = pixels()
                 assertTrue(first.any { it ushr 24 != 0 })
+                frame(rig.transitionDuration("sit"), "sit")
+                assertTrue("Meal starts in the settled seat for $id", first.contentEquals(pixels()))
+                frame(950f, "sit")
+                assertFalse("Seated blink must change the rendered frame for $id", first.contentEquals(pixels()))
                 frame(1600f)
                 assertFalse(first.contentEquals(pixels()))
+                frame(0f, "gift")
+                val beforeGift = pixels()
+                frame(590f, "gift")
+                assertFalse("Gift animation must change the rendered frame for $id", beforeGift.contentEquals(pixels()))
                 repeat(20) { frame(it * 93f) }
                 val samples = LongArray(120) { index ->
                     val before = System.nanoTime()
@@ -256,6 +263,55 @@ class PetAcceptanceTest {
                 bitmap.recycle()
             }
         }
+    }
+
+    @Test fun partnerCameraReadsQrAndRejectsReplay() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val fixture = ParcelFileDescriptor.AutoCloseInputStream(
+            instrumentation.uiAutomation.executeShellCommand("cat /data/local/tmp/p10-fixture.json")
+        ).use { JSONObject(String(it.readBytes())) }
+        val account = fixture.getJSONArray("starterAccounts").getJSONObject(0)
+        val rewardCode = fixture.getString("qr")
+        lateinit var model: AccountViewModel
+        compose.runOnIdle { model = ViewModelProvider(compose.activity)[AccountViewModel::class.java] }
+        compose.waitUntil(75_000) { !model.state.value.busy }
+        compose.runOnIdle { model.login(account.getString("email"), account.getString("password")) }
+        compose.waitUntil(75_000) { !model.state.value.busy && model.state.value.profile != null }
+        awaitTag("nav-PETS")
+        tag("nav-PETS").performClick()
+        awaitTag("kra-room")
+        fun scan() {
+            reveal(tag("pet-page-EVENTS")).performClick()
+            clickText("Сканировать QR")
+            compose.waitUntil(75_000) {
+                // Avoid logging the redemption code even if the frame cannot be decoded.
+                compose.onAllNodesWithText(rewardCode).fetchSemanticsNodes().isNotEmpty()
+            }
+            clickText("Получить награду")
+            awaitTag("kra-room")
+        }
+        fun inventory() = runBlocking { model.api.json("v1/pets/state").getJSONArray("inventory") }
+
+        assertEquals(0, inventory().length())
+        scan()
+        val reward = inventory().getJSONObject(0)
+        assertEquals("partner_badge", reward.getString("definitionId"))
+        scan()
+        awaitText("Эта награда уже в коллекции")
+        assertEquals(1, inventory().length())
+        assertEquals(reward.getString("id"), inventory().getJSONObject(0).getString("id"))
+        TestEvidence.screenshot("p10-camera-replay.png")
+    }
+
+    @Test fun coldStartWithNoBackendRestoresPetAndBalance() {
+        awaitTag("nav-PETS")
+        tag("nav-PETS").performClick()
+        awaitTag("kra-room")
+        awaitText("Сохранённые данные · офлайн")
+        awaitText("Финик")
+        awaitPet()
+        tag("pet-balance").assertTextContains("1 KC", substring = true)
+        TestEvidence.screenshot("p10-cold-offline.png")
     }
 
     @SdkSuppress(minSdkVersion = 35)

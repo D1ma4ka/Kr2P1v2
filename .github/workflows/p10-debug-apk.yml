@@ -94,6 +94,11 @@ jobs:
             sleep 1
           done
           exit 1
+      - name: Prepare the synthetic QR camera frame
+        run: |
+          zxing=$(find "${GRADLE_USER_HOME:-$HOME/.gradle}/caches/modules-2/files-2.1/com.google.zxing/core/3.5.3" -type f -name core-3.5.3.jar -print -quit)
+          test -f "$zxing"
+          java -Djava.awt.headless=true --class-path "$zxing" tools/p10/PrintCodes.java work/p10-reward.txt work/p10-print-codes.png work/p10-camera-qr.png
       - name: Boot compact Android emulator
         timeout-minutes: 7
         run: |
@@ -109,7 +114,8 @@ jobs:
             krapet_run=(sudo -n -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --groups="$krapet_groups" --no-new-privs)
           fi
           "${krapet_run[@]}" env ANDROID_HOME="$ANDROID_HOME" ANDROID_AVD_HOME="$ANDROID_AVD_HOME" ANDROID_EMULATOR_HOME="$ANDROID_EMULATOR_HOME" \
-            "$ANDROID_HOME/emulator/emulator" -avd krapet -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -accel on > work/p10-emulator.log 2>&1 &
+            "$ANDROID_HOME/emulator/emulator" -avd krapet -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -accel on \
+            -camera-back "imagefile:$PWD/work/p10-camera-qr.png" > work/p10-emulator.log 2>&1 &
           emulator_pid=$!
           for attempt in $(seq 1 90); do
             if ! kill -0 "$emulator_pid" 2>/dev/null; then break; fi
@@ -126,27 +132,39 @@ jobs:
           exit 1
       - name: Run P10 instrumented acceptance against real PostgreSQL
         timeout-minutes: 8
+        env:
+          P10_DEVICE_SCENARIOS: realRoomCatalogWalletAndPartnerReward systemStatusBarMatchesRoomThemeAcrossRecreation coldStartWithNoBackendRestoresPetAndBalance eachApprovedStarterCanBeAdopted renderKraPetFramesOnAndroidCanvas partnerCameraReadsQrAndRejectsReplay
         run: |
           node --env-file=.env tools/p10/device-fixture.mjs work/p10-reward.txt --all-starters
           adb reverse tcp:53000 tcp:53000
           adb install p10-downloaded/KraPiva-P10-debug.apk
           adb install android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb shell pm grant ru.krapiva.app.debug android.permission.CAMERA
           adb push work/p10-device-fixture.json /data/local/tmp/p10-fixture.json
-          for scenario in realRoomCatalogWalletAndPartnerReward systemStatusBarMatchesRoomThemeAcrossRecreation eachApprovedStarterCanBeAdopted renderKraPetFramesOnAndroidCanvas; do
+          failed=0
+          for scenario in $P10_DEVICE_SCENARIOS; do
             echo "$scenario"
-            adb shell am instrument -w -r -e class "ru.krapiva.app.pets.PetAcceptanceTest#$scenario" ru.krapiva.app.debug.test/androidx.test.runner.AndroidJUnitRunner > "work/p10-$scenario.log"
-            grep -E '^Time:|^OK|^Tests run:|^INSTRUMENTATION_RESULT: shortMsg=' "work/p10-$scenario.log"
-            grep -Fxq 'OK (1 test)' "work/p10-$scenario.log"
+            if [ "$scenario" = coldStartWithNoBackendRestoresPetAndBalance ]; then
+              adb reverse --remove tcp:53000
+              adb shell am force-stop ru.krapiva.app.debug
+            fi
+            adb shell am instrument -w -r -e class "ru.krapiva.app.pets.PetAcceptanceTest#$scenario" ru.krapiva.app.debug.test/androidx.test.runner.AndroidJUnitRunner > "work/p10-$scenario.instrumentation"
+            if [ "$scenario" = coldStartWithNoBackendRestoresPetAndBalance ]; then
+              adb reverse tcp:53000 tcp:53000
+            fi
+            if ! grep -Fxq 'OK (1 test)' "work/p10-$scenario.instrumentation"; then failed=1; fi
+            grep -E '^(Time:|OK|Tests run:|INSTRUMENTATION_RESULT: shortMsg=|INSTRUMENTATION_STATUS: stack=)|at ru\.krapiva\.app\.pets\.PetAcceptanceTest' "work/p10-$scenario.instrumentation" || true
           done
+          exit "$failed"
       - name: Retain P10 synthetic device evidence
         if: always()
         run: |
           mkdir -p work/p10-device-evidence
-          for scenario in realRoomCatalogWalletAndPartnerReward systemStatusBarMatchesRoomThemeAcrossRecreation eachApprovedStarterCanBeAdopted renderKraPetFramesOnAndroidCanvas; do
-            if [ -f "work/p10-$scenario.log" ]; then
-              echo "$scenario" >> work/p10-device-evidence/result.txt
-              grep -E '^Time:|^OK|^Tests run:|^INSTRUMENTATION_RESULT: shortMsg=' "work/p10-$scenario.log" >> work/p10-device-evidence/result.txt || true
-            fi
+          for result in work/p10-*.instrumentation; do
+            [ -f "$result" ] || continue
+            name=${result#work/p10-}
+            echo "${name%.instrumentation}" >> work/p10-device-evidence/result.txt
+            grep -E '^(Time:|OK|Tests run:|INSTRUMENTATION_RESULT: shortMsg=|INSTRUMENTATION_STATUS: stack=)|at ru\.krapiva\.app\.pets\.PetAcceptanceTest' "$result" >> work/p10-device-evidence/result.txt || true
           done
           adb logcat -d -s KraPetPerf:I '*:S' > work/p10-device-evidence/renderer.txt || true
           adb pull /sdcard/Download/KraPivaP3/. work/p10-device-evidence/ || true
