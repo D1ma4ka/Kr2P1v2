@@ -30,8 +30,8 @@ class PrintCodes {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length < 2 || args.length > 3) {
-            throw new IllegalArgumentException("Usage: PrintCodes.java reward-file sheet.png [camera-frame.png]");
+        if (args.length != 2) {
+            throw new IllegalArgumentException("Usage: PrintCodes.java reward-file sheet.png");
         }
         String reward = Files.readString(Path.of(args[0])).strip();
         if (!reward.matches("krapiva:reward:[A-Za-z0-9_-]{16,180}")) {
@@ -55,18 +55,5 @@ class PrintCodes {
             graphics.dispose();
         }
         writePng(image, args[1]);
-        if (args.length == 3) {
-            BufferedImage frame = new BufferedImage(640, 480, BufferedImage.TYPE_INT_RGB);
-            Graphics2D camera = frame.createGraphics();
-            try {
-                camera.setColor(Color.WHITE);
-                camera.fillRect(0, 0, frame.getWidth(), frame.getHeight());
-                camera.setColor(Color.BLACK);
-                drawCode(camera, writer.encode(reward, BarcodeFormat.QR_CODE, 360, 360), 140, 60);
-            } finally {
-                camera.dispose();
-            }
-            writePng(frame, args[2]);
-        }
     }
 }

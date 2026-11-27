@@ -22,8 +22,23 @@ internal fun isPetRewardCode(code: String): Boolean = petRewardPattern.matches(c
 
 internal fun acceptsPetRewardScan(code: String, kind: String): Boolean = kind == "qr" && isPetRewardCode(code)
 
+internal typealias PetRewardCamera = @Composable (
+    result: (String, String) -> Unit,
+    failure: (String) -> Unit,
+    accept: (String, String) -> Boolean,
+) -> Unit
+
 @Composable
-internal fun PetRewardScanner(enabled:Boolean,onCode:(String)->Unit) {
+internal fun DevicePetRewardCamera(
+    result: (String, String) -> Unit,
+    failure: (String) -> Unit,
+    accept: (String, String) -> Boolean,
+) {
+    CameraPreview(LocalContext.current, result, failure, ready = {}, accept = accept)
+}
+
+@Composable
+internal fun PetRewardScanner(enabled:Boolean, cameraPreview:PetRewardCamera, onCode:(String)->Unit) {
     val context=LocalContext.current
     var camera by remember{mutableStateOf(false)}
     var error by remember{mutableStateOf<String?>(null)}
@@ -37,8 +52,7 @@ internal fun PetRewardScanner(enabled:Boolean,onCode:(String)->Unit) {
         else launch.launch(Manifest.permission.CAMERA)
     },enabled=enabled) {Text(if(camera)"Закрыть камеру" else "Сканировать QR")}
     if(camera && enabled) Box(Modifier.fillMaxWidth().height(200.dp)) {
-        CameraPreview(context,{code,_->camera=false;onCode(code)},{error=it;camera=false},{},
-            accept=::acceptsPetRewardScan)
+        cameraPreview({code,_->camera=false;onCode(code)},{error=it;camera=false},::acceptsPetRewardScan)
     }
     error?.let { Text(it) }
 }

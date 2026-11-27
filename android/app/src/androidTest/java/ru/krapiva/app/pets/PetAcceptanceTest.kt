@@ -7,6 +7,8 @@ import android.os.ParcelFileDescriptor
 import android.util.Log
 import android.view.WindowInsets
 import android.view.WindowInsetsController
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.LaunchedEffect
 import androidx.core.graphics.ColorUtils
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -20,6 +22,9 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.MultiFormatWriter
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -31,6 +36,8 @@ import org.junit.Test
 import ru.krapiva.app.MainActivity
 import ru.krapiva.app.TestEvidence
 import ru.krapiva.app.account.AccountViewModel
+import ru.krapiva.app.catalog.BarcodeDecoder
+import ru.krapiva.app.designsystem.KraPivaTheme
 import java.time.Instant
 import java.util.UUID
 
@@ -265,7 +272,7 @@ class PetAcceptanceTest {
         }
     }
 
-    @Test fun partnerCameraReadsQrAndRejectsReplay() {
+    @Test fun partnerScannerRedeemsDecodedQrOnlyOnce() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val fixture = ParcelFileDescriptor.AutoCloseInputStream(
             instrumentation.uiAutomation.executeShellCommand("cat /data/local/tmp/p10-fixture.json")
@@ -278,14 +285,41 @@ class PetAcceptanceTest {
         compose.runOnIdle { model.login(account.getString("email"), account.getString("password")) }
         compose.waitUntil(75_000) { !model.state.value.busy && model.state.value.profile != null }
         awaitTag("nav-PETS")
-        tag("nav-PETS").performClick()
+        val owner = requireNotNull(model.state.value.profile).getString("userId")
+        val decoder = BarcodeDecoder()
+        fun decode(content: String, format: BarcodeFormat): Pair<String, String> {
+            val image = MultiFormatWriter().encode(content, format, 480, 240, mapOf(EncodeHintType.MARGIN to 20))
+            val luma = ByteArray(image.width * image.height) { index ->
+                if (image[index % image.width, index / image.width]) 0 else 255.toByte()
+            }
+            val decoded = requireNotNull(decoder.decode(luma, image.width, image.height))
+            return decoded.code to decoded.kind
+        }
+        val retail = decode("4006381333931", BarcodeFormat.EAN_13)
+        val rewardScan = decode(rewardCode, BarcodeFormat.QR_CODE)
+        val activity = compose.activity
+        compose.runOnUiThread {
+            activity.setContent {
+                KraPivaTheme {
+                    PetScreen(model.api, owner, model::sessionExpired, rewardCamera = { result, _, accept ->
+                        LaunchedEffect(Unit) {
+                            assertFalse("Product codes must be ignored in the partner scanner", accept(retail.first, retail.second))
+                            assertTrue("The generated reward QR must be accepted", accept(rewardScan.first, rewardScan.second))
+                            result(rewardScan.first, rewardScan.second)
+                        }
+                    }) { }
+                }
+            }
+        }
         awaitTag("kra-room")
         fun scan() {
             reveal(tag("pet-page-EVENTS")).performClick()
             clickText("Сканировать QR")
             compose.waitUntil(75_000) {
                 // Avoid logging the redemption code even if the frame cannot be decoded.
-                compose.onAllNodesWithText(rewardCode).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodes(hasSetTextAction(), useUnmergedTree = true).fetchSemanticsNodes().any {
+                    it.config.getOrNull(SemanticsProperties.EditableText)?.text == rewardCode
+                }
             }
             clickText("Получить награду")
             awaitTag("kra-room")
@@ -300,7 +334,7 @@ class PetAcceptanceTest {
         awaitText("Эта награда уже в коллекции")
         assertEquals(1, inventory().length())
         assertEquals(reward.getString("id"), inventory().getJSONObject(0).getString("id"))
-        TestEvidence.screenshot("p10-camera-replay.png")
+        TestEvidence.screenshot("p10-scanner-replay.png")
     }
 
     @Test fun coldStartWithNoBackendRestoresPetAndBalance() {

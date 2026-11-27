@@ -94,11 +94,6 @@ jobs:
             sleep 1
           done
           exit 1
-      - name: Prepare the synthetic QR camera frame
-        run: |
-          zxing=$(find "${GRADLE_USER_HOME:-$HOME/.gradle}/caches/modules-2/files-2.1/com.google.zxing/core/3.5.3" -type f -name core-3.5.3.jar -print -quit)
-          test -f "$zxing"
-          java -Djava.awt.headless=true --class-path "$zxing" tools/p10/PrintCodes.java work/p10-reward.txt work/p10-print-codes.png work/p10-camera-qr.png
       - name: Boot compact Android emulator
         timeout-minutes: 7
         run: |
@@ -114,8 +109,7 @@ jobs:
             krapet_run=(sudo -n -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --groups="$krapet_groups" --no-new-privs)
           fi
           "${krapet_run[@]}" env ANDROID_HOME="$ANDROID_HOME" ANDROID_AVD_HOME="$ANDROID_AVD_HOME" ANDROID_EMULATOR_HOME="$ANDROID_EMULATOR_HOME" \
-            "$ANDROID_HOME/emulator/emulator" -avd krapet -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -accel on \
-            -camera-back "imagefile:$PWD/work/p10-camera-qr.png" > work/p10-emulator.log 2>&1 &
+            "$ANDROID_HOME/emulator/emulator" -avd krapet -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect -accel on > work/p10-emulator.log 2>&1 &
           emulator_pid=$!
           for attempt in $(seq 1 90); do
             if ! kill -0 "$emulator_pid" 2>/dev/null; then break; fi
@@ -133,7 +127,7 @@ jobs:
       - name: Run P10 instrumented acceptance against real PostgreSQL
         timeout-minutes: 8
         env:
-          P10_DEVICE_SCENARIOS: realRoomCatalogWalletAndPartnerReward systemStatusBarMatchesRoomThemeAcrossRecreation coldStartWithNoBackendRestoresPetAndBalance eachApprovedStarterCanBeAdopted renderKraPetFramesOnAndroidCanvas partnerCameraReadsQrAndRejectsReplay
+          P10_DEVICE_SCENARIOS: realRoomCatalogWalletAndPartnerReward systemStatusBarMatchesRoomThemeAcrossRecreation coldStartWithNoBackendRestoresPetAndBalance eachApprovedStarterCanBeAdopted renderKraPetFramesOnAndroidCanvas partnerScannerRedeemsDecodedQrOnlyOnce
         run: |
           node --env-file=.env tools/p10/device-fixture.mjs work/p10-reward.txt --all-starters
           adb reverse tcp:53000 tcp:53000

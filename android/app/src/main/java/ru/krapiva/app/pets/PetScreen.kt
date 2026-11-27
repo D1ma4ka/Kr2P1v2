@@ -68,7 +68,13 @@ private enum class PetPage(val title: String) {
 }
 
 @Composable
-internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bottomBar: @Composable () -> Unit) {
+internal fun PetScreen(
+    api: AccountApi,
+    owner: String,
+    expired: () -> Unit,
+    rewardCamera: PetRewardCamera = { result, failure, accept -> DevicePetRewardCamera(result, failure, accept) },
+    bottomBar: @Composable () -> Unit,
+) {
     val scope=rememberCoroutineScope()
     val context=LocalContext.current
     var snapshot by remember(owner) { mutableStateOf<JSONObject?>(null) }
@@ -391,7 +397,7 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
                     PetPage.EVENTS -> {
                         Text("Партнёрская награда",style=MaterialTheme.typography.titleMedium)
                         Text("Введите код события или отсканируйте QR.")
-                        PetRewardScanner(!busy && !offline) { code=it }
+                        PetRewardScanner(!busy && !offline,rewardCamera) { code=it }
                         OutlinedTextField(code,{code=it.take(195)},Modifier.fillMaxWidth(),label={Text("Код события")},singleLine=true)
                         Button({mutate("redeem",JSONObject().put("code",code.trim()),clip="celebrate"){code="";page=PetPage.ROOM}},
                             enabled=!offline && !busy && isPetRewardCode(code.trim())) {Text("Получить награду")}
