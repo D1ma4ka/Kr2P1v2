@@ -149,11 +149,17 @@ jobs:
           adb shell pm grant ru.krapiva.app.debug android.permission.CAMERA
           adb push work/p10-device-fixture.json /data/local/tmp/p10-fixture.json
           failed=0
+          if [ "$GITHUB_REF_NAME" = p10/kra-room-refinement ]; then
+            P10_DEVICE_SCENARIOS="$P10_DEVICE_SCENARIOS fittedRoomsShowRealWardrobeAndDecorInBothThemes"
+          fi
           for scenario in $P10_DEVICE_SCENARIOS; do
             echo "$scenario"
             if [ "$scenario" = coldStartWithNoBackendRestoresPetAndBalance ]; then
               adb reverse --remove tcp:53000
               adb shell am force-stop ru.krapiva.app.debug
+            fi
+            if [ "$scenario" = fittedRoomsShowRealWardrobeAndDecorInBothThemes ]; then
+              node --env-file=.env tools/p10/device-fixture.mjs --fund-starters
             fi
             adb shell am instrument -w -r -e class "ru.krapiva.app.pets.PetAcceptanceTest#$scenario" ru.krapiva.app.debug.test/androidx.test.runner.AndroidJUnitRunner > "work/p10-$scenario.instrumentation"
             if [ "$scenario" = coldStartWithNoBackendRestoresPetAndBalance ]; then

@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -83,24 +84,27 @@ internal fun KraRoom(
         remember(bitmap) { bitmap.asImageBitmap() }
     }
     val dark = MaterialTheme.colorScheme.surface.luminance() < .22f
+    val furniture = decor.filterKeys(artwork::containsKey).values.joinToString { it.getString("name") }
+    val clothing = fits.joinToString { adornments.getValue(it.slot).getString("name") }
 
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         BoxWithConstraints(
             Modifier.widthIn(max = 420.dp).fillMaxWidth().aspectRatio(1f)
-                .clip(RoundedCornerShape(20.dp)).testTag("kra-room"),
+                .clip(RoundedCornerShape(20.dp)).testTag("kra-room")
+                .semantics { if (furniture.isNotEmpty()) stateDescription = "Интерьер: $furniture" },
         ) {
             Canvas(Modifier.matchParentSize()) {
                 drawKraBar(SceneSize, dark, wardrobeOpen, artwork)
             }
             rig?.let {
                 AnimatedPet(
-                    it, gesture, Modifier.matchParentSize(), fits, room = true,
+                    it, gesture, Modifier.matchParentSize().graphicsLayer(), fits, room = true,
                 )
                 RoomTarget(
                     RoomArea(106f, 160f, 155f, 171f).modifier(this)
                         .testTag("pet-gesture-${gesture.clip}"),
                     "Питомец", onPet,
-                    state = if (fits.isEmpty()) null else "Предметов надето: ${fits.size}",
+                    state = if (fits.isEmpty()) null else "Предметов надето: ${fits.size}. $clothing",
                 )
             }
             if (food != null || "table_top" in artwork || "floor_left" in artwork || "floor_right" in artwork) {
@@ -123,4 +127,3 @@ private fun RoomTarget(modifier: Modifier, label: String, onClick: () -> Unit, s
             state?.let { stateDescription = it }
         })
 }
-

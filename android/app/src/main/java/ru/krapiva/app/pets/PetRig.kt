@@ -49,6 +49,27 @@ internal class PetRig private constructor(
     private val full: Boolean,
 ) {
     private data class Sprite(val bitmap: Bitmap, val bounds: RectF)
+
+    private class GarmentMesh(bounds: RectF, hemScale: Float) {
+        private val columns = 2
+        private val rows = 4
+        private val vertices = FloatArray((columns + 1) * (rows + 1) * 2).apply {
+            var index = 0
+            for (row in 0..rows) {
+                val progress = row.toFloat() / rows
+                val rowScale = 1f + (hemScale - 1f) * progress * progress
+                for (column in 0..columns) {
+                    val fromCenter = bounds.width() * (column.toFloat() / columns - .5f)
+                    this[index++] = bounds.centerX() + fromCenter * rowScale
+                    this[index++] = bounds.top + bounds.height() * progress
+                }
+            }
+        }
+
+        fun draw(canvas: AndroidCanvas, bitmap: Bitmap, paint: Paint) {
+            canvas.drawBitmapMesh(bitmap, columns, rows, vertices, 0, null, 0, paint)
+        }
+    }
     private data class Bone(val name: String, val parent: Bone?, val x: Float, val y: Float, val matrix: Matrix = Matrix())
     private data class Key(
         val time: Float, val x: Float, val y: Float, val rotation: Float, val scaleX: Float, val scaleY: Float,
@@ -173,6 +194,8 @@ internal class PetRig private constructor(
             val ox = w * fit.render.number("originX", .5f)
             val oy = h * fit.render.number("originY", .5f)
             val bounds = RectF(-ox, -oy, w - ox, h - oy)
+            val hemScale = anchor.number("hemScale", 1f)
+            val garment = if (hemScale == 1f) null else GarmentMesh(bounds, hemScale)
             val placement = Matrix().apply {
                 setScale(scaleX, scaleY)
                 postRotate(rotation)
@@ -182,7 +205,8 @@ internal class PetRig private constructor(
                 canvas.save()
                 canvas.concat(bone.matrix)
                 canvas.concat(placement)
-                canvas.drawBitmap(fit.bitmap, null, bounds, paint)
+                if (garment == null) canvas.drawBitmap(fit.bitmap, null, bounds, paint)
+                else garment.draw(canvas, fit.bitmap, paint)
                 canvas.restore()
             }
         }

@@ -278,12 +278,13 @@
     "head": {
       "bone": "root",
       "position": [
-        637,
-        263
+        635,
+        277
       ],
       "rotation": 2,
       "scale": 1.05,
-      "depth": 82
+      "depth": 82,
+      "scaleY": 0.88
     },
     "face": {
       "bone": "root",
@@ -298,51 +299,58 @@
     "neck": {
       "bone": "root",
       "position": [
-        624,
-        747
+        618,
+        741
       ],
       "rotation": 0,
-      "scale": 0.88,
+      "scale": 0.84,
       "depth": 38
     },
     "torso_base": {
       "bone": "root",
       "position": [
-        612,
-        835
+        611,
+        818
       ],
       "rotation": 0,
       "scale": 1.01,
-      "depth": 32
+      "depth": 32,
+      "scaleX": 1.03,
+      "scaleY": 0.78,
+      "hemScale": 0.82
     },
     "torso_outer": {
       "bone": "root",
       "position": [
-        612,
-        835
+        611,
+        824
       ],
       "rotation": 0,
       "scale": 1.03,
-      "depth": 34
+      "depth": 34,
+      "scaleX": 1.03,
+      "scaleY": 0.78,
+      "hemScale": 0.82
     },
     "wrist": {
       "bone": "arm_right",
       "position": [
-        987,
-        657
+        997,
+        646
       ],
-      "rotation": -38,
+      "rotation": -48,
       "scale": 0.7,
-      "depth": 59
+      "depth": 59,
+      "scaleY": 0.76
     },
     "accessory": {
       "bone": "root",
       "position": [
-        760,
-        798
+        748,
+        805
       ],
       "rotation": 0,
-      "scale": 0.87,
+      "scale": 0.72,
       "depth": 41
     },
     "effect": {

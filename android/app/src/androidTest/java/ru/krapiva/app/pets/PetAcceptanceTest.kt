@@ -50,12 +50,14 @@ class PetAcceptanceTest {
     private fun text(value:String) = compose.onNodeWithText(value)
     private fun awaitTag(tag:String) = compose.waitUntil(75_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
     private fun awaitText(text:String) = compose.waitUntil(75_000) { compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
-    private fun awaitPet(equipped:Boolean=false) = compose.waitUntil(75_000) {
-        val marker=hasContentDescription("Питомец")
-        val match=if(equipped) marker and SemanticsMatcher.expectValue(
-            androidx.compose.ui.semantics.SemanticsProperties.StateDescription,"Предметов надето: 5"
-        ) else marker
-        compose.onAllNodes(match).fetchSemanticsNodes().isNotEmpty()
+    private fun awaitPet(equipped: Int? = null, itemName: String? = null) = compose.waitUntil(75_000) {
+        val pet = hasContentDescription("Питомец")
+        val expected = if (equipped == null) pet else pet and SemanticsMatcher("Pet equipment") { node ->
+            val description = node.config.getOrNull(SemanticsProperties.StateDescription).orEmpty()
+            description.startsWith("Предметов надето: $equipped. ") &&
+                (itemName == null || description.contains(itemName))
+        }
+        compose.onAllNodes(expected).fetchSemanticsNodes().isNotEmpty()
     }
     private fun clickText(value:String) { awaitText(value);reveal(text(value)).performClick() }
 
@@ -147,6 +149,7 @@ class PetAcceptanceTest {
         assertEquals(1,state().getInt("balance"))
         reveal(compose.onNodeWithContentDescription("Подойти к столу")).performClick()
         awaitTag("pet-item-cookie")
+        TestEvidence.screenshot("p10-tasting-table.png")
         reveal(tag("pet-item-cookie")).performClick()
         awaitText("KraRoom")
         assertEquals(0,state().getJSONArray("inventory").length())
@@ -226,6 +229,104 @@ class PetAcceptanceTest {
         }
     }
 
+    @Test fun fittedRoomsShowRealWardrobeAndDecorInBothThemes() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val fixture = ParcelFileDescriptor.AutoCloseInputStream(
+            instrumentation.uiAutomation.executeShellCommand("cat /data/local/tmp/p10-fixture.json")
+        ).use { JSONObject(String(it.readBytes())) }
+        val accounts = fixture.getJSONArray("starterAccounts")
+        val light = mapOf(
+            "head" to "baseball_cap", "face" to "round_glasses", "neck" to "bow_tie",
+            "torso_base" to "crew_tee", "torso_outer" to "linen_shirt",
+            "wrist" to "field_watch", "accessory" to "hop_pin",
+        )
+        val dark = mapOf(
+            "head" to "knit_hat", "face" to "aviator_glasses", "neck" to "leaf_chain",
+            "torso_base" to "striped_tee", "torso_outer" to "hoodie",
+            "wrist" to "digital_watch", "accessory" to "star_pin",
+        )
+        val decor = mapOf(
+            "shelf_slot_01" to "bar_trophy", "shelf_slot_04" to "city_souvenir",
+            "wall_left" to "leaf_poster", "floor_left" to "green_fern",
+        )
+        lateinit var model: AccountViewModel
+        compose.runOnIdle { model = ViewModelProvider(compose.activity)[AccountViewModel::class.java] }
+        compose.waitUntil(75_000) { !model.state.value.busy }
+
+        fun theme(label: String) {
+            compose.runOnIdle { model.navigate(ru.krapiva.app.account.AccountScreen.SETTINGS) }
+            clickText(label)
+            tag("nav-PETS").performClick()
+        }
+        fun arrange(kind: String, items: Map<String, String>) = runBlocking {
+            for ((slot, item) in items) {
+                val purchased = model.api.json(
+                    "v1/pets/purchase", "POST",
+                    JSONObject().put("definitionId", item).put("requestId", UUID.randomUUID().toString()),
+                )
+                model.api.json(
+                    "v1/pets/$kind/$slot", "PUT", JSONObject().put("itemId", purchased.getString("itemId")),
+                )
+            }
+        }
+        fun roomReady(itemName: String) {
+            awaitPet(equipped = light.size, itemName = itemName)
+            compose.waitUntil(15_000) {
+                tag("kra-room").fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
+                    ?.removePrefix("Интерьер: ")?.split(", ")?.size == decor.size
+            }
+        }
+
+        for ((index, starter) in starters.withIndex()) {
+            val id = starter.second
+            val account = accounts.getJSONObject(index)
+            compose.runOnIdle { model.login(account.getString("email"), account.getString("password")) }
+            compose.waitUntil(75_000) { !model.state.value.busy && model.state.value.profile != null }
+            awaitTag("nav-HOME")
+            val pet = runBlocking { model.api.json("v1/pets/state").getJSONObject("pet") }
+            assertEquals(id, pet.getString("definitionId"))
+            arrange("wear", light)
+            if (id == "starter_hop") {
+                val badge = runBlocking {
+                    model.api.json("v1/pets/redeem", "POST", JSONObject().put("code", fixture.getString("qr")))
+                }
+                runBlocking {
+                    model.api.json("v1/pets/decor/shelf_slot_03", "PUT", JSONObject().put("itemId", badge.getString("itemId")))
+                }
+            }
+            arrange("decor", if (id == "starter_hop") decor - "wall_left" else decor)
+            theme("Светлая")
+            roomReady("Бейсболка")
+            TestEvidence.screenshot("p10-bar-$id-light.png")
+
+            tag("nav-HOME").performClick()
+            arrange("wear", dark)
+            theme("Тёмная")
+            roomReady("Вязаная шапка")
+            TestEvidence.screenshot("p10-bar-$id-dark.png")
+
+            if (id == "starter_hop") {
+                compose.onNodeWithContentDescription("Открыть шкаф").performClick()
+                awaitText("Гардероб")
+                roomReady("Вязаная шапка")
+                TestEvidence.screenshot("p10-bar-wardrobe.png")
+                reveal(tag("pet-item-hoodie")).assertIsDisplayed()
+                TestEvidence.screenshot("p10-bar-wardrobe-items.png")
+                clickText("Магазин")
+                clickText("Одежда")
+                awaitTag("pet-item-pocket_tee")
+                TestEvidence.screenshot("p10-bar-shop.png")
+                reveal(tag("pet-item-pocket_tee")).performClick()
+                awaitText("Закрыть примерку")
+                roomReady("Футболка с карманом")
+                TestEvidence.screenshot("p10-bar-shop-fitting.png")
+                theme("Светлая")
+            }
+            compose.runOnIdle { model.logout() }
+            compose.waitUntil(75_000) { !model.state.value.busy && model.state.value.profile == null }
+        }
+    }
+
     @Test fun renderKraPetFramesOnAndroidCanvas() {
         val assets = InstrumentationRegistry.getInstrumentation().targetContext.assets
         for ((_, id) in starters) {
@@ -266,6 +367,17 @@ class PetAcceptanceTest {
                     (System.nanoTime() - before) / 1_000
                 }.sortedArray()
                 Log.i("KraPetPerf", "$id load_ms=$loadMillis canvas_median_us=${samples[59]} canvas_p95_us=${samples[113]}")
+
+                // The shipped catalogue has no effect item. Exercise the reserved anchor on Android Canvas.
+                val marker = Bitmap.createBitmap(24, 24, Bitmap.Config.ARGB_8888)
+                try {
+                    marker.eraseColor(android.graphics.Color.MAGENTA)
+                    bitmap.eraseColor(android.graphics.Color.TRANSPARENT)
+                    rig.renderer(listOf(PetFit("effect", marker, JSONObject().put("displayWidth", 80))))(canvas, "greet", 180f)
+                    assertTrue("Effect layer missing on $id", pixels().contains(android.graphics.Color.MAGENTA))
+                } finally {
+                    marker.recycle()
+                }
             } finally {
                 bitmap.recycle()
             }
@@ -425,7 +537,7 @@ class PetAcceptanceTest {
         tag("nav-PETS").performClick()
         awaitTag("kra-room")
         awaitText("Солод")
-        awaitPet(equipped=true)
+        awaitPet(equipped=5)
         TestEvidence.screenshot("p10-dressed.png")
     }
 

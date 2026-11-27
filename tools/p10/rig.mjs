@@ -36,7 +36,7 @@ function sample(keys, time, defaults) {
   }))
 }
 
-export function pose(rig, clipName, elapsed = 0) {
+export function pose(rig, clipName, elapsed = 0, { room = false } = {}) {
   const clip = rig.clips[clipName]
   const time = clip
     ? clip.loop ? Math.max(0, elapsed) % clip.duration : Math.min(clip.duration, Math.max(0, elapsed))
@@ -47,7 +47,9 @@ export function pose(rig, clipName, elapsed = 0) {
     if (bones[name]) return bones[name]
     const bone = rig.bones[name]
     const parent = bone.parent ? resolve(bone.parent) : unit
-    const local = around(bone.pivot, sample(clip?.tracks?.[name], time, rest))
+    const key = sample(clip?.tracks?.[name], time, rest)
+    const towardTable = room && name === 'root' && ['sit', 'eat'].includes(clipName)
+    const local = around(bone.pivot, towardTable ? { ...key, x: -key.x } : key)
     return bones[name] = multiply(parent, local)
   }
   for (const name of Object.keys(rig.bones)) resolve(name)
@@ -76,11 +78,12 @@ export function placeItem(rig, frame, slot, item = {}) {
     x: x + offsetX,
     y: y + offsetY,
     rotation: anchor.rotation + (item.rotation ?? 0),
-    scaleX: scale,
-    scaleY: scale
+    scaleX: scale * (anchor.scaleX ?? 1),
+    scaleY: scale * (anchor.scaleY ?? 1)
   })
   return {
     depth: item.depth ?? anchor.depth,
+    hemScale: anchor.hemScale ?? 1,
     transform: multiply(multiply(frame.bones[anchor.bone], local), [1, 0, 0, 1, -originX, -originY])
   }
 }

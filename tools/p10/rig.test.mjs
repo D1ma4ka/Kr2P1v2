@@ -164,35 +164,49 @@ test('all permitted catalogue outfits fit the room across the animated library',
         const offset = [render.dx ?? 0, render.dy ?? 0]
         return { item, slot, anchor, origin, offset, corners: [[0, 0], [width, 0], [width, height], [0, height]] }
       }))
-    const [canvasWidth, canvasHeight] = rig.canvas
-    const roomHeight = 315
+    const [, canvasHeight] = rig.canvas
+    const footY = rig.neutral.offset[1] + rig.neutral.size[1]
     const roomViews = [320, 394, 480, 600].map(screenWidth => {
-      const roomWidth = screenWidth - 28
-      const petHeight = roomHeight * .66
-      const scale = Math.min(roomWidth * .63 / canvasWidth, petHeight / canvasHeight) * .89
+      const roomSize = Math.min(screenWidth - 28, 420)
+      const scale = roomSize * .50 / canvasHeight
       return {
-        scale, roomWidth,
-        left: (roomWidth - canvasWidth * scale) / 2,
-        top: roomHeight - 30 - (petHeight + canvasHeight * scale) / 2,
+        scale, roomSize,
+        left: roomSize * .515 - rig.bones.root.pivot[0] * scale,
+        top: roomSize * .89 - footY * scale,
       }
     })
+    for (const view of roomViews) {
+      assert.equal((view.top + footY * view.scale).toFixed(5), (view.roomSize * .89).toFixed(5))
+      for (const time of [0, 600, 1200, 1800, 2600]) {
+        const idle = pose(rig, 'idle', time, { room: true })
+        const [, y] = point(idle.bones.root, [rig.bones.root.pivot[0], footY])
+        assert.ok(Math.abs(y - footY) * view.scale < 2, `${rig.id} lost contact with the floor`)
+      }
+    }
+    const roomSeat = pose(rig, 'sit', rig.clips.sit.holdFrom, { room: true })
+    assert.ok(point(roomSeat.bones.root, rig.bones.root.pivot)[0] < rig.bones.root.pivot[0])
+    assert.deepEqual(roomSeat.bones, pose(rig, 'eat', 0, { room: true }).bones)
     for (const [clip, { duration }] of [['', { duration: 0 }], ...Object.entries(rig.clips)]) {
       for (let time = 0; time <= duration; time = Math.min(duration, time + 10)) {
-        const frame = pose(rig, clip, time)
+        const frame = pose(rig, clip, time, { room: true })
         poses++
         for (const piece of pieces) {
           const { item, slot, anchor, origin, offset, corners } = piece
-          const { transform } = placeItem(rig, frame, slot, { origin, offset, scale: item.render.scale, rotation: item.render.rotation })
+          const { transform, hemScale } = placeItem(rig, frame, slot, { origin, offset, scale: item.render.scale, rotation: item.render.rotation })
+          assert.ok(hemScale > 0 && hemScale <= 1)
+          if (slot.startsWith('torso_')) assert.ok(hemScale < 1)
           const [x, y] = point(transform, origin)
           const [anchorX, anchorY] = point(frame.bones[anchor.bone], [anchor.position[0] + offset[0], anchor.position[1] + offset[1]])
           assert.ok(Math.hypot(x - anchorX, y - anchorY) < 0.000001)
-          for (const local of corners) {
-            const [u, v] = point(transform, local)
+          for (const [localX, localY] of corners) {
+            const meshX = item.width / 2 + (localX - item.width / 2) *
+              (1 + (hemScale - 1) * (localY / item.height) ** 2)
+            const [u, v] = point(transform, [meshX, localY])
             for (const view of roomViews) {
               const px = view.left + u * view.scale
               const py = view.top + v * view.scale
-              if (px < 0 || px > view.roomWidth || py < 0 || py > roomHeight) {
-                assert.fail(`${rig.id}/${item.id}, ${clip || 'neutral'} at ${time} ms, room ${view.roomWidth} dp: ${px},${py}`)
+              if (px < 0 || px > view.roomSize || py < 0 || py > view.roomSize) {
+                assert.fail(`${rig.id}/${item.id}, ${clip || 'neutral'} at ${time} ms, room ${view.roomSize} dp: ${px},${py}`)
               }
             }
           }

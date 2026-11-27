@@ -25,6 +25,34 @@ async function createAccount() {
   return {email,password}
 }
 
+if (process.argv[2] === '--fund-starters') {
+  const { starterAccounts } = JSON.parse(await readFile('work/p10-device-fixture.json', 'utf8'))
+  const emails = starterAccounts.map(({ email }) => email)
+  if (emails.length !== 5 || emails.some(email => !/^pet-[0-9a-f]{12}@example\.invalid$/.test(email))) {
+    throw new Error('Five synthetic starter accounts are required for the visual fixture')
+  }
+  const pool = createPool(process.env.DATABASE_URL)
+  try {
+    const result = await pool.query(`
+      WITH credits AS (
+        INSERT INTO kra_wallet_entries(user_id, reason, event_id, amount, config_version, note)
+        SELECT u.id, 'admin', u.id, 1000, (SELECT max(version) FROM kra_economy), 'P10 visual fixture'
+        FROM users u JOIN kra_wallets w ON w.user_id = u.id
+        WHERE u.email = ANY($1::text[])
+        ON CONFLICT (user_id, reason, event_id) DO NOTHING
+        RETURNING user_id, amount
+      )
+      UPDATE kra_wallets w SET balance = w.balance + c.amount
+      FROM credits c WHERE w.user_id = c.user_id
+    `, [emails])
+    if (result.rowCount !== emails.length) throw new Error('Starter adoption must succeed before funding the visual fixture')
+  } finally {
+    await pool.end()
+  }
+  console.log('Funded five synthetic wallets for visual acceptance')
+  process.exit(0)
+}
+
 const qr = (await readFile(process.argv[2],'utf8')).trim()
 if (!/^krapiva:reward:[A-Za-z0-9_-]{16,180}$/.test(qr)) throw new Error('Provide the local test reward code file')
 const account = await createAccount()
