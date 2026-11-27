@@ -1,0 +1,18 @@
+coldStartWithNoBackendRestoresPetAndBalance
+Time: 5.395
+OK (1 test)
+eachApprovedStarterCanBeAdopted
+Time: 21.107
+OK (1 test)
+partnerScannerRedeemsDecodedQrOnlyOnce
+Time: 7.242
+OK (1 test)
+realRoomCatalogWalletAndPartnerReward
+Time: 22.303
+OK (1 test)
+renderKraPetFramesOnAndroidCanvas
+Time: 3.334
+OK (1 test)
+systemStatusBarMatchesRoomThemeAcrossRecreation
+Time: 9.91
+OK (1 test)

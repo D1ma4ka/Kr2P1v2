@@ -1,0 +1,5 @@
+starter_nettle load_ms=217 canvas_median_us=203 canvas_p95_us=733
+starter_tap load_ms=39 canvas_median_us=164 canvas_p95_us=836
+starter_cap load_ms=54 canvas_median_us=181 canvas_p95_us=570
+starter_bottle load_ms=28 canvas_median_us=145 canvas_p95_us=333
+starter_hop load_ms=39 canvas_median_us=152 canvas_p95_us=399
