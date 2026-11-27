@@ -310,7 +310,7 @@ class PetAcceptanceTest {
         awaitText("Сохранённые данные · офлайн")
         awaitText("Финик")
         awaitPet()
-        tag("pet-balance").assertTextContains("1 KC", substring = true)
+        compose.onNodeWithTag("pet-balance", useUnmergedTree = true).assertTextContains("1 KC", substring = true)
         TestEvidence.screenshot("p10-cold-offline.png")
     }
 
