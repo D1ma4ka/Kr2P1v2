@@ -1,6 +1,7 @@
 package ru.krapiva.app
 
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.content.Intent
 import android.content.res.Configuration
@@ -9,13 +10,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
 import ru.krapiva.app.designsystem.ThemePreference
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import ru.krapiva.app.designsystem.Dark
 import ru.krapiva.app.designsystem.KraPivaTheme
+import ru.krapiva.app.designsystem.Light
 import ru.krapiva.app.account.AccountApp
 
 class MainActivity : ComponentActivity() {
@@ -47,5 +51,7 @@ class MainActivity : ComponentActivity() {
         val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT)
         else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
         enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+        val palette = if (dark) Dark else Light
+        window.setBackgroundDrawable(ColorDrawable(palette.background.toArgb()))
     }
 }

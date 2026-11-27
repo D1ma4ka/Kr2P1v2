@@ -1,6 +1,10 @@
 package ru.krapiva.app.pets
 
+import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.view.WindowInsets
+import android.view.WindowInsetsController
+import androidx.core.graphics.ColorUtils
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInParent
@@ -17,6 +21,8 @@ import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import ru.krapiva.app.MainActivity
@@ -145,6 +151,7 @@ class PetAcceptanceTest {
         reveal(text("Код события")).performTextInput(data.getString("qr"))
         clickText("Получить награду")
         awaitText("KraRoom")
+        awaitTag("pet-gesture-celebrate")
         val reward=state().getJSONArray("inventory").getJSONObject(0)
         assertEquals("partner_badge",reward.getString("definitionId"))
         val replay=runBlocking { api.json("v1/pets/redeem","POST",JSONObject().put("code",data.getString("qr"))) }
@@ -163,6 +170,70 @@ class PetAcceptanceTest {
         awaitTag("kra-room")
         awaitPet()
         TestEvidence.screenshot("p10-room-dark.png")
+        compose.runOnIdle { model.navigate(ru.krapiva.app.account.AccountScreen.SETTINGS) }
+        clickText("Светлая")
+    }
+
+    @SdkSuppress(minSdkVersion = 35)
+    @Test fun systemStatusBarMatchesRoomThemeAcrossRecreation() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val fixture = ParcelFileDescriptor.AutoCloseInputStream(
+            instrumentation.uiAutomation.executeShellCommand("cat /data/local/tmp/p10-fixture.json")
+        ).use { JSONObject(String(it.readBytes())) }
+        lateinit var model: AccountViewModel
+        compose.runOnIdle { model = ViewModelProvider(compose.activity)[AccountViewModel::class.java] }
+        compose.waitUntil(75_000) { !model.state.value.busy }
+        compose.runOnIdle { model.login(fixture.getString("email"), fixture.getString("password")) }
+        compose.waitUntil(75_000) { !model.state.value.busy && model.state.value.profile != null }
+
+        val mismatches = mutableListOf<String>()
+        fun sample(stage: String, dark: Boolean) {
+            compose.waitForIdle()
+            val activity = compose.activity
+            val (inset, lightAppearance) = compose.runOnUiThread {
+                val window = activity.window
+                val height = requireNotNull(window.decorView.rootWindowInsets)
+                    .getInsets(WindowInsets.Type.statusBars()).top
+                val appearance = requireNotNull(window.insetsController).systemBarsAppearance
+                height to (appearance and WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS != 0)
+            }
+            assertTrue("Status bar should be visible", inset > 0)
+            val screenshot = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+            val luminance = try {
+                ColorUtils.calculateLuminance(screenshot.getPixel(screenshot.width / 2, inset / 2))
+            } finally {
+                screenshot.recycle()
+            }
+            if (lightAppearance == dark || (if (dark) luminance > 0.12 else luminance < 0.65)) {
+                mismatches += "$stage, lightAppearance=$lightAppearance, luminance=$luminance"
+            }
+            TestEvidence.screenshot("p10-status-$stage.png")
+        }
+
+        fun openRoom() {
+            awaitTag("nav-PETS")
+            tag("nav-PETS").performClick()
+            awaitTag("kra-room")
+            awaitPet()
+        }
+        fun switchTheme(label: String) {
+            compose.runOnIdle { model.navigate(ru.krapiva.app.account.AccountScreen.SETTINGS) }
+            clickText(label)
+            openRoom()
+        }
+        openRoom()
+        sample("launch", dark = false)
+        switchTheme("Тёмная")
+        sample("dark-switch", dark = true)
+        compose.activityRule.scenario.recreate()
+        openRoom()
+        sample("dark-recreated", dark = true)
+        switchTheme("Светлая")
+        sample("light-switch", dark = false)
+        compose.activityRule.scenario.recreate()
+        openRoom()
+        sample("light-recreated", dark = false)
+        assertTrue(mismatches.joinToString("\n"), mismatches.isEmpty())
     }
 
     @Test fun equippedRoomRendersAllFiveItems() {

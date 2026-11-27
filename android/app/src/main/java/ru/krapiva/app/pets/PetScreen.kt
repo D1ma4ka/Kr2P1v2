@@ -383,7 +383,7 @@ internal fun PetScreen(api: AccountApi, owner: String, expired: () -> Unit, bott
                         Text("Введите код события или отсканируйте QR.")
                         PetRewardScanner(!busy && !offline) { code=it }
                         OutlinedTextField(code,{code=it.take(195)},Modifier.fillMaxWidth(),label={Text("Код события")},singleLine=true)
-                        Button({mutate("redeem",JSONObject().put("code",code.trim()),clip="gift"){code="";page=PetPage.ROOM}},
+                        Button({mutate("redeem",JSONObject().put("code",code.trim()),clip="celebrate"){code="";page=PetPage.ROOM}},
                             enabled=!offline && !busy && code.startsWith("krapiva:reward:")) {Text("Получить награду")}
                     }
                     PetPage.WALLET -> {
@@ -527,6 +527,7 @@ private fun KraRoom(api: AccountApi,rig:PetRig?,gesture:PetGesture,adornments:Ma
             Image(image.asImageBitmap(),item.optString("name"),Modifier.offset(w*.84f,h*.487f).size(w*.09f,h*.095f))
         } }
         rig?.let { AnimatedPet(it,gesture,Modifier.align(Alignment.BottomCenter).padding(bottom=30.dp).width(w*.63f).height(h*.66f)
+            .testTag("pet-gesture-${gesture.clip}")
             .semantics {
                 contentDescription="Питомец"
                 if(fits.isNotEmpty()) stateDescription="Предметов надето: ${fits.size}"
