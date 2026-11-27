@@ -1,5 +1,13 @@
 # Восстановление P10
 
+## KraRoom · Точка передачи · 27 ноября 2026
+
+Рабочая ветка `p10/kra-room-refinement` репозитория `D1ma4ka/Kr2P1v2`. База — `6d6cba1a5bdef75dee25832df1ced6fbd1de1803` из `p10/krapet`. Android-проверки и новые снимки относятся к `9e74245b8bbec246e87354efbd8a1594ef2afa0a`. Состояние ветки со снимками проверьте командой `git ls-remote origin refs/heads/p10/kra-room-refinement`. [GitHub Actions](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/46060105747) · [Протокол](evidence/kra-room-refinement/instrumentation.txt) · [Снимки](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/46060105747/artifacts/15227869484)
+
+Сборка `assembleDebug assembleDebugAndroidTest testDebugUnitTest lintDebug` и проверка подписи и выравнивания прошли. Для повторной визуальной приёмки используйте порядок в workflow. Сначала тест `eachApprovedStarterCanBeAdopted` создаёт питомцев на пяти синтетических аккаунтах. Затем `node --env-file=.env tools/p10/device-fixture.mjs --fund-starters` пополняет их кошельки на изолированном стенде. Сценарий `fittedRoomsShowRealWardrobeAndDecorInBothThemes` покупает и размещает предметы через API и сохраняет снимки. [Workflow](../../.github/workflows/p10-debug-apk.yml)
+
+Физическая камера и замеры слабого телефона остаются открыты с предыдущей приёмки. [Аппаратная проверка](P10_HARDWARE_QA.md)
+
 ## Текущая точка остановки · 27 ноября 2026
 
 Рабочая ветка `p10/krapet` репозитория `D1ma4ka/Kr2P1v2`. Последний APK относится к коммиту `b2319610fd8c05a9c32ae8e14602324ab2fd5571`, SHA-256 `408cbdb9aaaf56292eb2a7f54597a03d13f7c3f37f4f842b3ee62b0bd74ac6fb`. Полностью закрыты 16 из 18 строк. Доказательства проверок для этой сборки перечислены в отчёте. [APK](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/46039256659/artifacts/15219418194) · [Протокол пакета](https://github.com/D1ma4ka/Kr2P1v2/actions/runs/46039256659/artifacts/15219393018) · [Отчёт QA](P10_QA_REPORT.md)
