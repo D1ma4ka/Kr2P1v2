@@ -9,7 +9,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: p10-debug-apk-${{ github.ref }}
+  # A stopped acceptance job mustn't block verification of a newer revision.
+  group: p10-debug-apk-${{ github.ref_name == 'p10/krapet' && github.ref || github.sha }}
   cancel-in-progress: true
 jobs:
   debug-apk:
