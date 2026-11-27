@@ -13,17 +13,25 @@ async function post(path,body,status) {
   if (response.status !== status) throw new Error(path+' returned '+response.status)
 }
 
-const suffix = randomUUID().replaceAll('-','').slice(0,12)
-const email = 'pet-'+suffix+'@example.invalid'
-const password = randomUUID()+'Aa!'
+async function createAccount() {
+  const suffix = randomUUID().replaceAll('-','').slice(0,12)
+  const email = 'pet-'+suffix+'@example.invalid'
+  const password = randomUUID()+'Aa!'
+  await post('/v1/auth/register',{email,password,displayName:'KraPet QA',handle:'petqa_'+suffix,adultConfirmed:true},202)
+  const mail = await (await fetch(mailbox+'/api/v1/search?query='+encodeURIComponent('to:'+email))).json()
+  const message = await (await fetch(mailbox+'/api/v1/message/'+mail.messages[0].ID)).json()
+  const code = message.Text.match(/^Код подтверждения: ([0-9]{6})$/m)[1]
+  await post('/v1/auth/verify-code',{email,code},204)
+  return {email,password}
+}
+
 const qr = (await readFile(process.argv[2],'utf8')).trim()
 if (!/^krapiva:reward:[A-Za-z0-9_-]{16,180}$/.test(qr)) throw new Error('Provide the local test reward code file')
-
-await post('/v1/auth/register',{email,password,displayName:'KraPet QA',handle:'petqa_'+suffix,adultConfirmed:true},202)
-const mail = await (await fetch(mailbox+'/api/v1/search?query='+encodeURIComponent('to:'+email))).json()
-const message = await (await fetch(mailbox+'/api/v1/message/'+mail.messages[0].ID)).json()
-const code = message.Text.match(/^Код подтверждения: ([0-9]{6})$/m)[1]
-await post('/v1/auth/verify-code',{email,code},204)
+const account = await createAccount()
+const starterAccounts = []
+if (process.argv.includes('--all-starters')) {
+  for (let index = 0; index < 5; index++) starterAccounts.push(await createAccount())
+}
 
 const pool = createPool(process.env.DATABASE_URL)
 let position
@@ -36,5 +44,5 @@ try {
 }
 
 await mkdir('work',{recursive:true})
-await writeFile('work/p10-device-fixture.json',JSON.stringify({email,password,position,qr}),{mode:0o600,flag:'wx'})
+await writeFile('work/p10-device-fixture.json',JSON.stringify({...account,position,qr,starterAccounts}),{mode:0o600,flag:'wx'})
 console.log('Synthetic account confirmed and fixture written to work/p10-device-fixture.json')

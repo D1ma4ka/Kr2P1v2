@@ -1,7 +1,10 @@
 package ru.krapiva.app.pets
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import androidx.core.graphics.ColorUtils
@@ -33,6 +36,8 @@ import java.util.UUID
 
 class PetAcceptanceTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    private val starters = listOf("Крапивка" to "starter_nettle", "Краник" to "starter_tap",
+        "Крышечка" to "starter_cap", "Бутылочка" to "starter_bottle", "Хмель" to "starter_hop")
 
     private fun tag(value:String) = compose.onNodeWithTag(value)
     private fun text(value:String) = compose.onNodeWithText(value)
@@ -98,9 +103,7 @@ class PetAcceptanceTest {
 
             tag("nav-PETS").performClick()
             awaitTag("pet-name")
-            val candidates=listOf("Крапивка" to "starter_nettle","Краник" to "starter_tap","Крышечка" to "starter_cap",
-                "Бутылочка" to "starter_bottle","Хмель" to "starter_hop")
-            for((name,id) in candidates) {
+            for((name,id) in starters) {
                 reveal(text(name)).performClick()
                 awaitTag("pet-preview-$id")
                 TestEvidence.screenshot("p10-$id.png")
@@ -179,6 +182,80 @@ class PetAcceptanceTest {
         TestEvidence.screenshot("p10-room-dark.png")
         compose.runOnIdle { model.navigate(ru.krapiva.app.account.AccountScreen.SETTINGS) }
         clickText("Светлая")
+    }
+
+    @Test fun eachApprovedStarterCanBeAdopted() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val fixture = ParcelFileDescriptor.AutoCloseInputStream(
+            instrumentation.uiAutomation.executeShellCommand("cat /data/local/tmp/p10-fixture.json")
+        ).use { JSONObject(String(it.readBytes())) }
+        val accounts = fixture.getJSONArray("starterAccounts")
+        assertEquals(starters.size, accounts.length())
+        lateinit var model: AccountViewModel
+        compose.runOnIdle { model = ViewModelProvider(compose.activity)[AccountViewModel::class.java] }
+        compose.waitUntil(75_000) { !model.state.value.busy }
+        for ((index, starter) in starters.withIndex()) {
+            val (label, id) = starter
+            val account = accounts.getJSONObject(index)
+            val name = "Питомец QA ${index + 1}"
+            compose.runOnIdle { model.login(account.getString("email"), account.getString("password")) }
+            compose.waitUntil(75_000) { !model.state.value.busy && model.state.value.profile != null }
+            awaitTag("nav-HOME")
+            tag("kra-room").assertDoesNotExist()
+            tag("nav-PETS").performClick()
+            awaitTag("pet-name")
+            clickText(label)
+            awaitTag("pet-preview-$id")
+            reveal(tag("pet-name")).performTextInput(name)
+            reveal(tag("pet-adopt")).performClick()
+            awaitTag("kra-room")
+            awaitText(name)
+            awaitPet()
+            val pet = runBlocking { model.api.json("v1/pets/state").getJSONObject("pet") }
+            assertEquals(id, pet.getString("definitionId"))
+            assertEquals(name, pet.getString("name"))
+            TestEvidence.screenshot("p10-adopted-$id.png")
+            compose.runOnIdle { model.logout() }
+            compose.waitUntil(75_000) { !model.state.value.busy && model.state.value.profile == null }
+        }
+    }
+
+    @Test fun renderKraPetFramesOnAndroidCanvas() {
+        val assets = InstrumentationRegistry.getInstrumentation().targetContext.assets
+        for ((_, id) in starters) {
+            val start = System.nanoTime()
+            val rig = runBlocking { PetRig.load(assets, id, full = true) }
+            val loadMillis = (System.nanoTime() - start) / 1_000_000
+            val draw = rig.renderer(emptyList())
+            val bitmap = Bitmap.createBitmap(184, 208, Bitmap.Config.ARGB_8888)
+            try {
+                val canvas = Canvas(bitmap)
+                val scale = bitmap.width * .89f / rig.width
+                canvas.translate((bitmap.width - rig.width * scale) / 2, (bitmap.height - rig.height * scale) / 2)
+                canvas.scale(scale, scale)
+                fun frame(elapsed: Float) {
+                    bitmap.eraseColor(android.graphics.Color.TRANSPARENT)
+                    draw(canvas, "eat", elapsed)
+                }
+                fun pixels() = IntArray(bitmap.width * bitmap.height).also {
+                    bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+                }
+                frame(0f)
+                val first = pixels()
+                assertTrue(first.any { it ushr 24 != 0 })
+                frame(1600f)
+                assertFalse(first.contentEquals(pixels()))
+                repeat(20) { frame(it * 93f) }
+                val samples = LongArray(120) { index ->
+                    val before = System.nanoTime()
+                    frame(index * 43f % rig.duration("eat"))
+                    (System.nanoTime() - before) / 1_000
+                }.sortedArray()
+                Log.i("KraPetPerf", "$id load_ms=$loadMillis canvas_median_us=${samples[59]} canvas_p95_us=${samples[113]}")
+            } finally {
+                bitmap.recycle()
+            }
+        }
     }
 
     @SdkSuppress(minSdkVersion = 35)

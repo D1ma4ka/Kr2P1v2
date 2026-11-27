@@ -74,6 +74,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .nvmrc
+      - name: Verify all starter rig and wardrobe combinations
+        run: node --test tools/p10/rig.test.mjs
       - name: Start local P10 acceptance services
         run: |
           python3 scripts/init_dev.py
@@ -125,12 +127,12 @@ jobs:
       - name: Run P10 instrumented acceptance against real PostgreSQL
         timeout-minutes: 8
         run: |
-          node --env-file=.env tools/p10/device-fixture.mjs work/p10-reward.txt
+          node --env-file=.env tools/p10/device-fixture.mjs work/p10-reward.txt --all-starters
           adb reverse tcp:53000 tcp:53000
           adb install p10-downloaded/KraPiva-P10-debug.apk
           adb install android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           adb push work/p10-device-fixture.json /data/local/tmp/p10-fixture.json
-          for scenario in realRoomCatalogWalletAndPartnerReward systemStatusBarMatchesRoomThemeAcrossRecreation; do
+          for scenario in realRoomCatalogWalletAndPartnerReward systemStatusBarMatchesRoomThemeAcrossRecreation eachApprovedStarterCanBeAdopted renderKraPetFramesOnAndroidCanvas; do
             echo "$scenario"
             adb shell am instrument -w -r -e class "ru.krapiva.app.pets.PetAcceptanceTest#$scenario" ru.krapiva.app.debug.test/androidx.test.runner.AndroidJUnitRunner > "work/p10-$scenario.log"
             grep -E '^Time:|^OK|^Tests run:|^INSTRUMENTATION_RESULT: shortMsg=' "work/p10-$scenario.log"
@@ -140,12 +142,13 @@ jobs:
         if: always()
         run: |
           mkdir -p work/p10-device-evidence
-          for scenario in realRoomCatalogWalletAndPartnerReward systemStatusBarMatchesRoomThemeAcrossRecreation; do
+          for scenario in realRoomCatalogWalletAndPartnerReward systemStatusBarMatchesRoomThemeAcrossRecreation eachApprovedStarterCanBeAdopted renderKraPetFramesOnAndroidCanvas; do
             if [ -f "work/p10-$scenario.log" ]; then
               echo "$scenario" >> work/p10-device-evidence/result.txt
               grep -E '^Time:|^OK|^Tests run:|^INSTRUMENTATION_RESULT: shortMsg=' "work/p10-$scenario.log" >> work/p10-device-evidence/result.txt || true
             fi
           done
+          adb logcat -d -s KraPetPerf:I '*:S' > work/p10-device-evidence/renderer.txt || true
           adb pull /sdcard/Download/KraPivaP3/. work/p10-device-evidence/ || true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
