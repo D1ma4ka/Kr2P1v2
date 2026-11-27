@@ -88,3 +88,29 @@ test('the extended motion package resolves all sprite variants for all starter r
     assert.equal(wipe.layers.find(layer => layer.bone === 'mouth').src, rig.layers.mouth.variants.closed.src)
   }
 })
+
+test('glasses align with both eyes and the knit hat fits the neutral canvas', async () => {
+  const wear = await json(new URL('items/catalog.json', catalogURL))
+  const glasses = wear.items.find(item => item.id === 'round_glasses').render
+  const hat = wear.items.find(item => item.id === 'knit_hat').render
+  const lensX = [46.5, 156.5].map(center => center * glasses.displayWidth / 205)
+  const lensY = glasses.displayWidth * 37.5 / 205
+  for (const entry of catalog.pets) {
+    const rig = await json(new URL(entry.rig, catalogURL))
+    const frame = pose(rig)
+    const glassesOrigin = [glasses.displayWidth * glasses.originX, glasses.displayWidth * 76 / 205 * glasses.originY]
+    const face = placeItem(rig, frame, 'face', { origin: glassesOrigin }).transform
+    for (const [index, name] of ['eye_left', 'eye_right'].entries()) {
+      const [x, y] = point(face, [lensX[index], lensY])
+      const [eyeX, eyeY] = rig.bones[name].pivot
+      assert.ok(Math.hypot(x - eyeX, y - eyeY) < 8, `${entry.id} ${name}`)
+    }
+    const hatHeight = hat.displayWidth * 132 / 159
+    const head = placeItem(rig, frame, 'head', {
+      origin: [hat.displayWidth * hat.originX, hatHeight * hat.originY],
+    }).transform
+    for (const x of [0, hat.displayWidth]) {
+      assert.ok(point(head, [x, 0])[1] > 0, `${entry.id} hat crosses the neutral canvas`)
+    }
+  }
+})

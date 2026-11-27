@@ -288,11 +288,11 @@
     "face": {
       "bone": "root",
       "position": [
-        657,
-        534
+        666,
+        528
       ],
-      "rotation": -2,
-      "scale": 1.22,
+      "rotation": -3.5,
+      "scale": 1.276,
       "depth": 81
     },
     "neck": {
@@ -328,8 +328,8 @@
     "wrist": {
       "bone": "arm_right",
       "position": [
-        1061,
-        599
+        1035,
+        629
       ],
       "rotation": -44,
       "scale": 0.74,

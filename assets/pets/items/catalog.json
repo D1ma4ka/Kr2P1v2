@@ -135,9 +135,10 @@
       "asset": "art/hoodie.webp",
       "sha256": "741bd2cf3e058dff441581e947bca83870fc89aeaf71d3c3af96f02b11a14a3e",
       "render": {
-        "displayWidth": 435,
+        "displayWidth": 396,
         "originX": 0.5,
-        "originY": 0.5
+        "originY": 0.5,
+        "dy": 16
       },
       "compatiblePets": []
     },
@@ -155,9 +156,10 @@
       "asset": "art/zip_hoodie.webp",
       "sha256": "a7f9a3b48e6ec15abf9edfc945acc80502192ff27aa11e2b042443c133215726",
       "render": {
-        "displayWidth": 435,
+        "displayWidth": 396,
         "originX": 0.5,
-        "originY": 0.5
+        "originY": 0.5,
+        "dy": 16
       },
       "compatiblePets": []
     },
@@ -295,9 +297,9 @@
       "asset": "art/knit_hat.webp",
       "sha256": "7d7792037b9505aa967f6af16d45270be7e8e8c32f0a4976d9539fabdc11b3f5",
       "render": {
-        "displayWidth": 375,
+        "displayWidth": 305,
         "originX": 0.5,
-        "originY": 0.76
+        "originY": 0.54
       },
       "compatiblePets": []
     },
@@ -375,7 +377,7 @@
       "asset": "art/field_watch.webp",
       "sha256": "3ed1893b6d45016aa4b9ecf54d69d4c4715c8e59fa4218053d8d6aa132a376f9",
       "render": {
-        "displayWidth": 140,
+        "displayWidth": 110,
         "originX": 0.5,
         "originY": 0.5
       },
@@ -395,7 +397,7 @@
       "asset": "art/digital_watch.webp",
       "sha256": "a0e8079460afe60f1575d39bb48a1623c0dea330ae59e3e605b50fe908634025",
       "render": {
-        "displayWidth": 140,
+        "displayWidth": 110,
         "originX": 0.5,
         "originY": 0.5
       },
