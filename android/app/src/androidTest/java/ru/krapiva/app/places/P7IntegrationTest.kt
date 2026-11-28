@@ -15,6 +15,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
+import kotlin.math.abs
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*
@@ -48,17 +49,38 @@ class P7IntegrationTest {
         return null
     }
     @Test fun nativeClustersGesturesMarkersDetailAndCheckinPicker() {
+        assertTrue("This scenario needs a MapKit key", mapConfigured)
         val fixture=login()
-        compose.runOnIdle {root.openVenues(fixture.getJSONArray("venueIds").getString(0))}
-        compose.waitUntil(60_000){compose.onAllNodesWithText("На карте").fetchSemanticsNodes().isNotEmpty()}
-        compose.onNodeWithText("На карте").performScrollTo().performClick()
-        compose.waitUntil(30_000){compose.onAllNodesWithTag("venue-map").fetchSemanticsNodes().isNotEmpty()}
-        val native = compose.runOnIdle { requireNotNull(findMap(compose.activity.window.decorView)) }
+        compose.onAllNodesWithText("Позже").fetchSemanticsNodes().singleOrNull()?.let {
+            compose.onNodeWithText("Позже").performClick()
+        }
+        compose.runOnIdle { root.openVenues() }
         val model = compose.runOnIdle {
             ViewModelProvider(root.catalogOwner).get("places-${fixture.getString("userId")}", PlacesViewModel::class.java)
         }
+        fun selectCity(current: String, search: String, result: SemanticsMatcher, center: Point) {
+            compose.onNodeWithText(current).performClick()
+            if (search.isNotEmpty()) compose.onNodeWithText("Введите город вручную").performTextReplacement(search)
+            val options = compose.onAllNodes(result and hasClickAction())
+            compose.waitUntil(30_000) { options.fetchSemanticsNodes().isNotEmpty() }
+            options.onFirst().performClick()
+            compose.waitUntil(30_000) {
+                compose.runOnIdle {
+                    val target = findMap(compose.activity.window.decorView)?.mapWindow?.map?.cameraPosition?.target
+                    target != null && abs(target.latitude - center.latitude) < 0.01 &&
+                        abs(target.longitude - center.longitude) < 0.01
+                }
+            }
+        }
         // The 12 fixture venues occupy three adjacent rows around this centroid.
         val centroid = Point(55.751, 37.6115)
+        val fixtureCity = "P7 Synthetic city"
+        val fixtureOption = hasText("$fixtureCity · 12")
+        selectCity("Выбрать город", "", fixtureOption, centroid)
+        selectCity(fixtureCity, "Суздаль", hasText("Суздаль ·", substring = true), Point(56.4197, 40.4495))
+        TestEvidence.screenshot("p103-native-suzdal.png")
+        selectCity("Суздаль", fixtureCity, fixtureOption, centroid)
+        val native = compose.runOnIdle { requireNotNull(findMap(compose.activity.window.decorView)) }
         compose.runOnIdle { model.center(centroid.latitude, centroid.longitude, 12.0) }
         compose.waitUntil(30_000) { model.state.value.points.size >= 12 && !model.state.value.busy }
         fun screenPoint(point: Point): Offset = compose.runOnIdle {
@@ -85,6 +107,21 @@ class P7IntegrationTest {
         compose.onNodeWithTag("venue-map").performTouchInput {click(click)}
         compose.waitUntil(30_000){compose.onAllNodesWithText("Подробнее").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Подробнее").performClick()
+        compose.onNodeWithText("Меню").performScrollTo().performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithText("К заведению").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("К заведению").performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithText("События заведения").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("События заведения").performScrollTo().performClick()
+        val event = compose.onAllNodes(hasClickAction() and hasText("Synthetic P10.3 event", substring = true))
+        compose.waitUntil(30_000) { event.fetchSemanticsNodes().isNotEmpty() }
+        event.onFirst().performClick()
+        compose.onNodeWithText("Isolated device acceptance event").assertExists()
+        compose.onNodeWithText("Закрыть").performClick()
+        compose.onNodeWithText("Закрыть").performClick()
         compose.onNodeWithText("Чекин в этом месте").performScrollTo().assertExists().performClick()
         compose.waitUntil(30_000){root.state.value.screen==AccountScreen.DIARY}
         assertNotNull(root.diaryVenue)
