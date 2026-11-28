@@ -79,8 +79,8 @@ jobs:
         id: install
         run: |
           adb push work/p7/android-fixture.json /data/local/tmp/p7-android-fixture.json
-          adb install android/app/build/intermediates/apk/debug/app-debug.apk
-          adb install android/app/build/intermediates/apk/androidTest/debug/app-debug-androidTest.apk
+          adb install -t android/app/build/intermediates/apk/debug/app-debug.apk
+          adb install -t android/app/build/intermediates/apk/androidTest/debug/app-debug-androidTest.apk
       - name: Denial, city, approximate permission, disabled location and recovery from offline
         run: bash scripts/p103_device_check.sh nearby
       - name: Moscow, St Petersburg and Suzdal through the Android GPS provider
