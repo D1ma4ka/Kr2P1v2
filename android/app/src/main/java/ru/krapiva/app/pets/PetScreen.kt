@@ -14,6 +14,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +43,7 @@ import ru.krapiva.app.account.AccountApi
 import ru.krapiva.app.account.ApiFailure
 import ru.krapiva.app.designsystem.ClubGlyph
 import ru.krapiva.app.designsystem.ClubIcon
+import ru.krapiva.app.designsystem.takeCodePoints
 import java.io.File
 import java.security.MessageDigest
 import java.util.UUID
@@ -263,7 +266,9 @@ internal fun PetScreen(
                 definitions.find { it.optString("id")==selected }?.let {
                     Text(it.getString("personality"),style=MaterialTheme.typography.titleMedium)
                 }
-                OutlinedTextField(name,{name=it.take(32)},Modifier.fillMaxWidth().testTag("pet-name"),label={Text("Имя питомца")},singleLine=true)
+                OutlinedTextField(name, { name = it.replace("\r", "").replace("\n", "").replace("\u0000", "").takeCodePoints(32) },
+                    Modifier.fillMaxWidth().testTag("pet-name"), label = { Text("Имя питомца") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
                 Button({mutate("adopt",JSONObject().put("definitionId",selected).put("name",name.trim()),clip="appear")},
                     enabled=!busy && !offline && name.isNotBlank() && definitions.any { it.optString("id")==selected },
                     modifier=Modifier.fillMaxWidth().testTag("pet-adopt")) { Text("Выбрать питомца") }

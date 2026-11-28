@@ -12,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -25,6 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CancellationException
 import org.json.JSONObject
 import ru.krapiva.app.account.AccountApi
+import ru.krapiva.app.account.ProfileLinks
 import ru.krapiva.app.catalog.text
 import ru.krapiva.app.designsystem.*
 import androidx.compose.ui.Alignment
@@ -76,10 +76,7 @@ fun SocialApp(api: AccountApi,userId: String,onHome: () -> Unit,onProfile: () ->
                     Text(p.getString("displayName") + (p.text("handle")?.let {" · @$it"} ?: ""),style = MaterialTheme.typography.headlineSmall)
                     Text(listOfNotNull(p.text("firstName"),p.text("lastName"),p.text("city"),p.text("country")).joinToString(" · "))
                     p.text("bio")?.let { Text(it) };p.text("gender")?.let { Text(it) }
-                    val handler = LocalUriHandler.current
-                    var linkError by remember { mutableStateOf(false) }
-                    for(link in p.getJSONArray("links").objects()) TextButton({ linkError = runCatching { handler.openUri(link.getString("url")) }.isFailure }) { Text(link.getString("url")) }
-                    if(linkError) Text("Не удалось открыть ссылку",color = MaterialTheme.colorScheme.error)
+                    ProfileLinks(p)
                     state.statistics?.let { stats -> DiaryCard {
                         Text("Доступные чекины: ${stats.getInt("totalCheckins")}")
                         Text("Уникальных позиций: ${stats.getInt("uniquePositions")}")

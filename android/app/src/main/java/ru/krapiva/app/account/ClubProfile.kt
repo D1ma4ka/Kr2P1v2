@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.awaitCancellation
@@ -121,10 +120,7 @@ import ru.krapiva.app.diary.*
                         p.text("bio")?.let { Text(it) }
                         p.text("gender")?.let { Text("Пол: $it") }
                         Text("Публичность: ${when(p.text("profileVisibility")){"public"->"Все пользователи";"friends"->"Друзья";else->"Только я"}}",color=KraPivaColors.Muted)
-                        val handler=LocalUriHandler.current
-                        var failed by remember {mutableStateOf(false)}
-                        for(link in p.optJSONArray("links")?.objects().orEmpty()) TextButton({failed=runCatching {handler.openUri(link.getString("url"))}.isFailure}) {Text(link.getString("url"))}
-                        if(failed) Text("Не удалось открыть ссылку",color=KraPivaColors.Error)
+                        ProfileLinks(p)
                     }
                 } else {
                     val rows=home?.optJSONObject("recent")?.optJSONArray("items")?.objects().orEmpty()

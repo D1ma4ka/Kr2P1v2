@@ -1,12 +1,8 @@
 package ru.krapiva.app.account
 
-import android.net.Uri
 import android.os.SystemClock
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -44,6 +40,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -56,7 +53,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.json.JSONArray
 import org.json.JSONObject
 import ru.krapiva.app.BuildConfig
 import ru.krapiva.app.R
@@ -199,6 +195,7 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
                     if (state.screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.RESET, AccountScreen.RESTORING)) {
                         AuthBrand(animateBeer = state.screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER))
                     }
+                    else if (state.screen in setOf(AccountScreen.EDIT, AccountScreen.SETTINGS)) ClubBrand()
                     else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Image(painterResource(R.drawable.ic_brand_mark), null, Modifier.size(48.dp))
                         Column { Text("KraPiva", style = MaterialTheme.typography.headlineMedium, color = KraPivaColors.Cream)
@@ -253,11 +250,11 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
         }
     }
 }
-@Composable private fun Title(value: String) { Text(value, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() }) }
-@Composable private fun Action(label: String, enabled: Boolean, onClick: () -> Unit) {
+@Composable internal fun Title(value: String) { Text(value, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() }) }
+@Composable internal fun Action(label: String, enabled: Boolean, onClick: () -> Unit) {
     Button(onClick, Modifier.fillMaxWidth().heightIn(min = 52.dp), enabled = enabled) { Text(label) }
 }
-@Composable private fun Link(label: String, enabled: Boolean = true, onClick: () -> Unit) {
+@Composable internal fun Link(label: String, enabled: Boolean = true, onClick: () -> Unit) {
     TextButton(onClick, enabled = enabled, modifier = Modifier.heightIn(min = 48.dp)) { Text(label) }
 }
 @Composable private fun Welcome(state: AccountState, model: AccountViewModel) {
@@ -284,13 +281,16 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
     }
     Text("Крафтовое сообщество · 18+", style = MaterialTheme.typography.labelSmall, color = KraPivaColors.Muted)
 }
-@Composable private fun Input(label: String, value: String, enabled: Boolean = true, password: Boolean = false,
+@Composable internal fun Input(label: String, value: String, enabled: Boolean = true, password: Boolean = false,
     keyboard: KeyboardType = KeyboardType.Text, singleLine: Boolean = true, autofill: ContentType? = null,
-    onChange: (String) -> Unit) {
+    readOnly: Boolean = false, capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
+    error: String? = null, leadingIcon: (@Composable () -> Unit)? = null, onChange: (String) -> Unit) {
     val modifier = if (autofill == null) Modifier else Modifier.semantics { contentType = autofill }
     OutlinedTextField(value, onChange, modifier = modifier.fillMaxWidth(), enabled = enabled,
-        label = { Text(label) }, singleLine = singleLine,
-        keyboardOptions = KeyboardOptions(keyboardType = if (password) KeyboardType.Password else keyboard,
+        label = { Text(label) }, singleLine = singleLine, readOnly = readOnly, leadingIcon = leadingIcon,
+        minLines = if (singleLine) 1 else 3, maxLines = if (singleLine) 1 else 6,
+        isError = error != null, supportingText = if (error == null) null else { { Text(error) } },
+        keyboardOptions = KeyboardOptions(capitalization = capitalization, keyboardType = if (password) KeyboardType.Password else keyboard,
             autoCorrectEnabled = !password && autofill == null && keyboard == KeyboardType.Text),
         visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None)
 }
@@ -404,8 +404,6 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
 private fun JSONObject.text(key: String): String = if (isNull(key)) "" else optString(key)
 @Composable private fun Profile(state: AccountState, model: AccountViewModel) {
     val p = state.profile ?: return
-    val uriHandler = LocalUriHandler.current
-    var linkError by remember { mutableStateOf<String?>(null) }
     state.cover?.let { Image(it.asImageBitmap(), "Обложка профиля", Modifier.fillMaxWidth().height(144.dp).clickable { model.viewPhoto("coverAssetId") }, contentScale = ContentScale.Crop) }
     state.avatar?.let { Image(it.asImageBitmap(), "Аватар профиля", Modifier.size(96.dp).clickable { model.viewPhoto("avatarAssetId") }, contentScale = ContentScale.Crop) }
     if (state.avatar == null) BeerHero(Modifier.size(72.dp), forceReducedMotion = true)
@@ -414,14 +412,7 @@ private fun JSONObject.text(key: String): String = if (isNull(key)) "" else optS
     Text(listOf(p.text("city"), p.text("country")).filter { it.isNotBlank() }.joinToString(", "), color = KraPivaColors.Muted)
     if (p.text("bio").isNotBlank()) Text(p.text("bio"))
     if (p.text("gender").isNotBlank()) Text("Пол: ${p.text("gender")}")
-    val links = p.optJSONArray("links") ?: JSONArray()
-    for (i in 0 until links.length()) {
-        val url = links.getJSONObject(i).getString("url")
-        Link(url, !state.busy) {
-            runCatching { uriHandler.openUri(url) }.onFailure { linkError = "Не удалось открыть ссылку. Проверьте наличие браузера." }
-        }
-    }
-    linkError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    ProfileLinks(p)
     Text("Публичность: ${visibilityLabel(p.text("profileVisibility"))}", color = KraPivaColors.Muted)
     if (state.offline) Text("Сохранённая копия · изменения требуют сети", color = KraPivaColors.Amber)
     Action("Обновить", !state.busy, model::refresh)
@@ -431,58 +422,6 @@ private fun JSONObject.text(key: String): String = if (isNull(key)) "" else optS
     Link("Настройки аккаунта", !state.busy) { model.navigate(AccountScreen.SETTINGS) }
 }
 private fun visibilityLabel(value: String) = when(value) { "public" -> "Все пользователи"; "friends" -> "Друзья"; else -> "Только я" }
-@Composable private fun Visibility(label: String, value: String, enabled: Boolean, changed: (String) -> Unit) {
-    Text("$label: ${visibilityLabel(value)}", color = KraPivaColors.Muted)
-    // Wrap rather than squeeze touch targets with large fonts or narrow screens.
-    Column { for (choice in listOf("private", "friends", "public")) Row(verticalAlignment = Alignment.CenterVertically) {
-        RadioButton(value == choice, { changed(choice) }, enabled = enabled)
-        Text(visibilityLabel(choice))
-    } }
-}
-@Composable private fun ProfileEditor(state: AccountState, model: AccountViewModel) {
-    val p = state.profile ?: return
-    val fields = remember { mutableStateMapOf<String, String>().apply { for (key in listOf("displayName", "firstName", "lastName", "city", "country", "bio", "gender")) put(key, p.text(key)) } }
-    var visibility by remember { mutableStateOf(p.text("profileVisibility")) }
-    var genderVisibility by remember { mutableStateOf(p.text("genderVisibility")) }
-    var avatarId by remember { mutableStateOf(p.text("avatarAssetId")) }; var coverId by remember { mutableStateOf(p.text("coverAssetId")) }
-    var avatarUri by remember { mutableStateOf<Uri?>(null) }; var coverUri by remember { mutableStateOf<Uri?>(null) }
-    val links = remember { mutableStateListOf<Pair<String, String>>().apply {
-        val original = p.optJSONArray("links") ?: JSONArray()
-        for (i in 0 until original.length()) add(original.getJSONObject(i).getString("url") to original.getJSONObject(i).getString("visibility"))
-    } }
-    var pickerNotice by remember { mutableStateOf<String?>(null) }
-    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { if (it != null) { avatarUri = it; pickerNotice = null } else pickerNotice = "Фото не выбрано. Профиль не изменён." }
-    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { if (it != null) { coverUri = it; pickerNotice = null } else pickerNotice = "Обложка не выбрана. Профиль не изменён." }
-    val enabled = !state.busy
-    Title("Редактирование профиля")
-    pickerNotice?.let { Text(it, color = KraPivaColors.Muted) }
-    Text("Фотографии загружаются при сохранении. JPEG, PNG или WebP до 8 МБ.", color = KraPivaColors.Muted)
-    Link(if (avatarUri != null) "Другой аватар · фото выбрано" else "Выбрать аватар", enabled) { runCatching { avatarPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }.onFailure { pickerNotice = "Выбор фото недоступен. Попробуйте снова." } }
-    Link("Удалить аватар", enabled && (avatarUri != null || avatarId.isNotEmpty())) { avatarUri = null; avatarId = "" }
-    Link(if (coverUri != null) "Другая обложка · фото выбрано" else "Выбрать обложку", enabled) { runCatching { coverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }.onFailure { pickerNotice = "Выбор фото недоступен. Попробуйте снова." } }
-    Link("Удалить обложку", enabled && (coverUri != null || coverId.isNotEmpty())) { coverUri = null; coverId = "" }
-    for ((key, label, max) in listOf(Triple("displayName", "Отображаемое имя", 80), Triple("firstName", "Имя", 80), Triple("lastName", "Фамилия", 80),
-        Triple("country", "Страна", 100), Triple("city", "Город", 120), Triple("bio", "О себе", 2000), Triple("gender", "Пол · необязательно", 80))) {
-        Input(label, fields[key].orEmpty(), enabled, singleLine = key != "bio") { fields[key] = it.take(max) }
-    }
-    Visibility("Профиль и фотографии", visibility, enabled) { visibility = it }
-    Visibility("Пол", genderVisibility, enabled) { genderVisibility = it }
-    for (i in links.indices) {
-        Input("Ссылка ${i + 1} · https://", links[i].first, enabled, keyboard = KeyboardType.Uri) { links[i] = it.take(2048) to links[i].second }
-        Visibility("Видимость ссылки ${i + 1}", links[i].second, enabled) { links[i] = links[i].first to it }
-        Link("Убрать ссылку ${i + 1}", enabled) { links.removeAt(i) }
-    }
-    Link("Добавить ссылку", enabled && links.size < 10) { links.add("" to "private") }
-    Action("Сохранить", enabled && fields["displayName"].orEmpty().isNotBlank()) {
-        val body = JSONObject().put("version", p.getInt("version")).put("profileVisibility", visibility).put("genderVisibility", genderVisibility)
-            .put("avatarAssetId", avatarId.ifEmpty { null } ?: JSONObject.NULL).put("coverAssetId", coverId.ifEmpty { null } ?: JSONObject.NULL)
-        for ((key, value) in fields) body.put(key, if (key == "displayName") value.trim() else value.ifBlank { null } ?: JSONObject.NULL)
-        body.put("links", JSONArray().apply { for (link in links) put(JSONObject().put("url", link.first.trim()).put("visibility", link.second)) })
-        model.save(body, avatarUri, coverUri)
-    }
-    Link("Отменить изменения", enabled) { model.navigate(AccountScreen.PROFILE) }
-    if (state.error != null) Link("Загрузить актуальную версию профиля", enabled, model::refresh)
-}
 @Composable private fun Settings(state: AccountState, model: AccountViewModel) {
     var deleteDialog by remember { mutableStateOf(false) }
     var licenses by remember {mutableStateOf(false)}
@@ -517,9 +456,15 @@ private fun visibilityLabel(value: String) = when(value) { "public" -> "Все �
         },
         confirmButton = { TextButton({ privacyInfo = false }) { Text("Закрыть") } },
     )
-    if(licenses)AlertDialog(onDismissRequest={licenses=false},title={Text("Лицензии карты")},text={
+    if(licenses)AlertDialog(onDismissRequest={licenses=false},title={Text("Лицензии и источники")},text={
         val notices=remember {licenseContext.assets.open("map-notices.txt").bufferedReader().use {it.readText()}}
-        Text(notices,modifier=Modifier.heightIn(max=360.dp).verticalScroll(rememberScrollState()))
+        val handler = LocalUriHandler.current
+        Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+            Text(notices)
+            TextButton({ runCatching { handler.openUri("https://www.geonames.org/about.html") } }) {
+                Text("Справочник городов · GeoNames · CC BY 4.0")
+            }
+        }
     },confirmButton={TextButton({licenses=false}){Text("Закрыть")}})
     Title("Настройки")
     Text("Профиль", style = MaterialTheme.typography.titleLarge)
@@ -580,7 +525,7 @@ private fun visibilityLabel(value: String) = when(value) { "public" -> "Все �
     Text("О приложении", style = MaterialTheme.typography.titleLarge)
     Text("KraPiva ${BuildConfig.VERSION_NAME}")
     Link("Данные и конфиденциальность") { privacyInfo = true }
-    Link("Лицензии карты и атрибуция") { licenses = true }
+    Link("Лицензии и источники") { licenses = true }
     if (deleteDialog) AlertDialog(onDismissRequest = { deleteDialog = false }, title = { Text("Удалить аккаунт?") },
         text = { Text("Доступ и публичность отключатся сразу. Запрос на удаление личных материалов будет сохранён на сервере со сроком до 30 дней. Обязательные по закону записи могут сохраняться при законном основании.") },
         confirmButton = { TextButton({ deleteDialog = false; model.deleteAccount() }) { Text("Отправить запрос") } },

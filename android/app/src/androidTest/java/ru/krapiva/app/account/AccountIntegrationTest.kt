@@ -1,5 +1,8 @@
 package ru.krapiva.app.account
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -12,6 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import ru.krapiva.app.BuildConfig
 import ru.krapiva.app.designsystem.KraPivaTheme
+import ru.krapiva.app.designsystem.ThemeMode
 import java.net.URL
 import java.util.UUID
 import android.graphics.Bitmap
@@ -78,6 +82,17 @@ class AccountIntegrationTest {
             throw AssertionError("Native picker result for '$button' missing; visible package=$currentPackage", error)
         }
     }
+    private fun choosePlace(
+        kind: String, label: String, query: String, id: String,
+        keyboard: androidx.compose.ui.platform.SoftwareKeyboardController?
+    ) {
+        compose.onNodeWithTag("profile-$kind").performScrollTo().performClick()
+        compose.onNodeWithText(label).performTextReplacement(query)
+        compose.runOnIdle { keyboard?.hide() }
+        compose.waitUntil(25_000) { compose.onAllNodesWithTag("place-$id").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("place-$id").performClick()
+    }
+
     @Test fun androidAccountFlowAndCacheIsolation() {
         check(BuildConfig.API_ENVIRONMENT == "development" && BuildConfig.API_BASE_URL.startsWith("http://10.0.2.2:"))
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -87,7 +102,8 @@ class AccountIntegrationTest {
         val password = "Synthetic Android password!"
         lateinit var model: AccountViewModel
         var keyboard: androidx.compose.ui.platform.SoftwareKeyboardController? = null
-        compose.setContent { keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current; model = viewModel(); KraPivaTheme { AccountApp(model) } }
+        var theme by mutableStateOf(ThemeMode.SYSTEM)
+        compose.setContent { keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current; model = viewModel(); KraPivaTheme(theme, { theme = it }) { AccountApp(model) } }
         compose.waitUntil(15_000) { compose.onAllNodesWithText("Создать аккаунт").fetchSemanticsNodes().isNotEmpty() }
         screenshot("p3-welcome.png")
         compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
@@ -117,17 +133,39 @@ class AccountIntegrationTest {
             .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { click -> assertTrue(click()) }
         try { compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy } }
         catch(error: Throwable) { throw AssertionError("P3_VERIFY_STATE=${model.state.value.screen},busy=${model.state.value.busy},error=${model.state.value.error}",error) }
-        compose.onNodeWithTag("nav-PROFILE").performClick()
-        compose.onNodeWithText("Редактировать профиль").performScrollTo().performClick()
-        compose.onNodeWithText("Город").performScrollTo().performTextReplacement("Тестовый город")
+        compose.onNodeWithTag("home-settings").performClick()
+        for (mode in ThemeMode.entries) {
+            compose.runOnIdle { theme = mode }
+            compose.onNodeWithText("Настройки").performScrollTo().assertIsDisplayed()
+            screenshot("p102-settings-${mode.name.lowercase()}.png")
+        }
+        compose.onNodeWithText("Имя, аватар и информация о себе").performScrollTo().performClick()
+        compose.onNodeWithText("Никнейм").assertExists()
+        compose.onNodeWithText("Имя").performScrollTo().performTextReplacement("Дарья 李")
+        compose.onNodeWithText("Фамилия").performScrollTo().performTextReplacement("Стрельцова")
+        compose.onNodeWithTag("profile-choice-Пол").performScrollTo().assertTextContains("Не указывать").performClick()
+        compose.onNodeWithText("Женский").performClick()
+        compose.onNodeWithTag("profile-city").assertIsNotEnabled()
+        choosePlace("country", "Поиск страны", "Рос", "RU", keyboard)
+        choosePlace("city", "Поиск города", "Мос", "524901", keyboard)
+        compose.onNodeWithText("Биография").performScrollTo().performTextReplacement("Крафт 🍻")
+        compose.onNodeWithText("Telegram").performScrollTo().performTextReplacement("https://t.me/kra_profile")
+        compose.runOnIdle { keyboard?.hide() }
+        for (mode in ThemeMode.entries) {
+            compose.runOnIdle { theme = mode }
+            compose.onNodeWithText("Редактирование профиля").performScrollTo().assertIsDisplayed()
+            screenshot("p102-profile-${mode.name.lowercase()}.png")
+            compose.onNodeWithText("Социальные сети").performScrollTo().assertIsDisplayed()
+            screenshot("p102-social-${mode.name.lowercase()}.png")
+        }
         compose.onNodeWithText("Сохранить").performScrollTo().performClick()
-        compose.waitUntil(20_000) { compose.onAllNodesWithText("Профиль сохранён на сервере").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText("Тестовый город").assertExists()
+        compose.waitUntil(20_000) { compose.onAllNodesWithText("Профиль сохранён").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Moscow", substring = true).assertExists()
         screenshot("p3-profile.png")
         compose.onNodeWithText("Редактировать профиль").performScrollTo().performClick()
-        compose.onNodeWithText("Город").performScrollTo().performTextReplacement("Несохранённый город")
+        choosePlace("city", "Поиск города", "Санкт", "498817", keyboard)
         compose.onNodeWithText("Отменить изменения").performScrollTo().performClick()
-        compose.onNodeWithText("Тестовый город").assertExists()
+        compose.onNodeWithText("Moscow", substring = true).assertExists()
         // Reconstruct the actual Android repository/store, then fetch persistent server data.
         lateinit var userId: String
         lateinit var coverId: String
@@ -135,8 +173,15 @@ class AccountIntegrationTest {
             val reopened = AccountApi(AccountStore(context))
             assertTrue(reopened.restore())
             val profile = reopened.json("v1/me")
-            assertEquals("Тестовый город", profile.getString("city"))
-            assertEquals("Тестовый город", reopened.cached()!!.getString("city"))
+            assertEquals("Moscow", profile.getString("city"))
+            assertEquals(524901, profile.getInt("cityId"))
+            assertEquals("RU", profile.getString("countryId"))
+            assertEquals("Дарья 李", profile.getString("firstName"))
+            assertEquals("Стрельцова", profile.getString("lastName"))
+            assertEquals("Крафт 🍻", profile.getString("bio"))
+            assertEquals("Женский", profile.getString("gender"))
+            assertEquals("https://t.me/kra_profile", profile.getJSONObject("socialLinks").getJSONObject("telegram").getString("url"))
+            assertEquals("Moscow", reopened.cached()!!.getString("city"))
             userId = profile.getString("userId")
             assertNull(store.cached(UUID.randomUUID().toString()))
             val session = store.session()!!
@@ -189,7 +234,7 @@ class AccountIntegrationTest {
             compose.waitUntil(20_000) { !networkReady() }
             compose.onNodeWithText("Обновить").performScrollTo().performClick()
             compose.waitUntil(40_000) { compose.onAllNodesWithText("Нет связи. Показана сохранённая копия профиля.").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithText("Тестовый город").assertExists()
+            compose.onNodeWithText("Moscow", substring = true).assertExists()
         } finally { shell("svc data enable"); shell("svc wifi enable") }
         compose.waitUntil(30_000) { networkReady() }
         compose.onNodeWithText("Обновить").performScrollTo().performClick()
@@ -227,7 +272,7 @@ class AccountIntegrationTest {
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
         compose.onNodeWithTag("nav-PROFILE").performClick()
         compose.onNodeWithText("android_" + java.util.UUID.randomUUID().toString().replace("-", "").take(12)).assertExists()
-        compose.onNodeWithText("Тестовый город").assertExists()
+        compose.onNodeWithText("Moscow", substring = true).assertExists()
         screenshot("p3-reset-login.png")
         store.close()
     }

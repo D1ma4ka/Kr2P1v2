@@ -234,7 +234,7 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
             if (avatar != null) profile.put("avatarAssetId", upload(avatar).also { uploaded.add(it) })
             if (cover != null) profile.put("coverAssetId", upload(cover).also { uploaded.add(it) })
         val result = api.json("v1/me/profile", "PATCH", profile)
-        api.cache(result); mutable.value = mutable.value.copy(screen = AccountScreen.PROFILE, profile = result, offline = false, notice = "Профиль сохранён на сервере")
+        api.cache(result); mutable.value = mutable.value.copy(screen = AccountScreen.PROFILE, profile = result, offline = false, notice = "Профиль сохранён")
         loadPhotos(result)
         val kept = setOf(result.optString("avatarAssetId"), result.optString("coverAssetId"))
         for (id in oldPhotos - kept) runCatching { api.json("v1/media/$id", "DELETE") }

@@ -26,14 +26,14 @@ class AuthFormTest {
         compose.setContent { model = viewModel(); KraPivaTheme(mode) { AccountApp(model) } }
         compose.waitUntil(15_000) { model.state.value.screen == AccountScreen.WELCOME }
         for (theme in ThemeMode.entries) {
-            compose.runOnIdle { mode = theme; model.navigate(AccountScreen.REGISTER) }
+            compose.runOnIdle { mode = theme; model.navigate(AccountScreen.REGISTER, "") }
             compose.onNodeWithText("Пароль — от 8 символов").performScrollTo().assertIsDisplayed()
             assertNoDevelopmentMessages()
             compose.onNodeWithTag("auth-logo").assertExists()
             compose.onNodeWithTag("auth-beer").assertIsDisplayed()
             TestEvidence.screenshot("auth-register-${theme.name.lowercase()}.png")
             compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsDisplayed()
-            compose.runOnIdle { model.navigate(AccountScreen.LOGIN) }
+            compose.runOnIdle { model.navigate(AccountScreen.LOGIN, "") }
             assertNoDevelopmentMessages()
             compose.onNodeWithTag("auth-logo").assertExists()
             compose.onNodeWithTag("auth-beer").assertIsDisplayed()

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -29,6 +30,10 @@ enum class ClubDestination(val label: String, val icon: ClubIcon) {
     COLLECTION("Моё пиво", ClubIcon.BOTTLE), FEED("Лента", ClubIcon.FEED), PETS("Питомец", ClubIcon.LEAF), PROFILE("Профиль", ClubIcon.PERSON)
 }
 enum class ClubIcon { HOME, CATALOG, BOTTLE, FEED, PERSON, PEOPLE, GLASS, LEAF, PLUS, HEART, COMMENT, REFRESH, CHEVRON, SETTINGS, SEARCH, SCAN, BOOKMARK, CHECK, MORE }
+
+private val settingsIcon = PathParser().parsePathString(
+    "M19.43,12.98c.04,-.32 .07,-.64 .07,-.98s-.03,-.66 -.08,-.98l2.11,-1.65c.19,-.15 .24,-.42 .12,-.64l-2,-3.46c-.12,-.22 -.39,-.31 -.61,-.22l-2.49,1c-.52,-.4 -1.07,-.73 -1.68,-.98l-.38,-2.65C14.46,2.18 14.25,2 14,2h-4c-.25,0 -.45,.18 -.49,.42l-.38,2.65c-.61,.25 -1.17,.59 -1.68,.98l-2.49,-1c-.23,-.09 -.49,0 -.61,.22l-2,3.46c-.13,.22 -.07,.49 .12,.64l2.11,1.65c-.05,.32 -.09,.65 -.09,.98s.04,.66 .09,.98l-2.11,1.65c-.19,.15 -.24,.42 -.12,.64l2,3.46c.12,.22 .39,.31 .61,.22l2.49,-1c.52,.4 1.07,.73 1.68,.98l.38,2.65c.04,.24 .24,.42 .49,.42h4c.25,0 .46,-.18 .49,-.42l.38,-2.65c.61,-.25 1.17,-.58 1.68,-.98l2.49,1c.23,.09 .49,0 .61,-.22l2,-3.46c.12,-.22 .07,-.49 -.12,-.64zM12,15.5a3.5,3.5 0,1 1,0 -7,3.5 3.5,0 0,1 0,7z"
+).toPath().apply { fillType = androidx.compose.ui.graphics.PathFillType.EvenOdd }
 
 /** One icon vocabulary, drawn locally; no remote icon/font dependency. */
 @Composable
@@ -58,7 +63,7 @@ fun ClubGlyph(icon: ClubIcon, modifier: Modifier = Modifier.size(24.dp), color: 
                 ClubIcon.COMMENT -> drawPath(Path().apply {moveTo(5f,18f);cubicTo(-4f,5f,6f,1f,12f,2f);cubicTo(26f,1f,26f,19f,12f,20f);lineTo(3f,23f);close()},color,style=stroke)
                 ClubIcon.REFRESH -> {drawArc(color,40f,285f,false,Offset(4f,4f),Size(16f,16f),style=stroke);path(15f,2f,21f,5f,17f,9f)}
                 ClubIcon.CHEVRON -> path(9f,5f,16f,12f,9f,19f)
-                ClubIcon.SETTINGS -> {drawCircle(color,3f,Offset(12f,12f),style=stroke);drawCircle(color,8f,Offset(12f,12f),style=stroke);line(12f,1f,12f,4f);line(12f,20f,12f,23f);line(1f,12f,4f,12f);line(20f,12f,23f,12f)}
+                ClubIcon.SETTINGS -> drawPath(settingsIcon, color)
             }
         }
     }
