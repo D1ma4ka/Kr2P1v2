@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -7,7 +8,10 @@
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Credential Manager saves app-scoped credentials. There is no web sign-in
+         origin to associate with this package via Digital Asset Links. -->
     <application
+        tools:ignore="CredManMissingDal"
         android:allowBackup="false"
         android:fullBackupContent="@xml/full_backup_content"
         android:dataExtractionRules="@xml/data_extraction_rules"

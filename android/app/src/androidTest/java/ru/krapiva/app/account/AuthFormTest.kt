@@ -30,15 +30,21 @@ class AuthFormTest {
             compose.onNodeWithText("Пароль — от 8 символов").performScrollTo().assertIsDisplayed()
             assertNoDevelopmentMessages()
             compose.onNodeWithTag("auth-logo").assertExists()
-            compose.onNodeWithTag("auth-beer").assertDoesNotExist()
+            compose.onNodeWithTag("auth-beer").assertIsDisplayed()
             TestEvidence.screenshot("auth-register-${theme.name.lowercase()}.png")
             compose.onNodeWithText("Зарегистрироваться").performScrollTo().assertIsDisplayed()
             compose.runOnIdle { model.navigate(AccountScreen.LOGIN) }
             assertNoDevelopmentMessages()
             compose.onNodeWithTag("auth-logo").assertExists()
-            compose.onNodeWithTag("auth-beer").assertDoesNotExist()
+            compose.onNodeWithTag("auth-beer").assertIsDisplayed()
+            TestEvidence.screenshot("auth-login-${theme.name.lowercase()}.png")
             compose.onNodeWithText("Ответственное потребление", substring = true).assertDoesNotExist()
             compose.onNodeWithText("Войти").performScrollTo().assertIsDisplayed()
+            compose.runOnIdle { model.navigate(AccountScreen.VERIFY, "signup@example.invalid") }
+            compose.onNodeWithTag("auth-beer").assertDoesNotExist()
+            compose.onNodeWithText("Подтвердите почту").assertIsDisplayed()
+            compose.onNodeWithText("Мы отправили код на вашу почту").assertIsDisplayed()
+            TestEvidence.screenshot("auth-verify-${theme.name.lowercase()}.png")
         }
     }
 
@@ -86,6 +92,7 @@ class AuthFormTest {
         compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.VERIFY && !model.state.value.busy }
         compose.onNodeWithTag("verification-email").assertTextContains(email)
         compose.onNodeWithText("E-mail").assertDoesNotExist()
+        compose.onNodeWithText("Отправить код снова", substring = true).assertIsNotEnabled()
         val mailbox = "http://$host:58025"
         val messages = JSONObject(URL("$mailbox/api/v1/search?query=to:$email").readText()).getJSONArray("messages")
         val message = JSONObject(URL("$mailbox/api/v1/message/${messages.getJSONObject(0).getString("ID")}").readText()).getString("Text")
@@ -95,11 +102,6 @@ class AuthFormTest {
         compose.runOnIdle { keyboard?.hide() }
         compose.onNodeWithText("Подтвердить").performScrollTo()
             .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { assertTrue(it()) }
-        compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.LOGIN && !model.state.value.busy }
-        compose.onNodeWithText("Почта или никнейм").assertTextContains(email)
-        compose.onNodeWithText("Пароль — от 8 символов").performScrollTo().performTextInput(password)
-        compose.runOnIdle { keyboard?.hide() }
-        compose.onNodeWithText("Войти").performScrollTo().performClick()
         compose.waitUntil(30_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
         compose.onNodeWithTag("club-navigation").assertExists()
         assertNotNull(model.state.value.profile)

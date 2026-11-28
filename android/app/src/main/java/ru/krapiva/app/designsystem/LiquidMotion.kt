@@ -2,16 +2,23 @@ package ru.krapiva.app.designsystem
 
 import kotlin.math.atan2
 import kotlin.math.abs
+import kotlin.math.tanh
 
 /** Gravity input is transient, local and never persisted. Rotation values: 0, 1, 2, 3. */
 class LiquidMotion(initialAngle: Float = 0f) {
     var angle = (if (initialAngle.isFinite()) initialAngle else 0f).coerceIn(-8f, 8f)
         private set
     private var velocity = 0f
-    fun target(x: Float, y: Float, rotation: Int): Float {
+    fun target(x: Float, y: Float, rotation: Int, projectedSurface: Boolean = false): Float {
         if (!x.isFinite() || !y.isFinite() || abs(x) + abs(y) < 0.01f) return 0f
         val horizontal = when (rotation) { 1 -> -y; 2 -> -x; 3 -> y; else -> x }
         val vertical = when (rotation) { 1, 3 -> x; else -> y }
+        if (projectedSurface) {
+            // The sensor points up and canvas Y points down. The surface is perpendicular
+            // to projected gravity. Limit its travel smoothly in the shallow auth panel.
+            val tilt = atan2(horizontal.toDouble(), abs(vertical).toDouble().coerceAtLeast(0.1))
+            return (8 * tanh(tilt * 2)).toFloat()
+        }
         return Math.toDegrees(atan2(-horizontal.toDouble(), abs(vertical).toDouble().coerceAtLeast(0.1))).toFloat().coerceIn(-8f, 8f)
     }
     fun step(target: Float): Float {

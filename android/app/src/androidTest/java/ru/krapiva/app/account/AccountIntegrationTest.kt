@@ -97,7 +97,7 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Повторите пароль").performTextInput(password)
         compose.onNode(isToggleable()).performScrollTo().performClick()
         compose.onNodeWithText("Зарегистрироваться").performScrollTo().performClick()
-        compose.waitUntil(20_000) { compose.onAllNodesWithText("Подтверждение почты").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(20_000) { compose.onAllNodesWithText("Подтвердите почту").fetchSemanticsNodes().isNotEmpty() }
         val code = runBlocking {
             val messages = JSONObject(URL("http://10.0.2.2:58025/api/v1/search?query=to:$email").readText()).getJSONArray("messages")
             val message = JSONObject(URL("http://10.0.2.2:58025/api/v1/message/${messages.getJSONObject(0).getString("ID")}").readText())
@@ -115,12 +115,8 @@ class AccountIntegrationTest {
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).waitForIdle()
         compose.onNodeWithText("Подтвердить").assertIsDisplayed().assertIsEnabled()
             .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { click -> assertTrue(click()) }
-        try { compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() } }
+        try { compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy } }
         catch(error: Throwable) { throw AssertionError("P3_VERIFY_STATE=${model.state.value.screen},busy=${model.state.value.busy},error=${model.state.value.error}",error) }
-        compose.onNodeWithText("Почта или никнейм").performTextReplacement(email)
-        compose.onNodeWithText("Пароль — от 8 символов").performTextInput(password)
-        compose.onNodeWithText("Войти").performScrollTo().performClick()
-        compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
         compose.onNodeWithTag("nav-PROFILE").performClick()
         compose.onNodeWithText("Редактировать профиль").performScrollTo().performClick()
         compose.onNodeWithText("Город").performScrollTo().performTextReplacement("Тестовый город")

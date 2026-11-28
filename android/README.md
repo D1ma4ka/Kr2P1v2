@@ -43,6 +43,16 @@ Production SMTP не включён, внешним адресатам dev/test 
 
 ## Runtime проверки
 
+P10.1 использует системный Autofill для входа и подсказки пароля при
+регистрации. После подтверждения адреса Credential Manager может предложить
+сохранить пароль, если на устройстве доступен поддерживающий это провайдер.
+Код из письма можно вставить целиком. Android документирует специальное
+автозаполнение для SMS, а у стандартного Compose Autofill нет отдельной
+подсказки для почтового кода.
+[Autofill в Compose](https://developer.android.com/develop/ui/compose/text/autofill) ·
+[Подсказки ContentType](https://developer.android.com/reference/kotlin/androidx/compose/ui/autofill/ContentType) ·
+[Credential Manager](https://developer.android.com/identity/sign-in/credential-manager)
+
 С работающими API/DB/Mailpit и API35 эмулятором:
 
 ```sh

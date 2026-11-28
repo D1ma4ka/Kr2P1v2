@@ -26,6 +26,7 @@ internal class LiquidAnimation(val angle: State<Float>, val phase: State<Float>,
 internal fun rememberLiquidAnimation(
     still: Boolean = false, previewAngle: Float? = null, forceNoSensor: Boolean = false,
     reveal: Boolean = false, continuous: Boolean = true,
+    projectedSurface: Boolean = false,
 ): LiquidAnimation {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
@@ -47,7 +48,7 @@ internal fun rememberLiquidAnimation(
         onDispose { owner.lifecycle.removeObserver(observer); context.contentResolver.unregisterContentObserver(settings) }
     }
     val static = still || reduced
-    DisposableEffect(manager, active, static, previewAngle, forceNoSensor, continuous) {
+    DisposableEffect(manager, active, static, previewAngle, forceNoSensor, continuous, projectedSurface) {
         val sensor = if (forceNoSensor || !continuous) null else {
             manager.getDefaultSensor(Sensor.TYPE_GRAVITY) ?: manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         }
@@ -62,7 +63,7 @@ internal fun rememberLiquidAnimation(
                 filteredX += (event.values[0] - filteredX) * .2f
                 filteredY += (event.values[1] - filteredY) * .2f
                 val rotation = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.rotation
-                target = model.target(filteredX, filteredY, rotation)
+                target = model.target(filteredX, filteredY, rotation, projectedSurface)
             }
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
         }

@@ -47,7 +47,7 @@ class AuthLayoutRegressionTest {
             }
             compose.onNodeWithText("Код из 6 цифр").performScrollTo().performTextReplacement("000123")
             compose.onNodeWithText("Подтвердить").performScrollTo().assertIsEnabled()
-            compose.onNodeWithText("Отправить письмо снова").performScrollTo().assertIsEnabled()
+            compose.onNodeWithText("Отправить код снова").performScrollTo().assertIsEnabled()
         }
     }
 }

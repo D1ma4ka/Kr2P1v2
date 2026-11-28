@@ -1,6 +1,8 @@
 package ru.krapiva.app.account
 
 import android.net.Uri
+import android.os.SystemClock
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -21,6 +23,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalAutofillManager
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -33,6 +39,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -41,15 +48,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CreatePasswordRequest
+import androidx.credentials.CredentialManager
+import androidx.credentials.exceptions.CreateCredentialException
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import ru.krapiva.app.BuildConfig
 import ru.krapiva.app.R
-import ru.krapiva.app.designsystem.BeerHero
 import ru.krapiva.app.designsystem.*
 import ru.krapiva.app.diary.CheckinVisibility
 import ru.krapiva.app.diary.defaultCheckinVisibility
@@ -61,6 +71,18 @@ import ru.krapiva.app.places.hasLocationPermission
 @Composable
 fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<String,String>? = null, consumeReminder: () -> Unit = {}) {
     val state by model.state.collectAsStateWithLifecycle()
+    val activity = LocalActivity.current
+    LaunchedEffect(activity, state.profile?.optString("userId")) {
+        if (activity != null && state.profile != null) {
+            model.takeVerifiedCredentials()?.let { (email, password) ->
+                try {
+                    CredentialManager.create(activity).createCredential(activity, CreatePasswordRequest(email, password))
+                } catch (_: CreateCredentialException) {
+                    // Saving is optional and depends on the active Android credential provider.
+                }
+            }
+        }
+    }
     LaunchedEffect(reminderRequest,state.profile,state.busy) {
         val request=reminderRequest
         if(request!=null && state.profile!=null && !state.busy) {
@@ -72,8 +94,10 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
     val scroll = rememberScrollState()
     LaunchedEffect(state.screen) { scroll.scrollTo(0) }
     val authenticated = state.profile != null
+    val autofill = LocalAutofillManager.current
     if (authenticated) HandleSetup(state, model)
     BackHandler(enabled = state.screen !in setOf(AccountScreen.WELCOME, AccountScreen.HOME, AccountScreen.RESTORING)) {
+        if (!authenticated && !state.busy) autofill?.cancel()
         model.navigate(if (authenticated) AccountScreen.HOME else AccountScreen.WELCOME)
     }
     if(state.screen == AccountScreen.RESTORING && state.busy) {
@@ -171,8 +195,10 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
             Column(Modifier.fillMaxSize().verticalScroll(scroll)
                 .then(if (welcome) Modifier.heightIn(min = maxHeight) else Modifier).padding(24.dp),
                 verticalArrangement = if (welcome) Arrangement.SpaceBetween else Arrangement.spacedBy(16.dp)) {
-                if(state.screen != AccountScreen.WELCOME) {
-                    if (state.screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.VERIFY, AccountScreen.FORGOT, AccountScreen.RESET, AccountScreen.RESTORING)) AuthBrand()
+                if (state.screen !in setOf(AccountScreen.WELCOME, AccountScreen.VERIFY)) {
+                    if (state.screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.RESET, AccountScreen.RESTORING)) {
+                        AuthBrand(animateBeer = state.screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER))
+                    }
                     else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Image(painterResource(R.drawable.ic_brand_mark), null, Modifier.size(48.dp))
                         Column { Text("KraPiva", style = MaterialTheme.typography.headlineMedium, color = KraPivaColors.Cream)
@@ -180,7 +206,7 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
                     }
                 }
                 state.error?.let {
-                    val message = if (state.screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER)) visibleAuthError(it) else it
+                    val message = if (!authenticated) visibleAuthError(it) else it
                     Text(message, color = MaterialTheme.colorScheme.error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive })
                 }
                 state.notice?.let { Text(it, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
@@ -246,19 +272,26 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
     }
 }
 /** Exact approved wordmark, on its original dark ground in both themes. */
-@Composable private fun AuthBrand() {
+@Composable private fun AuthBrand(animateBeer: Boolean = false) {
     Surface(Modifier.fillMaxWidth(), color = Color(0xFF1B211E), shape = ClubTokens.CardShape) {
         Image(painterResource(R.drawable.krapiva_logo), "Логотип KraPiva",
             Modifier.padding(12.dp).fillMaxWidth().aspectRatio(940f / 240f).testTag("auth-logo"),
             contentScale = ContentScale.Fit)
     }
+    if (animateBeer) {
+        ClubBeer(Modifier.fillMaxWidth().height(64.dp).clip(ClubTokens.CardShape).testTag("auth-beer"),
+            backdrop = true, animateBackdrop = true, reveal = false, fillFraction = .5f, decorative = true)
+    }
     Text("Крафтовое сообщество · 18+", style = MaterialTheme.typography.labelSmall, color = KraPivaColors.Muted)
 }
 @Composable private fun Input(label: String, value: String, enabled: Boolean = true, password: Boolean = false,
-    keyboard: KeyboardType = KeyboardType.Text, singleLine: Boolean = true, onChange: (String) -> Unit) {
-    OutlinedTextField(value, onChange, modifier = Modifier.fillMaxWidth(), enabled = enabled,
+    keyboard: KeyboardType = KeyboardType.Text, singleLine: Boolean = true, autofill: ContentType? = null,
+    onChange: (String) -> Unit) {
+    val modifier = if (autofill == null) Modifier else Modifier.semantics { contentType = autofill }
+    OutlinedTextField(value, onChange, modifier = modifier.fillMaxWidth(), enabled = enabled,
         label = { Text(label) }, singleLine = singleLine,
-        keyboardOptions = KeyboardOptions(keyboardType = if (password) KeyboardType.Password else keyboard),
+        keyboardOptions = KeyboardOptions(keyboardType = if (password) KeyboardType.Password else keyboard,
+            autoCorrectEnabled = !password && autofill == null && keyboard == KeyboardType.Text),
         visualTransformation = if (password) PasswordVisualTransformation() else VisualTransformation.None)
 }
 @Composable private fun AuthForm(state: AccountState, model: AccountViewModel) {
@@ -267,40 +300,66 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
     var token by remember { mutableStateOf("") }; var adult by rememberSaveable { mutableStateOf(false) }
     var registrationError by remember { mutableStateOf<String?>(null) }
     val screen = state.screen; val enabled = !state.busy
-    Title(when(screen) { AccountScreen.LOGIN -> "Вход"; AccountScreen.REGISTER -> "Новый аккаунт"; AccountScreen.VERIFY -> "Подтверждение почты"; AccountScreen.RESET -> "Новый пароль"; else -> "Восстановление доступа" })
-    if (BuildConfig.API_ENVIRONMENT != "production" && screen !in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER)) {
-        Text("Среда: ${BuildConfig.API_ENVIRONMENT} · ${BuildConfig.API_BASE_URL}", style = MaterialTheme.typography.bodySmall)
-        if (BuildConfig.API_ENVIRONMENT == "development") Text("Локальная почта: name@example.invalid. Письма доступны в Mailpit на компьютере с сервером; во внешний ящик они не доставляются.", style = MaterialTheme.typography.bodySmall)
-    }
+    val autofillManager = LocalAutofillManager.current
+    val focus = LocalFocusManager.current
+    Title(when(screen) { AccountScreen.LOGIN -> "Вход"; AccountScreen.REGISTER -> "Новый аккаунт"; AccountScreen.VERIFY -> "Подтвердите почту"; AccountScreen.RESET -> "Новый пароль"; else -> "Восстановление доступа" })
     if (screen == AccountScreen.REGISTER) {
         Input("Никнейм", name, enabled) { name = it }
         Link("Проверить никнейм", enabled && UserHandle.valid(name)) { model.checkHandle(name) }
     }
-    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.RESET)) Input(if (screen == AccountScreen.LOGIN) "Почта или никнейм" else "E-mail", email, enabled, keyboard = if (screen == AccountScreen.LOGIN) KeyboardType.Text else KeyboardType.Email, singleLine = false) { email = it.replace("\n", "").replace("\r", "").take(254) }
-    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.RESET)) Input("Пароль — от 8 символов", password, enabled, password = true) { password = it }
-    if (screen in setOf(AccountScreen.REGISTER, AccountScreen.RESET)) Input("Повторите пароль", confirm, enabled, password = true) { confirm = it }
-    if (screen == AccountScreen.VERIFY) {
-        Text("На почту ${state.authEmail} отправлен 6-значный код подтверждения. Введи его ниже",
-            modifier = Modifier.fillMaxWidth().testTag("verification-email"), softWrap = true)
-        Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = EmailVerificationCode.input(it) }
+    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.FORGOT, AccountScreen.RESET)) {
+        val emailHint = when (screen) {
+            AccountScreen.LOGIN -> ContentType.Username + ContentType.EmailAddress
+            AccountScreen.REGISTER -> ContentType.NewUsername + ContentType.EmailAddress
+            else -> ContentType.EmailAddress
+        }
+        Input(if (screen == AccountScreen.LOGIN) "Почта или никнейм" else "E-mail", email, enabled,
+            keyboard = KeyboardType.Email, autofill = emailHint) { email = it.replace("\n", "").replace("\r", "").take(254) }
     }
-    if (screen == AccountScreen.RESET) Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.NumberPassword) { token = EmailVerificationCode.input(it) }
+    if (screen in setOf(AccountScreen.LOGIN, AccountScreen.REGISTER, AccountScreen.RESET)) {
+        Input("Пароль — от 8 символов", password, enabled, password = true,
+            autofill = if (screen == AccountScreen.LOGIN) ContentType.Password else ContentType.NewPassword) { password = it }
+    }
+    if (screen in setOf(AccountScreen.REGISTER, AccountScreen.RESET)) {
+        Input("Повторите пароль", confirm, enabled, password = true, autofill = ContentType.NewPassword) { confirm = it }
+    }
+    if (screen == AccountScreen.VERIFY) {
+        Text("Мы отправили код на вашу почту")
+        Text(state.authEmail, modifier = Modifier.fillMaxWidth().testTag("verification-email"))
+    }
+    if (screen in setOf(AccountScreen.VERIFY, AccountScreen.RESET)) {
+        Input("Код из 6 цифр", token, enabled, keyboard = KeyboardType.Number) { token = EmailVerificationCode.input(it) }
+    }
     if (screen == AccountScreen.REGISTER) Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
         .toggleable(adult, enabled = enabled, role = Role.Checkbox) { adult = it }, verticalAlignment = Alignment.CenterVertically) {
         Checkbox(adult, null, enabled = enabled); Text("Подтверждаю, что мне исполнилось 18 лет", Modifier.weight(1f))
     }
     when(screen) {
         AccountScreen.LOGIN -> {
-            Action("Войти", enabled && email.isNotBlank() && password.isNotEmpty()) { model.login(email, password); password = "" }
-            Link("Забыли пароль?", enabled) { model.navigate(AccountScreen.FORGOT) }
-            Link("Подтвердить почту", enabled && AuthValidation.email(email)) { model.navigate(AccountScreen.VERIFY, email.trim()) }
+            Action("Войти", enabled && email.isNotBlank() && password.isNotEmpty()) {
+                focus.clearFocus()
+                model.login(email, password) { autofillManager?.commit() }
+            }
+            Link("Забыли пароль?", enabled) {
+                autofillManager?.cancel()
+                model.navigate(AccountScreen.FORGOT)
+            }
+            Link("Подтвердить почту", enabled && AuthValidation.email(email)) {
+                autofillManager?.cancel()
+                model.mail(email, false)
+            }
         }
         AccountScreen.REGISTER -> {
             registrationError?.let { Text(it, color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }) }
             Button(onClick = {
                 registrationError = AuthValidation.registrationError(email, name, password, confirm, adult)
-                if (registrationError == null) model.register(email, password, name, adult)
+                if (registrationError == null) {
+                    focus.clearFocus()
+                    // Defer saving to Credential Manager until the email is verified.
+                    autofillManager?.cancel()
+                    model.register(email, password, name, adult)
+                }
             }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 enabled = enabled && AuthValidation.registrationReady(email, name, password, confirm, adult),
                 colors = ButtonDefaults.buttonColors(containerColor = ClubTokens.Amber, contentColor = ClubTokens.OnAmber,
@@ -309,13 +368,27 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
             }
         }
         AccountScreen.VERIFY -> {
-            Action("Подтвердить", enabled && EmailVerificationCode.isComplete(token) && state.authEmail.isNotBlank()) { model.verifyCode(state.authEmail,token); token = "" }
-            Link("Отправить письмо снова", enabled && state.authEmail.isNotBlank()) { model.mail(state.authEmail, false) }
-            Text("Повторная отправка — не чаще раза в минуту. Код действует 10 минут; не более 5 попыток. После повторной отправки используйте новое письмо.", color = KraPivaColors.Muted)
+            val deadline = state.resendAvailableAt
+            fun remainingSeconds() = ((deadline - SystemClock.elapsedRealtime()).coerceAtLeast(0) + 999) / 1000
+            var seconds by remember(deadline) { mutableLongStateOf(remainingSeconds()) }
+            LaunchedEffect(deadline) {
+                while (seconds > 0) {
+                    delay(1_000)
+                    seconds = remainingSeconds()
+                }
+            }
+            Action("Подтвердить", enabled && EmailVerificationCode.isComplete(token) && state.authEmail.isNotBlank()) {
+                focus.clearFocus()
+                model.verifyCode(state.authEmail, token)
+            }
+            val resendLabel = if (seconds > 0) "Отправить код снова · ${seconds} с" else "Отправить код снова"
+            Link(resendLabel, enabled && seconds == 0L && state.authEmail.isNotBlank()) {
+                token = ""
+                model.mail(state.authEmail, false)
+            }
         }
         AccountScreen.FORGOT -> Action("Получить код", enabled && email.isNotBlank()) { model.mail(email, true) }
         AccountScreen.RESET -> {
-            Text("Код действует 10 минут; не более 5 попыток. После повторной отправки используйте новое письмо.")
             if (password.isNotEmpty() && !AuthValidation.password(password)) Text(if (AuthValidation.passwordLength(password) > 128) "Пароль слишком длинный" else "Пароль — от 8 символов", color = MaterialTheme.colorScheme.error)
             if (confirm.isNotEmpty() && confirm != password) Text("Пароли должны совпадать", color = MaterialTheme.colorScheme.error)
             Action("Сменить пароль", enabled && AuthValidation.email(email) && EmailVerificationCode.isComplete(token) && AuthValidation.password(password) && confirm == password) { model.reset(email, token, password) }
@@ -323,7 +396,10 @@ fun AccountApp(model: AccountViewModel = viewModel(), reminderRequest: Pair<Stri
         }
         else -> Unit
     }
-    Link("Назад", enabled) { model.navigate(AccountScreen.WELCOME) }
+    if (screen != AccountScreen.VERIFY) Link("Назад", enabled) {
+        autofillManager?.cancel()
+        model.navigate(AccountScreen.WELCOME)
+    }
 }
 private fun JSONObject.text(key: String): String = if (isNull(key)) "" else optString(key)
 @Composable private fun Profile(state: AccountState, model: AccountViewModel) {

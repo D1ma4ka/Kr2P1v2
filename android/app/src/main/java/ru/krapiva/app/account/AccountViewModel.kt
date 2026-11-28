@@ -4,6 +4,7 @@ import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.SystemClock
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -23,8 +24,11 @@ enum class AccountScreen { RESTORING, WELCOME, LOGIN, REGISTER, VERIFY, FORGOT, 
 data class AccountState(
     val authEmail: String = "", val screen: AccountScreen = AccountScreen.RESTORING, val busy: Boolean = false,
     val error: String? = null, val notice: String? = null, val profile: JSONObject? = null,
+    val resendAvailableAt: Long = 0L,
     val avatar: Bitmap? = null, val cover: Bitmap? = null, val offline: Boolean = false, val fullPhoto: Bitmap? = null, val catalogPosition: String? = null,
 )
+internal const val verificationResendDelayMillis = 60_000L
+
 class AccountViewModel(application: Application) : AndroidViewModel(application) {
     private val store = AccountStore(application)
     val api = AccountApi(store)
@@ -85,8 +89,18 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     private suspend fun clearSession(preserveDrafts: Boolean = true) { catalogOwner.viewModelStore.clear(); discoveryCity = null; menuPositionVenue = null; placesRequest++; diaryReturnsToMenu = false; diaryPosition = null; diaryVenue=null;venueId=null;socialCheckinId = null; consumeCatalogPosition(); api.clear(preserveDrafts) }
     private val mutable = MutableStateFlow(AccountState())
     val state = mutable.asStateFlow()
+    private var registrationCredentials: Pair<String, String>? = null
+    private var verifiedCredentials: Pair<String, String>? = null
+    internal fun takeVerifiedCredentials() = verifiedCredentials.also { verifiedCredentials = null }
     init { restore() }
-    fun navigate(screen: AccountScreen, authEmail: String = mutable.value.authEmail) { if (!mutable.value.busy) { menuPositionVenue = null; diaryReturnsToMenu = false; mutable.value = mutable.value.copy(screen = screen, authEmail = authEmail, error = null, notice = null) } }
+    fun navigate(screen: AccountScreen, authEmail: String = mutable.value.authEmail) {
+        if (mutable.value.busy) return
+        if (screen != AccountScreen.VERIFY || !authEmail.equals(mutable.value.authEmail, ignoreCase = true)) registrationCredentials = null
+        menuPositionVenue = null
+        diaryReturnsToMenu = false
+        val deadline = mutable.value.resendAvailableAt.takeIf { authEmail.equals(mutable.value.authEmail, ignoreCase = true) } ?: 0L
+        mutable.value = mutable.value.copy(screen = screen, authEmail = authEmail, resendAvailableAt = deadline, error = null, notice = null)
+    }
     private fun task(action: suspend () -> Unit) {
         if (mutable.value.busy) return
         mutable.value = mutable.value.copy(busy = true, error = null, notice = null)
@@ -106,15 +120,23 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         }
     }
     fun restore() = task {
-        try {
-            if (api.restore()) loadProfile(AccountScreen.HOME) else mutable.value = AccountState(screen = AccountScreen.WELCOME)
-        } catch (error: ApiFailure) {
-            if (error.status == 401) { clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN) } else throw error
+        val restored = try {
+            api.restore()
         } catch (error: Exception) {
             if (error is kotlinx.coroutines.CancellationException) throw error
             // A truncated/invalid encrypted session must not strand the app on RESTORING.
             clearSession()
             mutable.value = AccountState(screen = AccountScreen.WELCOME, error = "Сохранённая сессия недоступна. Войдите снова.")
+            return@task
+        }
+        if (!restored) {
+            mutable.value = AccountState(screen = AccountScreen.WELCOME)
+            return@task
+        }
+        try {
+            loadProfile(AccountScreen.HOME)
+        } catch (error: ApiFailure) {
+            if (error.status == 401) { clearSession(); mutable.value = AccountState(screen = AccountScreen.LOGIN) } else throw error
         }
     }
     private suspend fun loadProfile(destination: AccountScreen = AccountScreen.PROFILE) {
@@ -147,9 +169,13 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
     }
     fun refresh() = task { loadProfile() }
     fun register(email: String, password: String, name: String, adult: Boolean) = task {
-        val result = api.json("v1/auth/register", "POST", JSONObject().put("email", email.trim()).put("password", password)
+        val address = email.trim()
+        api.json("v1/auth/register", "POST", JSONObject().put("email", address).put("password", password)
             .put("displayName", UserHandle.normalize(name)).put("handle", UserHandle.normalize(name)).put("adultConfirmed", adult), false)
-        mutable.value = mutable.value.copy(authEmail = email.trim(),screen = AccountScreen.VERIFY, notice = result.getString("message") + " Введите 6 цифр из письма. Срок — 10 минут.")
+        // Kept in memory only until confirmation so Android can offer to save it.
+        registrationCredentials = address to password
+        mutable.value = mutable.value.copy(authEmail = address, screen = AccountScreen.VERIFY,
+            resendAvailableAt = SystemClock.elapsedRealtime() + verificationResendDelayMillis)
     }
     fun checkHandle(handle: String) = task {
         val result = api.json("v1/auth/handles/${android.net.Uri.encode(UserHandle.normalize(handle))}", secure = false)
@@ -159,21 +185,43 @@ class AccountViewModel(application: Application) : AndroidViewModel(application)
         val profile = api.json("v1/me/handle", "PUT", JSONObject().put("handle", UserHandle.normalize(handle)))
         api.cache(profile); mutable.value = mutable.value.copy(profile = profile, notice = "Никнейм сохранён")
     }
-    fun login(email: String, password: String) = task {
+    fun login(email: String, password: String, onAuthenticated: () -> Unit = {}) = task {
         val session = api.json("v1/auth/login", "POST", JSONObject().put("identifier", email.trim()).put("password", password), false)
-        catalogOwner.viewModelStore.clear(); api.accept(session); loadProfile(AccountScreen.HOME)
+        catalogOwner.viewModelStore.clear()
+        api.accept(session)
+        onAuthenticated()
+        mutable.value = AccountState(busy = true)
+        loadProfile(AccountScreen.HOME)
     }
     fun verify(token: String) = task {
         api.json("v1/auth/verify", "POST", JSONObject().put("token", token.trim()), false)
         mutable.value = mutable.value.copy(screen = AccountScreen.LOGIN, notice = "Почта подтверждена. Войдите в аккаунт.")
     }
     fun verifyCode(email: String,code: String) = task {
-        api.json("v1/auth/verify-code", "POST", JSONObject().put("email",email.trim()).put("code",code), false)
-        mutable.value = mutable.value.copy(authEmail = email.trim(),screen = AccountScreen.LOGIN, notice = "Почта подтверждена. Войдите в аккаунт.")
+        val address = email.trim()
+        val session = api.json("v1/auth/verify-code", "POST",
+            JSONObject().put("email", address).put("code", code).put("createSession", true), false)
+        check(session.has("accessToken") && session.has("refreshToken") && session.has("userId"))
+        catalogOwner.viewModelStore.clear()
+        api.accept(session)
+        verifiedCredentials = registrationCredentials?.takeIf { it.first.equals(address, ignoreCase = true) }
+        registrationCredentials = null
+        mutable.value = AccountState(busy = true)
+        loadProfile(AccountScreen.HOME)
     }
-    fun mail(email: String, reset: Boolean) = task {
-        val result = api.json("v1/auth/${if (reset) "forgot-password" else "resend"}", "POST", JSONObject().put("email", email.trim()), false)
-        mutable.value = mutable.value.copy(authEmail = email.trim(),screen = if (reset) AccountScreen.RESET else AccountScreen.VERIFY, notice = result.getString("message"))
+    fun mail(email: String, reset: Boolean) {
+        val address = email.trim()
+        if (!reset && address.equals(mutable.value.authEmail, ignoreCase = true) &&
+            SystemClock.elapsedRealtime() < mutable.value.resendAvailableAt) {
+            if (mutable.value.screen != AccountScreen.VERIFY) navigate(AccountScreen.VERIFY, address)
+            return
+        }
+        task {
+            api.json("v1/auth/${if (reset) "forgot-password" else "resend"}", "POST", JSONObject().put("email", address), false)
+            mutable.value = mutable.value.copy(authEmail = address, screen = if (reset) AccountScreen.RESET else AccountScreen.VERIFY,
+                resendAvailableAt = if (reset) 0L else SystemClock.elapsedRealtime() + verificationResendDelayMillis,
+                notice = if (reset) "Если данные подходят, письмо отправлено. Проверьте почту." else null)
+        }
     }
     fun reset(email: String, code: String, password: String) = task {
         api.json("v1/auth/reset-password-code", "POST", JSONObject().put("email", email.trim()).put("code", code).put("password", password), false)
