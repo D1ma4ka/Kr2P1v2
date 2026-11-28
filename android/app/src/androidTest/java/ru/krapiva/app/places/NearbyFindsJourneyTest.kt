@@ -10,6 +10,7 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -41,11 +42,7 @@ class NearbyFindsJourneyTest {
         else -> null
     }
 
-    @Test fun cityWithoutLocationMapListSavedFilterReturnAndExistingCheckin() {
-        val automation = InstrumentationRegistry.getInstrumentation()
-        val device = UiDevice.getInstance(automation)
-        val arguments = InstrumentationRegistry.getArguments()
-        val captureScreenshots = arguments.getString("captureScreenshots") != "false"
+    private fun login(): AccountViewModel {
         lateinit var root: AccountViewModel
         compose.runOnIdle { root = ViewModelProvider(compose.activity)[AccountViewModel::class.java] }
         compose.waitUntil(60_000) { !root.state.value.busy }
@@ -55,6 +52,50 @@ class NearbyFindsJourneyTest {
         }
         compose.runOnIdle { root.login("beta@example.invalid", "Isolated Smart Bar QA!") }
         compose.waitUntil(60_000) { root.state.value.profile != null && !root.state.value.busy }
+        return root
+    }
+
+    /** Run with precise foreground permission and Seattle supplied through the emulator console. */
+    @Test fun homeIgnoresEmulatorSeattleAndOpensPublishedMenuInChosenCity() {
+        assertTrue(emulatedDevice && hasLocationPermission(compose.activity))
+        val emulatorFix = requireNotNull(runBlocking { withTimeout(15_000) { currentLocation(compose.activity) } })
+        assertEquals(47.6062, emulatorFix.latitude, 0.05)
+        assertEquals(-122.3321, emulatorFix.longitude, 0.05)
+        val root = login()
+        val home = compose.onNodeWithTag("club-home")
+        val chooseOrigin = "Открой карту, чтобы выбрать город или использовать геопозицию."
+        home.performScrollToNode(hasText(chooseOrigin))
+        compose.onNodeWithText(chooseOrigin).assertExists()
+        assertNull(root.discoveryCity)
+
+        home.performScrollToNode(hasText("Открыть карту"))
+        compose.onNodeWithText("Открыть карту").performClick()
+        awaitText("Выбрать город")
+        compose.onNodeWithText("Карта").assertIsNotEnabled()
+        TestEvidence.screenshot("p103-map-before-origin.png")
+        compose.onNodeWithText("Выбрать город").performClick()
+        awaitText("QA · 2")
+        compose.onNodeWithText("QA · 2").performClick()
+        compose.waitUntil(30_000) { root.discoveryCity?.name == "QA" }
+        compose.onNodeWithTag("nav-HOME").performClick()
+        home.performScrollToNode(hasText("Места рядом"))
+        awaitText("QA · 5 км")
+        home.performScrollToNode(hasText("A") and hasClickAction())
+        TestEvidence.screenshot("p103-home-nearby.png")
+        compose.onNode(hasText("A") and hasClickAction()).performClick()
+        awaitText("Меню")
+        compose.onNodeWithText("Меню").performScrollTo().performClick()
+        val offer = hasText("Тестовое длинное название", substring = true)
+        compose.waitUntil(45_000) { compose.onAllNodes(offer).fetchSemanticsNodes().isNotEmpty() }
+        TestEvidence.screenshot("p103-venue-published-menu.png")
+    }
+
+    @Test fun cityWithoutLocationMapListSavedFilterReturnAndExistingCheckin() {
+        val automation = InstrumentationRegistry.getInstrumentation()
+        val device = UiDevice.getInstance(automation)
+        val arguments = InstrumentationRegistry.getArguments()
+        val captureScreenshots = arguments.getString("captureScreenshots") != "false"
+        val root = login()
         val rule = MenuFilter(styles = setOf("ipa", "apa"), tried = Tried.NO,
             abv = MenuRange("4", "8"), volumeMl = MenuRange("250", "330"))
         runBlocking {
