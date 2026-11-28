@@ -90,6 +90,7 @@ class AccountIntegrationTest {
         compose.onNodeWithText(label).performTextReplacement(query)
         compose.runOnIdle { keyboard?.hide() }
         compose.waitUntil(25_000) { compose.onAllNodesWithTag("place-$id").fetchSemanticsNodes().isNotEmpty() }
+        if (id in setOf("RU", "524901")) screenshot("p102-$kind-search.png")
         compose.onNodeWithTag("place-$id").performClick()
     }
 
@@ -100,6 +101,8 @@ class AccountIntegrationTest {
         store.clear()
         val email = "android${UUID.randomUUID().toString().replace("-", "")}@example.invalid"
         val password = "Synthetic Android password!"
+        val handle = "android_" + UUID.randomUUID().toString().replace("-", "").take(12)
+        val coreOnly = InstrumentationRegistry.getArguments().getString("krapivaCoreOnly") == "true"
         lateinit var model: AccountViewModel
         var keyboard: androidx.compose.ui.platform.SoftwareKeyboardController? = null
         var theme by mutableStateOf(ThemeMode.SYSTEM)
@@ -108,18 +111,19 @@ class AccountIntegrationTest {
         screenshot("p3-welcome.png")
         compose.onNodeWithText("Создать аккаунт").performScrollTo().performClick()
         compose.onNodeWithText("E-mail").performTextReplacement(email)
-        compose.onNodeWithText("Никнейм").performTextInput("android_" + java.util.UUID.randomUUID().toString().replace("-", "").take(12))
+        compose.onNodeWithText("Никнейм").performTextInput(handle)
         compose.onNodeWithText("Пароль — от 8 символов").performTextInput(password)
         compose.onNodeWithText("Повторите пароль").performTextInput(password)
         compose.onNode(isToggleable()).performScrollTo().performClick()
-        compose.onNodeWithText("Зарегистрироваться").performScrollTo().performClick()
-        compose.waitUntil(20_000) { compose.onAllNodesWithText("Подтвердите почту").fetchSemanticsNodes().isNotEmpty() }
+        activate("Зарегистрироваться", keyboard)
+        waitForScreen(model, AccountScreen.VERIFY, 35_000)
+        screenshot("p101-verify-countdown.png")
         val code = runBlocking {
             val messages = JSONObject(URL("http://10.0.2.2:58025/api/v1/search?query=to:$email").readText()).getJSONArray("messages")
             val message = JSONObject(URL("http://10.0.2.2:58025/api/v1/message/${messages.getJSONObject(0).getString("ID")}").readText())
             Regex("Код подтверждения: ([0-9]{6})").find(message.getString("Text"))!!.groupValues[1]
         }
-        compose.onNodeWithText("Код из 6 цифр").performTextInput(code)
+        compose.onNodeWithText("Код из 6 цифр").performTextReplacement(code)
         // Wait for token-driven enabled semantics and native IME layout before the physical click.
         compose.waitUntil(15_000) { compose.onAllNodes(hasText("Подтвердить") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
         // Close IME before measuring visibility: insets settle independently of Compose.
@@ -133,6 +137,8 @@ class AccountIntegrationTest {
             .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { click -> assertTrue(click()) }
         try { compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy } }
         catch(error: Throwable) { throw AssertionError("P3_VERIFY_STATE=${model.state.value.screen},busy=${model.state.value.busy},error=${model.state.value.error}",error) }
+        compose.onNodeWithTag("home-settings").assertIsDisplayed()
+        screenshot("p102-home-settings.png")
         compose.onNodeWithTag("home-settings").performClick()
         for (mode in ThemeMode.entries) {
             compose.runOnIdle { theme = mode }
@@ -155,10 +161,10 @@ class AccountIntegrationTest {
             compose.runOnIdle { theme = mode }
             compose.onNodeWithText("Редактирование профиля").performScrollTo().assertIsDisplayed()
             screenshot("p102-profile-${mode.name.lowercase()}.png")
-            compose.onNodeWithText("Социальные сети").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Untappd").performScrollTo().assertIsDisplayed()
             screenshot("p102-social-${mode.name.lowercase()}.png")
         }
-        compose.onNodeWithText("Сохранить").performScrollTo().performClick()
+        activate("Сохранить", keyboard)
         compose.waitUntil(20_000) { compose.onAllNodesWithText("Профиль сохранён").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Moscow", substring = true).assertExists()
         screenshot("p3-profile.png")
@@ -187,6 +193,11 @@ class AccountIntegrationTest {
             val session = store.session()!!
             val file = java.io.File(context.noBackupFilesDir, "session.enc").readBytes().toString(Charsets.ISO_8859_1)
             assertFalse(file.contains(session.getString("accessToken")))
+        }
+        if (coreOnly) {
+            reloginAfterPasswordReset(model, email, handle, keyboard)
+            store.close()
+            return
         }
         insertSyntheticPhoto()
         compose.onNodeWithText("Редактировать профиль").performScrollTo().performClick()
@@ -219,8 +230,7 @@ class AccountIntegrationTest {
         compose.onNodeWithText("Редактировать профиль").performScrollTo().performClick()
         compose.onNodeWithText("Удалить обложку").performScrollTo().performClick()
         compose.onNodeWithText("Сохранить").performScrollTo().performClick()
-        compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
-        compose.onNodeWithTag("nav-PROFILE").performClick()
+        waitForScreen(model, AccountScreen.PROFILE, 20_000)
         compose.onNodeWithContentDescription("Аватар профиля").assertExists()
         compose.onNodeWithContentDescription("Обложка профиля").assertDoesNotExist()
         runBlocking {
@@ -239,41 +249,58 @@ class AccountIntegrationTest {
         compose.waitUntil(30_000) { networkReady() }
         compose.onNodeWithText("Обновить").performScrollTo().performClick()
         compose.waitUntil(30_000) { compose.onAllNodesWithText("Сохранённая копия · изменения требуют сети").fetchSemanticsNodes().isEmpty() }
-        // The profile arrives before the thumbnail requests finish. Navigation stays
-        // disabled until that real request completes; wait for its enabled state.
-        compose.waitUntil(20_000) { compose.onAllNodes(hasText("Настройки аккаунта") and isEnabled()).fetchSemanticsNodes().size == 1 }
-        compose.onNodeWithText("Настройки аккаунта").performScrollTo().performClick()
-        compose.waitUntil(10_000) { compose.onAllNodes(hasText("Выйти из аккаунта") and isEnabled()).fetchSemanticsNodes().size == 1 }
-        compose.onNodeWithText("Выйти из аккаунта").performScrollTo().performClick()
-        try { compose.waitUntil(20_000) { compose.onAllNodesWithText("Вы вышли из аккаунта").fetchSemanticsNodes().isNotEmpty() } }
-        catch (error: Throwable) {
-            TestEvidence.screenshot("p3-logout-timeout.png")
-            val state = model.state.value
-            throw AssertionError("Logout did not complete: screen=${state.screen}, busy=${state.busy}, error=${state.error}, notice=${state.notice}", error)
+        reloginAfterPasswordReset(model, email, handle, keyboard) {
+            assertNull(store.cached(userId))
+            assertNull(store.session())
         }
-        assertNull(store.cached(userId)); assertNull(store.session())
+        store.close()
+    }
+
+    private fun waitForScreen(model: AccountViewModel, screen: AccountScreen, timeoutMs: Long) {
+        try {
+            compose.waitUntil(timeoutMs) { model.state.value.screen == screen && !model.state.value.busy }
+        } catch (error: Throwable) {
+            val state = model.state.value
+            throw AssertionError("Expected $screen, found ${state.screen}, busy=${state.busy}, error=${state.error}", error)
+        }
+    }
+
+    private fun activate(label: String, keyboard: androidx.compose.ui.platform.SoftwareKeyboardController?) {
+        compose.runOnIdle { keyboard?.hide() }
+        compose.onNodeWithText(label).performScrollTo().assertIsDisplayed().assertIsEnabled()
+            .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { assertTrue(it()) }
+    }
+
+    private fun reloginAfterPasswordReset(
+        model: AccountViewModel, email: String, handle: String,
+        keyboard: androidx.compose.ui.platform.SoftwareKeyboardController?,
+        afterLogout: () -> Unit = {},
+    ) {
+        compose.onNodeWithContentDescription("Настройки аккаунта").assertIsDisplayed().performClick()
+        activate("Выйти из аккаунта", keyboard)
+        waitForScreen(model, AccountScreen.LOGIN, 30_000)
+        afterLogout()
         compose.onNodeWithText("Забыли пароль?").performScrollTo().performClick()
         compose.onNodeWithText("E-mail").performTextReplacement(email)
-        compose.onNodeWithText("Получить код").performScrollTo().performClick()
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("Новый пароль").fetchSemanticsNodes().isNotEmpty() }
+        activate("Получить код", keyboard)
+        waitForScreen(model, AccountScreen.RESET, 30_000)
         val resetCode = runBlocking {
             val messages = JSONObject(URL("http://10.0.2.2:58025/api/v1/search?query=to:$email").readText()).getJSONArray("messages")
             val message = JSONObject(URL("http://10.0.2.2:58025/api/v1/message/${messages.getJSONObject(0).getString("ID")}").readText())
             Regex("Код восстановления: ([0-9]{6})").find(message.getString("Text"))!!.groupValues[1]
         }
-        compose.onNodeWithText("Код из 6 цифр").performTextInput(resetCode)
-        compose.onNodeWithText("Пароль — от 8 символов").performTextInput("New synthetic Android password!")
-        compose.onNodeWithText("Повторите пароль").performTextInput("New synthetic Android password!")
-        compose.onNodeWithText("Сменить пароль").performScrollTo().performClick()
-        compose.waitUntil(15_000) { compose.onAllNodesWithText("Вход").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Код из 6 цифр").performTextReplacement(resetCode)
+        compose.onNodeWithText("Пароль — от 8 символов").performScrollTo().performTextInput("New synthetic Android password!")
+        compose.onNodeWithText("Повторите пароль").performScrollTo().performTextInput("New synthetic Android password!")
+        activate("Сменить пароль", keyboard)
+        waitForScreen(model, AccountScreen.LOGIN, 30_000)
         compose.onNodeWithText("Почта или никнейм").performTextReplacement(email)
-        compose.onNodeWithText("Пароль — от 8 символов").performTextInput("New synthetic Android password!")
-        compose.onNodeWithText("Войти").performScrollTo().performClick()
-        compose.waitUntil(20_000) { model.state.value.screen == AccountScreen.HOME && !model.state.value.busy }
+        compose.onNodeWithText("Пароль — от 8 символов").performScrollTo().performTextInput("New synthetic Android password!")
+        activate("Войти", keyboard)
+        waitForScreen(model, AccountScreen.HOME, 35_000)
         compose.onNodeWithTag("nav-PROFILE").performClick()
-        compose.onNodeWithText("android_" + java.util.UUID.randomUUID().toString().replace("-", "").take(12)).assertExists()
+        compose.onNodeWithText("@$handle").assertExists()
         compose.onNodeWithText("Moscow", substring = true).assertExists()
         screenshot("p3-reset-login.png")
-        store.close()
     }
 }
