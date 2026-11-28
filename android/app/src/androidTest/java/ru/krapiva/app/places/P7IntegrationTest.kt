@@ -106,7 +106,7 @@ class P7IntegrationTest {
         compose.onNodeWithText("Продолжить").performClick()
         val deny = device.wait(Until.findObject(By.res(Pattern.compile(".*:id/permission_deny_button"))), 30_000)
         requireNotNull(deny).click()
-        compose.onNodeWithText("Введите город вручную").assertExists()
+        compose.waitUntil(30_000) { compose.onAllNodesWithText("Введите город вручную").fetchSemanticsNodes().isNotEmpty() }
         compose.waitUntil(30_000) { compose.onAllNodesWithText("P7 Synthetic city · 12").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("P7 Synthetic city · 12").performClick()
         compose.onNodeWithText(missingMapKey).assertExists()
@@ -117,10 +117,20 @@ class P7IntegrationTest {
         assertNull(model.state.value.deviceLocation)
         assertTrue(model.state.value.items.all { it.has("distanceKm") && it.getBoolean("testOnly") })
         try {
-            InstrumentationRegistry.getInstrumentation().uiAutomation.grantRuntimePermission(context.packageName, Manifest.permission.ACCESS_COARSE_LOCATION)
             device.executeShellCommand("cmd location set-location-enabled false")
             compose.waitUntil(15_000) { !location.isLocationEnabled }
             compose.onNodeWithText(locateLabel).performClick()
+            compose.onNodeWithText("Продолжить").performClick()
+            if (android.os.Build.VERSION.SDK_INT >= 31) {
+                val approximate = device.wait(Until.findObject(By.text("Approximate")), 30_000)
+                requireNotNull(approximate) { "Android approximate location choice" }.click()
+            }
+            val foreground = device.wait(Until.findObject(By.res(Pattern.compile(".*:id/permission_allow_foreground_only_button"))), 30_000)
+            requireNotNull(foreground).click()
+            compose.waitUntil(15_000) { hasLocationPermission(context) }
+            if (android.os.Build.VERSION.SDK_INT >= 31) {
+                assertEquals(android.content.pm.PackageManager.PERMISSION_DENIED, context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION))
+            }
             compose.waitUntil(30_000) { compose.onAllNodesWithText("Геопозиция недоступна.", substring = true).fetchSemanticsNodes().isNotEmpty() }
             assertNull(model.state.value.deviceLocation)
             device.executeShellCommand("cmd connectivity airplane-mode enable")

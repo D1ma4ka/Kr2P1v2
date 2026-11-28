@@ -1,0 +1,84 @@
+name: P10.3 Android nearby acceptance
+on:
+  push:
+    branches: [p10/yandex-maps-nearby]
+    paths:
+      - 'android/**'
+      - 'backend/**'
+      - 'scripts/p103_device_check.sh'
+      - '.github/workflows/p10-nearby-android.yml'
+permissions:
+  contents: read
+jobs:
+  nearby:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          cmdline-tools-version: '12266719'
+          packages: 'platform-tools'
+          log-accepted-android-sdk-licenses: false
+      - name: Build the keyless client and instrumentation
+        run: |
+          echo '2db75c40782f5e8ba1fc278a5574bab070adccb2d21ca5a6e5ed840888448046  android/gradle/wrapper/gradle-wrapper.jar' | sha256sum --check
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          cd android
+          ./gradlew -Pandroid.injected.build.abi=x86_64 :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Start an isolated KraPiva catalog
+        run: |
+          python3 scripts/init_dev.py
+          chmod 644 infra/postgres/01-runtime-role.sql
+          docker compose up -d --wait db
+          mkdir -p work/p7
+          cd backend
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          node --env-file=../.env dist/src/db/migrate.js
+          (cd .. && node --env-file=.env scripts/prepare_p7_fixture.mjs)
+          PORT=53000 node --env-file=../.env dist/src/main.js > ../work/p103-api.log 2>&1 &
+          curl --fail --silent --retry 15 --retry-connrefused http://127.0.0.1:53000/health/ready
+      - name: Boot Android 35
+        timeout-minutes: 7
+        run: |
+          sdkmanager emulator 'system-images;android-35;default;x86_64'
+          echo no | avdmanager create avd --name nearby --package 'system-images;android-35;default;x86_64' --device pixel_2
+          run_emulator=()
+          if [[ ! -r /dev/kvm || ! -w /dev/kvm ]]; then
+            groups="$(id -G | tr ' ' ','),$(stat -c %g /dev/kvm)"
+            run_emulator=(sudo -n -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --groups="$groups" --no-new-privs)
+          fi
+          "${run_emulator[@]}" env ANDROID_HOME="$ANDROID_HOME" "$ANDROID_HOME/emulator/emulator" \
+            -avd nearby -accel on -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > work/p103-emulator.log 2>&1 &
+          emulator_pid=$!
+          for attempt in $(seq 1 90); do
+            kill -0 "$emulator_pid" || { tail -40 work/p103-emulator.log; exit 1; }
+            if [[ "$(timeout 5 adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]]; then
+              python3 scripts/prepare_android_emulator.py
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - name: Install on the test emulator
+        id: install
+        run: |
+          adb push work/p7/android-fixture.json /data/local/tmp/p7-android-fixture.json
+          adb install android/app/build/intermediates/apk/debug/app-debug.apk
+          adb install android/app/build/intermediates/apk/androidTest/debug/app-debug-androidTest.apk
+      - name: Denial, city, approximate permission, disabled location and recovery from offline
+        run: bash scripts/p103_device_check.sh nearby
+      - name: Moscow, St Petersburg and Suzdal through the Android GPS provider
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bash scripts/p103_device_check.sh gps
