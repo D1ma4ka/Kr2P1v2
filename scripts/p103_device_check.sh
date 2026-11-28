@@ -11,18 +11,14 @@ run_test() {
     grep -Fqx 'OK (1 test)' <<< "$result"
 }
 send_fix() {
-    local response
-    response=$(timeout 5 adb emu geo fix "$1" "$2" 0 8 0 | tr -d '\r') || return
-    if ! grep -Fqx 'OK' <<< "$response"; then
-        printf 'Emulator rejected GPS input: %s\n' "$response" >&2
-        return 1
-    fi
+    python3 "${BASH_SOURCE[0]%/*}/p103_emulator_fix.py" "$emulator_serial" "$1" "$2"
 }
 case "${1:-}" in
     nearby)
         run_test -e class "$places.P7IntegrationTest#nearbyPermissionCityDisabledProviderAndNetworkRecovery"
         ;;
     gps)
+        emulator_serial=${ANDROID_SERIAL:-$(adb get-serialno)}
         adb shell cmd location set-location-enabled true
         adb shell pm grant ru.krapiva.app.debug android.permission.ACCESS_COARSE_LOCATION
         adb shell pm grant ru.krapiva.app.debug android.permission.ACCESS_FINE_LOCATION

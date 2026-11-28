@@ -6,6 +6,7 @@ on:
       - 'android/**'
       - 'backend/**'
       - 'scripts/p103_device_check.sh'
+      - 'scripts/p103_emulator_fix.py'
       - 'scripts/prepare_p7_fixture.mjs'
       - '.github/workflows/p10-nearby-android.yml'
 permissions:
@@ -14,6 +15,8 @@ jobs:
   nearby:
     runs-on: ubuntu-24.04
     timeout-minutes: 24
+    env:
+      ANDROID_SERIAL: emulator-5554
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -64,7 +67,7 @@ jobs:
             run_emulator=(sudo -n -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --groups="$groups" --no-new-privs)
           fi
           "${run_emulator[@]}" env ANDROID_HOME="$ANDROID_HOME" ANDROID_AVD_HOME="$ANDROID_AVD_HOME" ANDROID_EMULATOR_HOME="$ANDROID_EMULATOR_HOME" "$ANDROID_HOME/emulator/emulator" \
-            -avd nearby -accel on -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > work/p103-emulator.log 2>&1 &
+            -avd nearby -port 5554 -accel on -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > work/p103-emulator.log 2>&1 &
           emulator_pid=$!
           for attempt in $(seq 1 90); do
             kill -0 "$emulator_pid" || { tail -40 work/p103-emulator.log; exit 1; }
