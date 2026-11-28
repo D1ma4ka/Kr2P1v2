@@ -18,6 +18,9 @@ try {
     VALUES($1,$2,'P7 Synthetic city','Synthetic address — not a real business','Isolated P7 fixture; not a real business',$3,$4,'Synthetic test coordinates; not surveyed',now(),'verified',true)RETURNING id`,
     ['P7 Synthetic '+i,i%2?'beer_shop':'bar',55.75+(i%3)*0.001,37.61+Math.floor(i/3)*0.001])).rows[0];places.push(row.id);
   }
+  await client.query(`INSERT INTO discovery_events(id,venue_id,title,description,source,starts_at,ends_at,published)
+    VALUES($1,$2,'Synthetic P10.3 event','Isolated device acceptance event','Synthetic fixture',
+      now(),now()+interval '1 day',true)`,[randomUUID(),places[0]]);
   // Exact example supplied in FR-109, NOT externally confirmed. Deliberately no coordinates/photo.
   const craft=(await client.query(`INSERT INTO venues(name,type,city,address,source,status,is_test)VALUES('Craft Republic','bar','Москва','Малый Гнездниковский переулок, 9с7, Москва, 125009','TEST ONLY: example from FR-109; current existence/address not externally confirmed','verified',true)RETURNING id`)).rows[0].id;
   const positions=[];

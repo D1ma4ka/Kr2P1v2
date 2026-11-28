@@ -6,6 +6,7 @@ on:
       - 'android/**'
       - 'backend/**'
       - 'scripts/p103_device_check.sh'
+      - 'scripts/prepare_p7_fixture.mjs'
       - '.github/workflows/p10-nearby-android.yml'
 permissions:
   contents: read
@@ -53,13 +54,16 @@ jobs:
         timeout-minutes: 7
         run: |
           sdkmanager emulator 'system-images;android-35;default;x86_64'
+          export ANDROID_AVD_HOME="$PWD/work/p103-avd"
+          export ANDROID_EMULATOR_HOME="$PWD/work/p103-emulator"
+          mkdir -p "$ANDROID_AVD_HOME" "$ANDROID_EMULATOR_HOME"
           echo no | avdmanager create avd --name nearby --package 'system-images;android-35;default;x86_64' --device pixel_2
           run_emulator=()
           if [[ ! -r /dev/kvm || ! -w /dev/kvm ]]; then
             groups="$(id -G | tr ' ' ','),$(stat -c %g /dev/kvm)"
             run_emulator=(sudo -n -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --groups="$groups" --no-new-privs)
           fi
-          "${run_emulator[@]}" env ANDROID_HOME="$ANDROID_HOME" "$ANDROID_HOME/emulator/emulator" \
+          "${run_emulator[@]}" env ANDROID_HOME="$ANDROID_HOME" ANDROID_AVD_HOME="$ANDROID_AVD_HOME" ANDROID_EMULATOR_HOME="$ANDROID_EMULATOR_HOME" "$ANDROID_HOME/emulator/emulator" \
             -avd nearby -accel on -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > work/p103-emulator.log 2>&1 &
           emulator_pid=$!
           for attempt in $(seq 1 90); do

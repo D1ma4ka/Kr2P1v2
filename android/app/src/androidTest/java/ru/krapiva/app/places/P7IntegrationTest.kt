@@ -164,6 +164,20 @@ class P7IntegrationTest {
         compose.waitUntil(30_000) { network.activeNetwork != null }
         compose.onNodeWithText("Повторить").performClick()
         compose.waitUntil(30_000) { model.state.value.items.size == 12 && model.state.value.error == null }
+
+        // Exercise the same selection callback used by the native marker. SDK hit testing requires a key.
+        compose.runOnIdle { model.select(fixture.getJSONArray("venueIds").getString(0)) }
+        compose.waitUntil(30_000) { compose.onAllNodesWithText("Подробнее").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Подробнее").performClick()
+        compose.onNodeWithText("Меню").performScrollTo().performClick()
+        compose.waitUntil(30_000) { compose.onAllNodesWithText("У заведения пока нет опубликованного меню.").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("К заведению").performClick()
+        compose.waitUntil(30_000) { compose.onAllNodesWithText("События заведения").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("События заведения").performScrollTo().performClick()
+        val event = compose.onAllNodes(hasClickAction() and hasText("Synthetic P10.3 event", substring = true))
+        compose.waitUntil(30_000) { event.fetchSemanticsNodes().isNotEmpty() }
+        event.onFirst().performClick()
+        compose.onNodeWithText("Isolated device acceptance event").assertExists()
     }
 
     @Test fun serverBadgesPersistThreePinsAndRejectFourthInUi() {
