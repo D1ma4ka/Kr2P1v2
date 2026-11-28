@@ -62,6 +62,9 @@ class NearbyFindsJourneyTest {
         assertEquals(47.6062, emulatorFix.latitude, 0.05)
         assertEquals(-122.3321, emulatorFix.longitude, 0.05)
         val root = login()
+        awaitText("Твой никнейм")
+        compose.onNodeWithText("Позже").performClick()
+        compose.onNodeWithText("Твой никнейм").assertDoesNotExist()
         val home = compose.onNodeWithTag("club-home")
         val chooseOrigin = "Открой карту, чтобы выбрать город или использовать геопозицию."
         home.performScrollToNode(hasText(chooseOrigin))
@@ -72,7 +75,7 @@ class NearbyFindsJourneyTest {
         compose.onNodeWithText("Открыть карту").performClick()
         awaitText("Выбрать город")
         compose.onNodeWithText("Карта").assertIsNotEnabled()
-        TestEvidence.screenshot("p103-map-before-origin.png")
+        TestEvidence.screenshot("p103-places-no-origin.png")
         compose.onNodeWithText("Выбрать город").performClick()
         awaitText("QA · 2")
         compose.onNodeWithText("QA · 2").performClick()
@@ -81,13 +84,13 @@ class NearbyFindsJourneyTest {
         home.performScrollToNode(hasText("Места рядом"))
         awaitText("QA · 5 км")
         home.performScrollToNode(hasText("A") and hasClickAction())
-        TestEvidence.screenshot("p103-home-nearby.png")
+        TestEvidence.screenshot("p103-home-chosen-city.png")
         compose.onNode(hasText("A") and hasClickAction()).performClick()
         awaitText("Меню")
         compose.onNodeWithText("Меню").performScrollTo().performClick()
         val offer = hasText("Тестовое длинное название", substring = true)
         compose.waitUntil(45_000) { compose.onAllNodes(offer).fetchSemanticsNodes().isNotEmpty() }
-        TestEvidence.screenshot("p103-venue-published-menu.png")
+        TestEvidence.screenshot("p103-published-menu.png")
     }
 
     @Test fun cityWithoutLocationMapListSavedFilterReturnAndExistingCheckin() {
