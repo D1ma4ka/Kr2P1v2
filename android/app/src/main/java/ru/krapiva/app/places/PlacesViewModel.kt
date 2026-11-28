@@ -26,6 +26,7 @@ data class PlacesState(val q: String="",val city: String="",val type: String="",
     val selectionBusy: Boolean=false,val selected: JSONObject?=null,val detail: Boolean=false,val busy: Boolean=false,val error: String?=null,val providerError: String?=null)
 class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): ViewModel() {
     private val mutable=MutableStateFlow(PlacesState());val state=mutable.asStateFlow()
+    private var cameraCommand = 0
     private var job: Job?=null;private var generation=0
     private var selectionJob: Job?=null;private var selectionGeneration=0
     private var selectionId: String?=null;private var selectionDetail=false;private var lastEntry=-1
@@ -91,7 +92,7 @@ class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): View
     fun mode(map: Boolean) {mutable.value=mutable.value.copy(map=map)}
     fun center(lat: Double,lon: Double,zoom: Double=14.0) {
         val state = mutable.value
-        mutable.value = state.copy(map = true, camera = MapCamera(lat, lon, zoom, (state.camera?.command ?: 0) + 1))
+        mutable.value = state.copy(map = true, camera = MapCamera(lat, lon, zoom, ++cameraCommand))
     }
     fun zoom(delta: Double) {
         val camera = mutable.value.camera ?: return

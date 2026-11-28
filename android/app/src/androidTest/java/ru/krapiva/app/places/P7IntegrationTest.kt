@@ -116,6 +116,24 @@ class P7IntegrationTest {
         compose.waitUntil(30_000) { model.state.value.items.size == 12 }
         assertNull(model.state.value.deviceLocation)
         assertTrue(model.state.value.items.all { it.has("distanceKm") && it.getBoolean("testOnly") })
+        val initialCamera = requireNotNull(model.state.value.camera)
+        compose.onNodeWithText("P7 Synthetic city").performClick()
+        compose.onNodeWithText("Введите город вручную").performTextReplacement("Суздаль")
+        val suzdal = compose.onAllNodes(hasClickAction() and hasText("Суздаль ·", substring = true))
+        compose.waitUntil(30_000) { suzdal.fetchSemanticsNodes().isNotEmpty() }
+        suzdal.onFirst().performClick()
+        compose.waitUntil(30_000) { model.state.value.city == "Суздаль" && !model.state.value.busy }
+        val suzdalCamera = requireNotNull(model.state.value.camera)
+        assertNotEquals(initialCamera.command, suzdalCamera.command)
+        assertEquals(56.4197, suzdalCamera.latitude, 0.05)
+        assertEquals(40.4495, suzdalCamera.longitude, 0.05)
+        assertNull(model.state.value.deviceLocation)
+        compose.onNodeWithText("Места не найдены.", substring = true).assertExists()
+        compose.onNodeWithText("Суздаль").performClick()
+        compose.onNodeWithText("Введите город вручную").performTextReplacement("P7 Synthetic city")
+        compose.waitUntil(30_000) { compose.onAllNodesWithText("P7 Synthetic city · 12").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("P7 Synthetic city · 12").performClick()
+        compose.waitUntil(30_000) { model.state.value.items.size == 12 }
         try {
             device.executeShellCommand("cmd location set-location-enabled false")
             compose.waitUntil(15_000) { !location.isLocationEnabled }

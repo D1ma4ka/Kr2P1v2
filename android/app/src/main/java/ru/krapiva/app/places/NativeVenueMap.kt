@@ -189,10 +189,8 @@ internal fun NativeVenueMap(
         }
     }
     val tiles = remember(view) { MapLoadedListener { loaded = true } }
-    DisposableEffect(view) {
-        map.isRotateGesturesEnabled = false
-        map.isTiltGesturesEnabled = false
-        val camera = CameraListener { m, position, _, finished ->
+    val cameraListener = remember(view) {
+        CameraListener { m, position, _, finished ->
             if (finished && view.width > 0 && view.height > 0) {
                 val region = m.visibleRegion
                 runCatching {
@@ -203,16 +201,24 @@ internal fun NativeVenueMap(
                 }
             }
         }
-        val input = object : InputListener {
+    }
+    val inputListener = remember(view) {
+        object : InputListener {
             override fun onMapTap(map: Map, point: Point) { pick?.invoke(Coordinates(point.latitude, point.longitude)) }
             override fun onMapLongTap(map: Map, point: Point) = Unit
         }
-        map.addCameraListener(WeakReference(camera))
-        map.addInputListener(WeakReference(input))
+    }
+    DisposableEffect(view) {
+        map.isRotateGesturesEnabled = false
+        map.isTiltGesturesEnabled = false
+        val cameraRef = WeakReference(cameraListener)
+        val inputRef = WeakReference<InputListener>(inputListener)
+        map.addCameraListener(cameraRef)
+        map.addInputListener(inputRef)
         map.setMapLoadedListener(WeakReference(tiles))
         onDispose {
-            map.removeCameraListener(WeakReference(camera))
-            map.removeInputListener(WeakReference(input))
+            map.removeCameraListener(cameraRef)
+            map.removeInputListener(inputRef)
             view.destroy()
         }
     }
