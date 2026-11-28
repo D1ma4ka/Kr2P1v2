@@ -1619,10 +1619,38 @@ paths:
                 code:
                   type: string
                   pattern: ^[0-9]{6}$
+                createSession:
+                  type: boolean
+                  description: Return a session with confirmation. Omit for legacy 204.
               required:
                 - email
                 - code
       responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  userId:
+                    type: string
+                    format: uuid
+                  accessToken:
+                    type: string
+                    pattern: ^[A-Za-z0-9_-]{43}$
+                  refreshToken:
+                    type: string
+                    pattern: ^[A-Za-z0-9_-]{43}$
+                  expiresAt:
+                    type: string
+                    format: date-time
+                required:
+                  - userId
+                  - accessToken
+                  - refreshToken
+                  - expiresAt
         "204":
           description: Default Response
         "400":

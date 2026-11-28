@@ -67,6 +67,17 @@ test('P6.1 email-bound numeric verification: single use, expiry, atomic guess li
   const leading=await register();
   await db.pool.query('UPDATE email_verification_codes SET code_hash=$2 WHERE user_id=(SELECT id FROM users WHERE email=$1)',[leading.email,await hashPassword('000042')]);
   assert.equal((await call('/v1/auth/verify-code',{email:leading.email,code:'000042'})).statusCode,204);
+  const auto=await register();
+  const confirmations=await Promise.all([
+   call('/v1/auth/verify-code',{...auto,createSession:true}),
+   call('/v1/auth/verify-code',{...auto,createSession:true}),
+  ]);
+  assert.deepEqual(confirmations.map(result=>result.statusCode).sort(),[200,401]);
+  const session=confirmations.find(result=>result.statusCode===200)!.json();
+  const sessions=await db.pool.query('SELECT token_hash FROM sessions WHERE user_id=$1',[session.userId]);
+  assert.deepEqual(sessions.rows,[{token_hash:tokenHash(session.accessToken)}]);
+  const refresh=await db.pool.query('SELECT token_hash FROM refresh_tokens WHERE user_id=$1',[session.userId]);
+  assert.deepEqual(refresh.rows,[{token_hash:tokenHash(session.refreshToken)}]);
  } finally {await app.close();await db.close();}
 });
 
@@ -86,13 +97,16 @@ test('real HTTP and Mailpit: one six-digit OTP, persisted email and authenticate
   const message=await response.json() as {Text:string};
   const codes=[...message.Text.matchAll(/^Код подтверждения: ([0-9]{6})$/gm)];assert.equal(codes.length,1);
   assert.doesNotMatch(message.Text,/Код:|[A-Za-z0-9_-]{43}/);
-  assert.equal((await call('/v1/auth/verify-code',{email,code:codes[0]![1]})).status,204);
+  const verified=await call('/v1/auth/verify-code',{email,code:codes[0]![1],createSession:true});
+  assert.equal(verified.status,200);
+  assert.equal(verified.headers.get('cache-control'),'no-store');
+  const session=await verified.json() as {userId:string;accessToken:string;refreshToken:string};
   await app.close();
   app=buildApp(readConfig({NODE_ENV:'test',LOG_LEVEL:'silent'}),db.pool,undefined,accountMailer({...process.env,NODE_ENV:'test'}));
   address=await app.listen({host:'127.0.0.1',port:0});
-  const login=await call('/v1/auth/login',{email,password});assert.equal(login.status,200);
-  const session=await login.json() as {userId:string;accessToken:string};
   const profile=await fetch(address+'/v1/me',{headers:{authorization:`Bearer ${session.accessToken}`}});assert.equal(profile.status,200);
+  assert.equal((await call('/v1/auth/refresh',{refreshToken:session.refreshToken})).status,200);
+  assert.equal((await call('/v1/auth/login',{email,password})).status,200);
   const saved=await db.pool.query('SELECT email,email_verified_at FROM users WHERE id=$1',[session.userId]);
   assert.equal(saved.rows[0].email,email);assert.ok(saved.rows[0].email_verified_at);
   assert.equal((await call('/v1/auth/verify-code',{email,code:codes[0]![1]})).status,401);

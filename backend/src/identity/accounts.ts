@@ -75,7 +75,9 @@ export class Accounts {
    }
   });
  }
- async consumeCode(email:string,code:string,purpose:'verify_email'|'reset_password'='verify_email',password?:string) {
+ async consumeCode(email:string,code:string,action:
+  {purpose:'verify_email';createSession:boolean}|{purpose:'reset_password';password:string}={purpose:'verify_email',createSession:false}) {
+  const {purpose}=action;
   const table=purpose==='verify_email'?'email_verification_codes':'password_reset_codes';
   const success=await transaction(this.pool,async client=>{
    // Same user-first ordering as resend/legacy verification; serializes concurrent guesses.
@@ -87,15 +89,17 @@ export class Accounts {
    if(!await checkPassword(code,row.code_hash)) return false; // commit failed attempt, never rollback it
    await client.query(`UPDATE ${table} SET consumed_at=now() WHERE user_id=$1`,[user.id]);
    await client.query('UPDATE account_tokens SET consumed_at=coalesce(consumed_at,now()) WHERE user_id=$1 AND purpose=$2',[user.id,purpose]);
-   if(purpose==='verify_email') await client.query('UPDATE users SET email_verified_at=now(),updated_at=now() WHERE id=$1',[user.id]);
-   else {
-    if(password===undefined) throw new Error('Password required for reset');
-    await client.query('UPDATE users SET password_hash=$2,updated_at=now() WHERE id=$1',[user.id,await hashPassword(password)]);
+   if(action.purpose==='verify_email') {
+    await client.query('UPDATE users SET email_verified_at=now(),updated_at=now() WHERE id=$1',[user.id]);
+    return action.createSession ? await this.pair(client,user.id) : true;
+   } else {
+    await client.query('UPDATE users SET password_hash=$2,updated_at=now() WHERE id=$1',[user.id,await hashPassword(action.password)]);
     await client.query('UPDATE sessions SET revoked_at=coalesce(revoked_at,now()) WHERE user_id=$1',[user.id]);
    }
    return true;
   });
   if(!success) throw invalid();
+  return success===true ? null : success;
  }
  private async pair(client:pg.PoolClient,userId:string) {
   const accessToken=randomBytes(32).toString('base64url'),refreshToken=randomBytes(32).toString('base64url');
