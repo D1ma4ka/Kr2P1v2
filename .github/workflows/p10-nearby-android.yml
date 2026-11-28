@@ -64,7 +64,8 @@ jobs:
           run_emulator=()
           if [[ ! -r /dev/kvm || ! -w /dev/kvm ]]; then
             groups="$(id -G | tr ' ' ','),$(stat -c %g /dev/kvm)"
-            run_emulator=(sudo -n -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --groups="$groups" --no-new-privs)
+            # The console creates its auth file in the emulator user's home, even with a separate AVD directory.
+            run_emulator=(sudo -n -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --groups="$groups" --no-new-privs --reset-env)
           fi
           "${run_emulator[@]}" env ANDROID_HOME="$ANDROID_HOME" ANDROID_AVD_HOME="$ANDROID_AVD_HOME" ANDROID_EMULATOR_HOME="$ANDROID_EMULATOR_HOME" "$ANDROID_HOME/emulator/emulator" \
             -avd nearby -port 5554 -accel on -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > work/p103-emulator.log 2>&1 &
@@ -88,4 +89,8 @@ jobs:
         run: bash scripts/p103_device_check.sh nearby
       - name: Moscow, St Petersburg and Suzdal through the Android GPS provider
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: bash scripts/p103_device_check.sh gps
+        run: |
+          if ! bash scripts/p103_device_check.sh gps; then
+            grep -Ei 'console.*(auth|error)|failed to (read|create|open).*console' work/p103-emulator.log || true
+            exit 1
+          fi
