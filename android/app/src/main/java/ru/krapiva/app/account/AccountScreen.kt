@@ -460,6 +460,9 @@ private fun visibilityLabel(value: String) = when(value) { "public" -> "Все �
         val notices=remember {licenseContext.assets.open("map-notices.txt").bufferedReader().use {it.readText()}}
         val handler = LocalUriHandler.current
         Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+            TextButton({ runCatching { handler.openUri("https://yandex.ru/legal/maps_api/ru/") } }) {
+                Text("Условия использования Яндекс Карт")
+            }
             Text(notices)
             TextButton({ runCatching { handler.openUri("https://www.geonames.org/about.html") } }) {
                 Text("Справочник городов · GeoNames · CC BY 4.0")

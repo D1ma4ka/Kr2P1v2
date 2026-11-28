@@ -1,14 +1,6 @@
 package ru.krapiva.app.places
 
 import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
-import android.os.Bundle
-import android.os.Looper
-import android.os.SystemClock
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,7 +15,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -34,14 +25,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.*
 import org.json.JSONObject
-import ru.krapiva.app.BuildConfig
 import ru.krapiva.app.account.AccountApi
 import ru.krapiva.app.catalog.text
 import ru.krapiva.app.designsystem.*
 import ru.krapiva.app.diary.DiaryNumbers
 import ru.krapiva.app.moderation.ReportAction
 import ru.krapiva.app.menu.checkinSeed
-import kotlin.coroutines.resume
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable fun PlacesApp(api: AccountApi,userId: String,request: Int,requestedId: String?,onBack: ()->Unit,onCheckin: (JSONObject)->Unit,expired: ()->Unit,chooseCityOnEntry: Boolean = false, onDiscoveryCity: (DiscoveryCity?) -> Unit = {},openMenuPosition: ((String, JSONObject) -> Unit)? = null, onMenuCheckin: (JSONObject, JSONObject) -> Unit = { _, _ -> }, bottomBar: @Composable ()->Unit) {
@@ -61,8 +50,12 @@ import kotlin.coroutines.resume
     var menuRequest by rememberSaveable { mutableIntStateOf(-1) }
     val activeMenuId = menuVenue?.takeIf { menuRequest == request }
     val showingMenu = activeMenuId != null
+    val locationContext = LocalContext.current
     if (!showingMenu) DisposableEffect(owner, model, request) {
-        val observer=LifecycleEventObserver {_,event->if(event==Lifecycle.Event.ON_START)model.enter(request,requestedId)else if(event==Lifecycle.Event.ON_STOP)model.stop()}
+        val observer=LifecycleEventObserver {_,event->if(event==Lifecycle.Event.ON_START) {
+            if (!hasLocationPermission(locationContext) || !locationEnabled(locationContext)) model.clearDeviceLocation()
+            model.enter(request, requestedId)
+        }else if(event==Lifecycle.Event.ON_STOP)model.stop()}
         owner.lifecycle.addObserver(observer)
         onDispose {owner.lifecycle.removeObserver(observer);model.stop()}
     }
@@ -73,7 +66,7 @@ import kotlin.coroutines.resume
     var explainLocation by rememberSaveable { mutableStateOf(false) }
     var locationError by remember {mutableStateOf<String?>(null)}
     var locating by remember {mutableStateOf(false)}
-    val context = LocalContext.current
+    val context = locationContext
     val scope = rememberCoroutineScope()
     val nearby = remember(context) { NearbyPreference(context) }
     var locationJob by remember { mutableStateOf<Job?>(null) }
@@ -104,7 +97,11 @@ import kotlin.coroutines.resume
 
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         if (hasLocationPermission(context)) locate()
-        else locationError = "Доступ к геопозиции отключён. Можно выбрать город вручную."
+        else {
+            model.clearDeviceLocation()
+            locationError = "Доступ к геопозиции отключён. Можно выбрать город вручную."
+            cities = true
+        }
     }
     fun useCurrentLocation() {
         if (hasLocationPermission(context)) locate()
@@ -112,7 +109,7 @@ import kotlin.coroutines.resume
     }
     LaunchedEffect(nearby.radius) { model.radius(nearby.radius) }
     LaunchedEffect(request) {
-        if (!showingMenu && !chooseCityOnEntry && requestedId == null && state.city.isBlank() && hasLocationPermission(context)) locate()
+        if (!showingMenu && !chooseCityOnEntry && requestedId == null && state.city.isBlank() && !emulatedDevice && hasLocationPermission(context)) locate()
     }
     DisposableEffect(owner, locationJob) {
         val observer = LifecycleEventObserver { _, event ->
@@ -130,6 +127,7 @@ import kotlin.coroutines.resume
         val center = if (!city.isNull("latitude") && !city.isNull("longitude")) {
             Coordinates(city.getDouble("latitude"), city.getDouble("longitude"))
         } else null
+        locationError = null
         model.chooseCity(city)
         onDiscoveryCity(name.takeIf { it.isNotBlank() }?.let { DiscoveryCity(it, center) })
         cities = false
@@ -176,6 +174,7 @@ import kotlin.coroutines.resume
                     menuVenue = selected.getString("id")
                     menuRequest = request
                 })
+                VenueEvents(api, selected.getString("id"), expired)
                 AmberAction("Чекин в этом месте",{onCheckin(selected)})
                 OutlinedButton(model::toggleSaved, Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     enabled = !state.selectionBusy) {
@@ -203,7 +202,7 @@ import kotlin.coroutines.resume
                             Text(state.city.ifBlank { "Выбрать город" })
                         }
                         TextButton(::useCurrentLocation, Modifier.weight(1f), enabled = !locating) {
-                            Text(if (locating) "Определяем…" else if (state.deviceLocation != null) "На мою позицию" else "Рядом со мной")
+                            Text(if (locating) "Определяем…" else if (emulatedDevice) "Позиция эмулятора" else if (state.deviceLocation != null) "На мою позицию" else "Рядом со мной")
                         }
                     }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -228,6 +227,7 @@ import kotlin.coroutines.resume
                         }
                     }
                     if (state.origin != null) {
+                        Text(if (state.city.isNotBlank()) "От центра поиска · ${state.city}" else if (emulatedDevice) "Тестовая геопозиция эмулятора" else "От текущей геопозиции")
                         TextButton({ radiusPicker = true }, Modifier.heightIn(min = 48.dp)) { Text("Радиус · ${nearby.radius} км") }
                     } else if (filters) {
                         Row {
@@ -237,21 +237,21 @@ import kotlin.coroutines.resume
                     }
                 }
             }
-            val configured=BuildConfig.MAP_TILES.isNotBlank()&&BuildConfig.MAP_ATTRIBUTION.isNotBlank()
+            val configured = mapConfigured
             val fallback=state.providerError!=null||!configured
             val showMap = state.map && state.camera != null
-            if(showMap&&configured)Box(if(fallback)Modifier.fillMaxWidth().height(120.dp)else Modifier.fillMaxWidth().weight(1f)) {
-                NativeVenueMap(state,model,Modifier.fillMaxSize().testTag("venue-map"))
-                Row(Modifier.padding(8.dp)) {
-                    FilledTonalButton({model.zoom(1.0)}){Text("Приблизить")};Spacer(Modifier.width(8.dp));FilledTonalButton({model.zoom(-1.0)}){Text("Отдалить")}
+            if (state.map && !configured && state.camera == null) Text(missingMapKey, Modifier.padding(horizontal = 16.dp))
+            if(showMap&&configured) {
+                NativeVenueMap(state,model,(if(fallback)Modifier.height(120.dp) else Modifier.weight(1f)).fillMaxWidth().testTag("venue-map"))
+                FlowRow {
+                    TextButton({ model.zoom(1.0) }) { Text("Приблизить") }
+                    TextButton({ model.zoom(-1.0) }) { Text("Отдалить") }
+                    state.camera?.let { OpenInMaps(it) }
                 }
             }
             if(showMap) {
-                val handler=LocalUriHandler.current
-                if(BuildConfig.MAP_TILES.contains("tile.openstreetmap.org"))TextButton({runCatching {handler.openUri("https://www.openstreetmap.org/copyright")}}){Text("© OpenStreetMap contributors",style=MaterialTheme.typography.labelSmall)}
-                else Text(BuildConfig.MAP_ATTRIBUTION,style=MaterialTheme.typography.labelSmall,modifier=Modifier.padding(horizontal=16.dp))
-                if(fallback)Text(state.providerError?:"Картографическая подложка не настроена. Доступен список мест.",color=KraPivaColors.Error,modifier=Modifier.padding(12.dp))
-                Text(when {
+                if(fallback)Text(if (!configured) missingMapKey else state.providerError.orEmpty(),color=KraPivaColors.Error,modifier=Modifier.padding(12.dp))
+                if (!state.busy && state.error == null) Text(when {
                     state.truncated -> "Показаны первые 500 мест. Уточни фильтр."
                     state.points.isEmpty() -> "Здесь нет мест с подтверждёнными координатами."
                     state.origin != null -> "В радиусе ${state.radius} км · ${state.points.size} мест"
@@ -259,7 +259,7 @@ import kotlin.coroutines.resume
                 },minLines=2,maxLines=2,modifier=Modifier.padding(horizontal=16.dp),color=KraPivaColors.Muted)
             }
             if(!showMap||fallback)LazyColumn(Modifier.weight(1f),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                if(state.items.isEmpty()&&!state.busy)item {
+                if(state.items.isEmpty()&&!state.busy&&state.error==null)item {
                     Text(when (state.scope) {
                         VenueScope.VISITED -> "Здесь нет мест из твоих чекинов."
                         VenueScope.SAVED -> "Здесь нет сохранённых мест. Добавь место в «Хочу сходить» из его карточки."
@@ -286,10 +286,10 @@ import kotlin.coroutines.resume
         }
         AlertDialog(onDismissRequest={cities=false;model.refresh()},title={Text("Город")},text={Column {
             OutlinedTextField(manual,{manual=it.take(120)},label={Text("Введите город вручную")})
-            LazyColumn(Modifier.heightIn(max=260.dp)) {items(state.cities,key={it.getString("city")}) {city->TextButton({ chooseCity(city) }){Text("${city.getString("city")} · ${city.getInt("count")}")}}}
-            Text("Города из справочника заведений")
+            LazyColumn(Modifier.heightIn(max=260.dp)) {items(state.cities,key={it.optString("id",it.getString("city"))}) {city->TextButton({ chooseCity(city) }){Text(cityChoiceLabel(city))}}}
+            Text("Города каталога KraPiva и справочника GeoNames")
         }},confirmButton={TextButton({
-            val city = state.cities.firstOrNull { it.getString("city").equals(manual.trim(), ignoreCase = true) }
+            val city = state.cities.singleOrNull { it.getString("city").equals(manual.trim(), ignoreCase = true) }
             chooseCity(city ?: JSONObject().put("city", manual.trim()))
         }){Text("Выбрать")}},dismissButton={TextButton({chooseCity(JSONObject().put("city",""))}){Text("Все города")}})
     }
@@ -348,40 +348,4 @@ internal fun NearbyRadiusDialog(current: Int, onClose: () -> Unit, onSelect: (In
         row.optJSONObject("statistics")?.let {s->Text("По доступным вам записям: ${s.getInt("totalCheckins")} чекинов · ${s.getInt("ratedCheckins")} оценок")
             Text(if(s.isNull("averageRating"))"Нет оценок" else "Средняя оценка: ${DiaryNumbers.average(s.text("averageRating"))}")}
     }
-}
-internal fun hasLocationPermission(context: Context): Boolean =
-    context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-        context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-
-@Suppress("MissingPermission")
-internal suspend fun currentLocation(context: Context): Location? = suspendCancellableCoroutine { continuation ->
-    val manager = context.getSystemService(LocationManager::class.java)
-    val providers = manager.getProviders(true).filter {
-        it == LocationManager.NETWORK_PROVIDER || it == LocationManager.GPS_PROVIDER || it == "fused"
-    }
-    val recent = providers.mapNotNull { provider ->
-        runCatching { manager.getLastKnownLocation(provider) }.getOrNull()
-    }.filter { point ->
-        SystemClock.elapsedRealtimeNanos() - point.elapsedRealtimeNanos in 0..30_000_000_000L
-    }.minByOrNull { it.accuracy }
-    if (recent != null) {
-        continuation.resume(recent)
-        return@suspendCancellableCoroutine
-    }
-
-    val listener = object : LocationListener {
-        override fun onLocationChanged(location: Location) {
-            manager.removeUpdates(this)
-            if (continuation.isActive) continuation.resume(location)
-        }
-        override fun onProviderDisabled(provider: String) {}
-        override fun onProviderEnabled(provider: String) {}
-        @Deprecated("Android compatibility")
-        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-    }
-    continuation.invokeOnCancellation { manager.removeUpdates(listener) }
-    val registered = providers.count { provider ->
-        runCatching { manager.requestLocationUpdates(provider, 0L, 0f, listener, Looper.getMainLooper()) }.isSuccess
-    }
-    if (registered == 0 && continuation.isActive) continuation.resume(null)
 }

@@ -27,7 +27,7 @@ const countryIndex=Array.from(countries.values(),country=>({
  ...country,key:key(country.name),aliases:[key(country.id),key(russian.of(country.id)!)],
 })).sort((a,b)=>a.name.localeCompare(b.name,'en'));
 
-type City={id:number;name:string;countryId:string;key:string;aliases:string[];population:number;regionCode:string|null};
+type City={latitude:number;longitude:number;cyrillicNames:string[];id:number;name:string;countryId:string;key:string;aliases:string[];population:number;regionCode:string|null};
 type CityIndex={byId:Map<number,City>;byCountry:Map<string,City[]>};
 let index:Promise<CityIndex>|undefined;
 
@@ -38,11 +38,13 @@ function cityIndex():Promise<CityIndex> {
   const byId=new Map<number,City>();
   const byCountry=new Map<string,City[]>();
   for(const line of raw.split('\n')) {
-   const [rawId,name,ascii,aliases,,,,,countryId,,regionCode,,,,population]=line.split('\t');
+   const [rawId,name,ascii,aliases,lat,lon,,,countryId,,regionCode,,,,population]=line.split('\t');
    if(!rawId||!name||!countryId||!countries.has(countryId)) continue;
    const id=Number(rawId);
-   const entry={id,name,countryId,key:key(name),regionCode:regionCode||null,population:Number(population)||0,
-    aliases:[...new Set([ascii??'',...(aliases?.split(',')??[])].map(key).filter(Boolean))]};
+   const names=aliases?.split(',')??[];
+   const entry={id,name,latitude:Number(lat),longitude:Number(lon),
+    cyrillicNames:countryId==='RU'?names.filter(alias=>/^[А-Яа-яЁё -]+$/.test(alias)):[],countryId,key:key(name),regionCode:regionCode||null,population:Number(population)||0,
+    aliases:[...new Set([ascii??'',...names].map(key).filter(Boolean))]};
    byId.set(id,entry);
    const group=byCountry.get(countryId)??[];
    if(!byCountry.has(countryId)) byCountry.set(countryId,group);
@@ -62,14 +64,28 @@ export function searchCountries(query:string) {
   .map(({entry})=>({id:entry.id,name:entry.name}));
 }
 
-export async function searchCities(countryId:string,query:string) {
+async function matchingCities(countryId:string,query:string) {
  if(!countries.has(countryId)) throw new ApiError(422,'INVALID_COUNTRY','Выберите страну из списка');
  const normalized=key(query);
  if(query.trim()&&!normalized) return [];
  const group=(await cityIndex()).byCountry.get(countryId)??[];
  return group.map(entry=>({entry,rank:match(entry.key,entry.aliases,normalized)}))
   .filter(result=>result.rank<4).sort((a,b)=>a.rank-b.rank).slice(0,20)
-  .map(({entry})=>({id:entry.id,name:entry.name,countryId:entry.countryId,regionCode:entry.regionCode}));
+  .map(({entry})=>entry);
+}
+
+export async function searchCities(countryId:string,query:string) {
+ return (await matchingCities(countryId,query)).map(({id,name,countryId,regionCode})=>({id,name,countryId,regionCode}));
+}
+
+export async function russianCityCenters(query:string) {
+ const prefix=query.trim().toLowerCase();
+ if(prefix.length<2) return [];
+ return (await matchingCities('RU',query)).map(entry=>({
+  id:entry.id,city:entry.cyrillicNames.find(alias=>alias.toLowerCase()===prefix)
+    ??entry.cyrillicNames.find(alias=>alias.toLowerCase().startsWith(prefix))??entry.name,
+  regionCode:entry.regionCode,latitude:entry.latitude,longitude:entry.longitude,
+ }));
 }
 
 export async function resolveLocation(countryId:string|null,cityId:number|null) {

@@ -28101,6 +28101,14 @@ paths:
           in: query
           name: q
           required: false
+        - schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+          in: query
+          name: includeCenters
+          required: false
       security: *a6
       responses:
         "200":
@@ -28130,6 +28138,32 @@ paths:
                       required:
                         - city
                         - count
+                        - latitude
+                        - longitude
+                  centers:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        id:
+                          type: integer
+                          minimum: 1
+                          maximum: 2147483647
+                        city:
+                          type: string
+                        regionCode:
+                          type: string
+                          maxLength: 20
+                          nullable: true
+                        latitude:
+                          type: number
+                        longitude:
+                          type: number
+                      required:
+                        - id
+                        - city
+                        - regionCode
                         - latitude
                         - longitude
                 required:
@@ -34945,13 +34979,13 @@ paths:
                           type: string
                           maxLength: 1000
                           nullable: true
-                        distanceKm:
-                          type: number
-                          minimum: 0
                         badgeTitles:
                           type: array
                           items:
                             type: string
+                        distanceKm:
+                          type: number
+                          minimum: 0
                       required:
                         - id
                         - title
@@ -34962,8 +34996,8 @@ paths:
                         - venueName
                         - city
                         - address
-                        - distanceKm
                         - badgeTitles
+                        - distanceKm
                   badges:
                     type: array
                     items:
@@ -35014,6 +35048,306 @@ paths:
                   - places
                   - events
                   - badges
+        "400":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "401":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "403":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "404":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "409":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "413":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "415":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "422":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "429":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "500":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+        "503":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  error:
+                    type: object
+                    additionalProperties: false
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                    required:
+                      - code
+                      - message
+                required:
+                  - error
+  /v1/venues/{id}/events:
+    get:
+      parameters:
+        - schema:
+            type: string
+            format: uuid
+          in: path
+          name: id
+          required: true
+      security: *a10
+      responses:
+        "200":
+          description: Default Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        title:
+                          type: string
+                        description:
+                          type: string
+                        startsAt:
+                          type: string
+                          format: date-time
+                        endsAt:
+                          type: string
+                          format: date-time
+                        venueId:
+                          type: string
+                          format: uuid
+                        venueName:
+                          type: string
+                        city:
+                          type: string
+                        address:
+                          type: string
+                          maxLength: 1000
+                          nullable: true
+                        badgeTitles:
+                          type: array
+                          items:
+                            type: string
+                      required:
+                        - id
+                        - title
+                        - description
+                        - startsAt
+                        - endsAt
+                        - venueId
+                        - venueName
+                        - city
+                        - address
+                        - badgeTitles
+                  truncated:
+                    type: boolean
+                required:
+                  - items
+                  - truncated
         "400":
           description: Default Response
           content:

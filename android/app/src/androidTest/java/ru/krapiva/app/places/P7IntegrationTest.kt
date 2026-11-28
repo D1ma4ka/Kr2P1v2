@@ -1,6 +1,12 @@
 package ru.krapiva.app.places
 
+import android.Manifest
+import android.net.ConnectivityManager
 import android.os.ParcelFileDescriptor
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
+import java.util.regex.Pattern
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.ui.geometry.Offset
@@ -14,10 +20,8 @@ import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
-import org.maplibre.android.maps.MapLibreMap
-import org.maplibre.android.maps.MapView
-import org.maplibre.geojson.Feature
-import org.maplibre.geojson.Point
+import com.yandex.mapkit.mapview.MapView
+import com.yandex.mapkit.geometry.Point
 import ru.krapiva.app.MainActivity
 import ru.krapiva.app.TestEvidence
 import ru.krapiva.app.account.AccountScreen
@@ -49,43 +53,91 @@ class P7IntegrationTest {
         compose.waitUntil(60_000){compose.onAllNodesWithText("На карте").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("На карте").performScrollTo().performClick()
         compose.waitUntil(30_000){compose.onAllNodesWithTag("venue-map").fetchSemanticsNodes().isNotEmpty()}
-        var native: MapLibreMap?=null
-        compose.runOnIdle {findMap(compose.activity.window.decorView)!!.getMapAsync {native=it}}
-        compose.waitUntil(30_000){native?.style?.isFullyLoaded==true}
-        compose.onNodeWithText("Отдалить").performClick();compose.onNodeWithText("Отдалить").performClick()
-        var cluster: Feature?=null
-        compose.waitUntil(60_000) {compose.runOnIdle {cluster=native!!.queryRenderedFeatures(android.graphics.RectF(0f,0f,10000f,10000f),"clusters").firstOrNull()};cluster!=null}
-        var zoom=0.0;var click=Offset.Zero
-        compose.runOnIdle {
-            zoom=native!!.cameraPosition.zoom
-            val p=cluster!!.geometry() as Point
-            val screen=native!!.projection.toScreenLocation(org.maplibre.android.geometry.LatLng(p.latitude(),p.longitude()))
-            click=Offset(screen.x,screen.y)
-            assertTrue(cluster!!.getNumberProperty("point_count").toInt()>=2)
+        val native = compose.runOnIdle { requireNotNull(findMap(compose.activity.window.decorView)) }
+        val model = compose.runOnIdle {
+            ViewModelProvider(root.catalogOwner).get("places-${fixture.getString("userId")}", PlacesViewModel::class.java)
+        }
+        // The 12 fixture venues occupy three adjacent rows around this centroid.
+        val centroid = Point(55.751, 37.6115)
+        compose.runOnIdle { model.center(centroid.latitude, centroid.longitude, 12.0) }
+        compose.waitUntil(30_000) { model.state.value.points.size >= 12 && !model.state.value.busy }
+        fun screenPoint(point: Point): Offset = compose.runOnIdle {
+            val pixel = requireNotNull(native.mapWindow.worldToScreen(point))
+            Offset(pixel.x, pixel.y)
         }
         TestEvidence.screenshot("p7-native-cluster.png")
-        compose.onNodeWithTag("venue-map").performTouchInput {click(click)}
-        compose.waitUntil(30_000){var expanded=false;compose.runOnIdle {expanded=native!!.cameraPosition.zoom>zoom};expanded}
+        var click = screenPoint(centroid)
+        compose.onNodeWithTag("venue-map").performTouchInput { click(click) }
+        compose.waitUntil(30_000) { compose.runOnIdle { native.mapWindow.map.cameraPosition.zoom > 12f } }
         // Real pinch and pan events, not a screenshot stand-in or a camera-only unit test.
         compose.onNodeWithTag("venue-map").performTouchInput {pinch(Offset(width*.35f,height*.4f),Offset(width*.65f,height*.6f),Offset(width*.15f,height*.3f),Offset(width*.85f,height*.7f),800)}
         var before=0.0
-        compose.runOnIdle {before=native!!.cameraPosition.target!!.longitude}
+        compose.runOnIdle {before=native.mapWindow.map.cameraPosition.target.longitude}
         compose.onNodeWithTag("venue-map").performTouchInput {swipe(Offset(width*.5f,height*.6f),Offset(width*.6f,height*.6f),600)}
-        compose.waitUntil(15_000){var moved=false;compose.runOnIdle {moved=native!!.cameraPosition.target!!.longitude!=before};moved}
+        compose.waitUntil(15_000){var moved=false;compose.runOnIdle {moved=native.mapWindow.map.cameraPosition.target.longitude!=before};moved}
         // Center a known real API fixture, select an actual rendered point and follow its profile.
-        compose.runOnIdle {val m=ViewModelProvider(root.catalogOwner).get("places-${fixture.getString("userId")}",PlacesViewModel::class.java);m.center(55.75,37.61,19.0)}
-        var point: Feature?=null
-        compose.waitUntil(60_000){compose.runOnIdle {point=native!!.queryRenderedFeatures(android.graphics.RectF(0f,0f,10000f,10000f),"points").firstOrNull()};point!=null}
-        compose.runOnIdle {val p=point!!.geometry() as Point;val xy=native!!.projection.toScreenLocation(org.maplibre.android.geometry.LatLng(p.latitude(),p.longitude()));click=Offset(xy.x,xy.y)}
+        val id = fixture.getJSONArray("venueIds").getString(0)
+        val row = runBlocking { root.api.json("v1/venues/$id") }
+        val point = Point(row.getDouble("latitude"), row.getDouble("longitude"))
+        compose.runOnIdle { model.center(point.latitude, point.longitude, 20.0) }
+        compose.waitUntil(30_000) { model.state.value.points.any { it.getString("id") == id } && !model.state.value.busy }
+        click = screenPoint(point)
         compose.onNodeWithTag("venue-map").performTouchInput {click(click)}
         compose.waitUntil(30_000){compose.onAllNodesWithText("Подробнее").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Подробнее").performClick()
         compose.onNodeWithText("Чекин в этом месте").performScrollTo().assertExists().performClick()
         compose.waitUntil(30_000){root.state.value.screen==AccountScreen.DIARY}
         assertNotNull(root.diaryVenue)
-        assertEquals(point!!.getStringProperty("id"),root.diaryVenue!!.getString("id"))
+        assertEquals(id,root.diaryVenue!!.getString("id"))
         TestEvidence.screenshot("p7-checkin-place-picker.png")
     }
+    /** Run on a fresh, isolated API 30+ emulator, with the P7 HTTP fixture and no MapKit key. */
+    @Test fun nearbyPermissionCityDisabledProviderAndNetworkRecovery() {
+        val fixture = login()
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        val context = compose.activity
+        val location = context.getSystemService(android.location.LocationManager::class.java)!!
+        val network = context.getSystemService(ConnectivityManager::class.java)!!
+        assertFalse(mapConfigured)
+        assertFalse(hasLocationPermission(context))
+        compose.runOnIdle { root.openVenues() }
+        val locateLabel = if (emulatedDevice) "Позиция эмулятора" else "Рядом со мной"
+        compose.onNodeWithText(locateLabel).performClick()
+        compose.onNodeWithText("Продолжить").performClick()
+        val deny = device.wait(Until.findObject(By.res(Pattern.compile(".*:id/permission_deny_button"))), 30_000)
+        requireNotNull(deny).click()
+        compose.onNodeWithText("Введите город вручную").assertExists()
+        compose.waitUntil(30_000) { compose.onAllNodesWithText("P7 Synthetic city · 12").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("P7 Synthetic city · 12").performClick()
+        compose.onNodeWithText(missingMapKey).assertExists()
+        val model = compose.runOnIdle {
+            ViewModelProvider(root.catalogOwner).get("places-${fixture.getString("userId")}", PlacesViewModel::class.java)
+        }
+        compose.waitUntil(30_000) { model.state.value.items.size == 12 }
+        assertNull(model.state.value.deviceLocation)
+        assertTrue(model.state.value.items.all { it.has("distanceKm") && it.getBoolean("testOnly") })
+        try {
+            InstrumentationRegistry.getInstrumentation().uiAutomation.grantRuntimePermission(context.packageName, Manifest.permission.ACCESS_COARSE_LOCATION)
+            device.executeShellCommand("cmd location set-location-enabled false")
+            compose.waitUntil(15_000) { !location.isLocationEnabled }
+            compose.onNodeWithText(locateLabel).performClick()
+            compose.waitUntil(30_000) { compose.onAllNodesWithText("Геопозиция недоступна.", substring = true).fetchSemanticsNodes().isNotEmpty() }
+            assertNull(model.state.value.deviceLocation)
+            device.executeShellCommand("cmd connectivity airplane-mode enable")
+            compose.waitUntil(30_000) { network.activeNetwork == null }
+            compose.onNodeWithText("Радиус · 5 км").performClick()
+            compose.onNodeWithText("3 км").performClick()
+            compose.waitUntil(45_000) { model.state.value.error != null }
+            compose.onNodeWithText("Места не найдены.", substring = true).assertDoesNotExist()
+        } finally {
+            device.executeShellCommand("cmd connectivity airplane-mode disable")
+            device.executeShellCommand("cmd location set-location-enabled true")
+        }
+        compose.waitUntil(30_000) { network.activeNetwork != null }
+        compose.onNodeWithText("Повторить").performClick()
+        compose.waitUntil(30_000) { model.state.value.items.size == 12 && model.state.value.error == null }
+    }
+
     @Test fun serverBadgesPersistThreePinsAndRejectFourthInUi() {
         val fixture=login()
         runBlocking {

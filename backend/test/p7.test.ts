@@ -244,6 +244,11 @@ test('Nearby discovery uses real venues and grants local badges only after moder
   const nearby={latitude:55.75,longitude:37.61,radiusKm:1};
   const discovery=await call('/v1/discover/nearby','POST',nearby,f.b.token);
   assert.deepEqual(discovery.places.map((place:{id:string})=>place.id),[location]);
+  const eventsPath='/v1/venues/'+location+'/events';
+  const related=await call(eventsPath,'GET',undefined,f.b.token);
+  assert.deepEqual(related.items.map((row:{id:string})=>row.id),[eventId]);
+  assert.deepEqual(related.items[0].badgeTitles,['Synthetic local badge']);
+  assert.deepEqual((await call('/v1/venues/'+randomUUID()+'/events')).items,[]);
   assert.equal(discovery.events[0].id,eventId);
   assert.deepEqual(discovery.events[0].badgeTitles,['Synthetic local badge']);
   assert.equal(discovery.badges[0].id,badgeId);
@@ -269,6 +274,7 @@ test('Nearby discovery uses real venues and grants local badges only after moder
   await call('/v1/moderation/events/'+eventId,'PUT',{...event,version:1,published:false});
   assert.equal((await ownerBadge()).earnedAt,null);
   assert.equal((await ownerBadge()).pinSlot,null);
+  assert.deepEqual((await call(eventsPath)).items,[]);
   assert.deepEqual((await call('/v1/discover/nearby','POST',nearby)).events,[]);
  } finally {await c.close();}
 });
@@ -299,5 +305,34 @@ test('My places filters only the signed-in account and follow active checkins',a
   assert.deepEqual(ids(await call('/v1/venues?scope=visited')),[]);
   assert.deepEqual(await call(save,'DELETE'),{saved:false});
   assert.deepEqual(ids(await call('/v1/venues?scope=saved')),[]);
+ } finally {await c.close();}
+});
+
+test('P10.3 nearby uses the supplied Russian city and each supported radius',async()=>{
+ const c=await context();
+ try {
+  await c.db.pool.query("UPDATE users SET role='moderator' WHERE id=$1",[c.f.a.id]);
+  for(const [city,latitude,longitude] of [
+   ['Москва',55.7558,37.6173],['Санкт-Петербург',59.9343,30.3351],['Суздаль',56.4197,40.4495],
+  ] as const) {
+   const point={latitude,longitude};
+   const suggestions=await c.call('/v1/venue-cities?includeCenters=true&q='+encodeURIComponent(city));
+   assert.deepEqual(suggestions.items,[]);
+   assert.ok(Math.abs(suggestions.centers[0].latitude-latitude)<0.1);
+   assert.ok(Math.abs(suggestions.centers[0].longitude-longitude)<0.1);
+   const path='/v1/venues/nearby';
+   assert.deepEqual((await c.call(path,'POST',{...point,radiusKm:50})).items,[]);
+   const id=randomUUID();
+   await c.call('/v1/moderation/venues/'+id,'PUT',venue('Synthetic P10.3',{city,latitude:latitude+0.018,longitude}));
+   for(const radiusKm of [1,3,5,10,25,50]) {
+    const result=await c.call(path,'POST',{...point,radiusKm});
+    assert.deepEqual(result.items.map((row:{id:string})=>row.id),radiusKm===1?[]:[id]);
+    if(result.items.length) {
+     assert.equal(result.items[0].city,city);
+     assert.equal(result.items[0].testOnly,true);
+     assert.ok(result.items[0].distanceKm>1.9 && result.items[0].distanceKm<2.1);
+    }
+   }
+  }
  } finally {await c.close();}
 });

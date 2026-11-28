@@ -99,8 +99,12 @@ class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): View
     }
     fun radius(radius: Int) {
         if (mutable.value.radius == radius) return
-        mutable.value = mutable.value.copy(radius = radius)
-        if (mutable.value.origin != null) refresh()
+        val state = mutable.value
+        if (state.origin == null) mutable.value = state.copy(radius = radius)
+        else {
+            mutable.value = state.copy(radius = radius, items = emptyList(), points = emptyList(), truncated = false)
+            refresh()
+        }
     }
     fun locate(coordinates: Coordinates) {
         mutable.value = mutable.value.copy(origin = coordinates, deviceLocation = coordinates)
@@ -119,13 +123,13 @@ class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): View
     }
     fun providerError(message: String?) {mutable.value=mutable.value.copy(providerError=message)}
     fun cities(query: String = "") = launch {
-        val rows = api.json("v1/venue-cities?q=${Uri.encode(query.take(120))}").getJSONArray("items").objects()
+        val rows = cityChoices(api, query)
         if (it == generation) mutable.value = mutable.value.copy(cities = rows)
     }
     fun chooseCity(city: JSONObject) {
         val located = !city.isNull("latitude") && !city.isNull("longitude")
         val coordinates = if (located) Coordinates(city.getDouble("latitude"), city.getDouble("longitude")) else null
-        mutable.value = mutable.value.copy(origin = coordinates, camera = null, bounds = null)
+        mutable.value = mutable.value.copy(origin = coordinates, deviceLocation = null, camera = null, bounds = null)
         filter(city = city.getString("city"), inArea = false)
         if (coordinates != null) center(coordinates.latitude, coordinates.longitude, 11.0) else mode(false)
     }
@@ -133,7 +137,10 @@ class PlacesViewModel(val api: AccountApi,private val expired: () -> Unit): View
         selectionJob?.cancel();val token=++selectionGeneration;selectionId=id;selectionDetail=detail
         mutable.value=mutable.value.copy(selected=null,detail=detail,selectionBusy=true,error=null)
         selectionJob=viewModelScope.launch {
-            try {val row=api.json("v1/venues/$id");if(token==selectionGeneration)mutable.value=mutable.value.copy(selected=row,detail=detail)}
+            try {val row=api.json("v1/venues/$id");if(token==selectionGeneration)mutable.value=mutable.value.copy(selected=row.apply {
+                mutable.value.items.firstOrNull { it.optString("id") == id && it.has("distanceKm") }
+                    ?.let { put("distanceKm", it.getDouble("distanceKm")) }
+            },detail=detail)}
             catch(e: Exception) {if(e is CancellationException)throw e;if(token==selectionGeneration) {
                 if(e is ApiFailure&&e.status==401)expired()
                 mutable.value=mutable.value.copy(error=if(e is ApiFailure)e.message else "Место недоступно. Повторите запрос.")

@@ -39,7 +39,9 @@ node --env-file=.env scripts/prepare_p7_fixture.mjs
 не показывает testOnly и не разрешает прикреплять их к новым чекинам.
 Fixtures не вызываются миграциями/startup; существующие данные не удаляются.
 
-## Android и тайлы
+## Историческая конфигурация тайлов П7
+
+С P10.3 применяется [инструкция Яндекс MapKit](YANDEX_MAPKIT.md). Настройки MapLibre ниже относятся к прежним сборкам П7.
 
 MapLibre Native 11.13.5 / BSD-2-Clause. SDK инкапсулирован в `NativeVenueMap.kt`.
 Debug использует `https://tile.openstreetmap.org/{z}/{x}/{y}.png` **только для

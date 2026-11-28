@@ -1,7 +1,6 @@
 package ru.krapiva.app.places
 
 import android.Manifest
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,7 +16,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -29,7 +27,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
-import ru.krapiva.app.BuildConfig
 import ru.krapiva.app.account.AccountApi
 import ru.krapiva.app.account.ApiFailure
 import ru.krapiva.app.designsystem.ClubCard
@@ -115,17 +112,33 @@ internal fun NearbyFindsScreen(
         locationError = null
     }
 
+    fun clearDeviceOrigin() {
+        if (!fromDevice) return
+        fromDevice = false
+        latitude = null
+        longitude = null
+        cameraLatitude = null
+        cameraLongitude = null
+        cameraZoom = 2.0
+        selectedVenue = null
+        activeVenue = null
+    }
+
     fun locate() {
         locationJob?.cancel()
         locationError = null
         locationJob = scope.launch {
             try {
                 val point = withTimeoutOrNull(15_000) { currentLocation(context) }
-                if (point == null) locationError = "Геопозиция недоступна. Можно выбрать город или точку на карте."
+                if (point == null) {
+                    clearDeviceOrigin()
+                    locationError = "Геопозиция недоступна. Можно выбрать город или точку на карте."
+                }
                 else useOrigin(Coordinates(point.latitude, point.longitude), "", true)
             } catch (error: CancellationException) {
                 throw error
             } catch (_: Exception) {
+                clearDeviceOrigin()
                 locationError = "Не удалось определить геопозицию. Можно выбрать город вручную."
             } finally {
                 locationJob = null
@@ -141,15 +154,7 @@ internal fun NearbyFindsScreen(
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_START -> {
-                    if (fromDevice && !hasLocationPermission(context)) {
-                        fromDevice = false
-                        latitude = null
-                        longitude = null
-                        cameraLatitude = null
-                        cameraLongitude = null
-                        cameraZoom = 2.0
-                        activeVenue = null
-                    }
+                    if (!hasLocationPermission(context) || !locationEnabled(context)) clearDeviceOrigin()
                     resumed = true
                 }
                 Lifecycle.Event.ON_STOP -> {
@@ -266,7 +271,7 @@ internal fun NearbyFindsScreen(
                     activeName = venue.name
                     activeVenue = venue.id
                 }
-                val configured = BuildConfig.MAP_TILES.isNotBlank() && BuildConfig.MAP_ATTRIBUTION.isNotBlank()
+                val configured = mapConfigured
                 val mapVisible = configured && (pickPoint || (map && origin != null))
                 val fallback = providerError != null || !configured
                 Row(Modifier.fillMaxWidth().padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -291,7 +296,7 @@ internal fun NearbyFindsScreen(
                         FilterChip(!map, { map = false; selectedVenue = null }, { Text("Список") })
                     }
                     Text(listOfNotNull(
-                        origin?.let { if (fromDevice) "Моё местоположение" else originName.ifBlank { "Точка на карте" } },
+                        origin?.let { if (fromDevice && emulatedDevice) "Тестовая геопозиция эмулятора" else if (fromDevice) "Моё местоположение" else originName.ifBlank { "Точка на карте" } },
                         selectedMode.takeUnless { mode == FindMode.NEW_RELEASES },
                     ).joinToString(" · "), Modifier.padding(horizontal = 16.dp), color = KraPivaColors.Muted,
                         style = MaterialTheme.typography.bodySmall)
@@ -320,11 +325,11 @@ internal fun NearbyFindsScreen(
                             map = true
                             pickPoint = false
                         }} else null)
-                    FindMapAttribution()
+                    OpenInMaps(camera)
                     if (pickPoint) TextButton({ pickPoint = false; chooseCity = true }) { Text("Выбрать город") }
                 }
                 if (map && fallback && !pickPoint && origin != null) {
-                    Text("Подложка карты недоступна. Находки доступны в списке.",
+                    Text(if (!configured) missingMapKey else providerError.orEmpty(),
                         Modifier.padding(horizontal = 16.dp), color = KraPivaColors.Muted)
                 }
                 if (!pickPoint && (!mapVisible || fallback || page?.count == 0 || error != null)) {
@@ -402,7 +407,7 @@ internal fun NearbyFindsScreen(
             onPoint = {
                 locationJob?.cancel()
                 options = false
-                if (BuildConfig.MAP_TILES.isBlank() || BuildConfig.MAP_ATTRIBUTION.isBlank()) {
+                if (!mapConfigured) {
                     locationError = "Подложка недоступна. Можно выбрать город."
                     chooseCity = true
                 } else pickPoint = true
@@ -508,7 +513,7 @@ private fun FindCityDialog(api: AccountApi, expired: () -> Unit, close: () -> Un
         cities = emptyList()
         delay(300)
         try {
-            cities = api.json("v1/venue-cities?q=${Uri.encode(query.trim())}").getJSONArray("items").objects()
+            cities = cityChoices(api, query)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -526,12 +531,12 @@ private fun FindCityDialog(api: AccountApi, expired: () -> Unit, close: () -> Un
             if (failed) TextButton({ retry++ }) { Text("Повторить загрузку городов") }
             if (!busy && !failed && cities.isEmpty()) Text("Город не найден. Можно выбрать точку на карте.")
             LazyColumn(Modifier.heightIn(max = 230.dp)) {
-                items(cities, key = { it.getString("city") }) { city ->
+                items(cities, key = { it.optString("id", it.getString("city")) }) { city ->
                     val name = city.getString("city")
                     val located = !city.isNull("latitude") && !city.isNull("longitude")
                     TextButton({
                         select(name, Coordinates(city.getDouble("latitude"), city.getDouble("longitude")))
-                    }, enabled = located) { Text(if (located) name else "$name · нет координат") }
+                    }, enabled = located) { Text(if (city.has("id")) cityChoiceLabel(city) else if (located) name else "$name · нет координат") }
                 }
             }
         }
@@ -582,14 +587,4 @@ private fun FindVenueCard(venue: FindVenue, open: () -> Unit, dismiss: (() -> Un
             if (dismiss != null) TextButton(dismiss) { Text("Закрыть") }
         }
     }
-}
-
-@Composable
-private fun FindMapAttribution() {
-    val handler = LocalUriHandler.current
-    if (BuildConfig.MAP_TILES.contains("tile.openstreetmap.org")) {
-        TextButton({ runCatching { handler.openUri("https://www.openstreetmap.org/copyright") } }) {
-            Text("© OpenStreetMap contributors", style = MaterialTheme.typography.labelSmall)
-        }
-    } else Text(BuildConfig.MAP_ATTRIBUTION, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 12.dp))
 }

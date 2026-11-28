@@ -1,6 +1,9 @@
 package ru.krapiva.app.places
 
 import android.content.Context
+import android.net.Uri
+import ru.krapiva.app.account.AccountApi
+import ru.krapiva.app.diary.objects
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
@@ -32,3 +35,19 @@ internal class NearbyPreference(context: Context) {
 
 internal fun Coordinates.request(radius: Int): JSONObject =
     JSONObject().put("latitude", latitude).put("longitude", longitude).put("radiusKm", radius)
+
+internal suspend fun cityChoices(api: AccountApi, query: String): List<JSONObject> {
+    val search = query.trim().take(120)
+    val include = if (search.length >= 2) "&includeCenters=true" else ""
+    val result = api.json("v1/venue-cities?q=${Uri.encode(search)}$include")
+    val directory = result.getJSONArray("items").objects()
+    val centers = result.optJSONArray("centers")?.objects().orEmpty()
+    return centers + directory.filter { row ->
+        centers.none { it.getString("city").equals(row.getString("city"), ignoreCase = true) }
+    }
+}
+
+internal fun cityChoiceLabel(row: JSONObject): String = when {
+    row.has("id") -> listOfNotNull(row.getString("city"), row.optString("regionCode").takeUnless { it.isBlank() || it == "null" }?.let { "регион $it" }).joinToString(" · ")
+    else -> "${row.getString("city")} · ${row.getInt("count")}"
+}

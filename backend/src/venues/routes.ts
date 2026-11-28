@@ -2,6 +2,7 @@ import type {FastifyInstance} from 'fastify';
 import type pg from 'pg';
 import * as s from '../http/schemas.js';
 import * as r from './repository.js';
+import {russianCityCenters} from '../profiles/locations.js';
 const nullableDate={anyOf:[s.timestamp,{type:'null'}]},nullableNumber={type:['number','null']};
 export const venue=s.object({id:s.uuid,name:{type:'string'},type:{type:'string',enum:['bar','beer_shop','brewery']},city:{type:'string'},country:s.nullableText(100),address:s.nullableText(1000),source:{type:'string'},
  latitude:nullableNumber,longitude:nullableNumber,coordinatesSource:s.nullableText(2000),coordinatesVerifiedAt:nullableDate,
@@ -21,7 +22,16 @@ export async function venueRoutes(app:FastifyInstance,pool:pg.Pool,allowTest:boo
    response:{...s.errors,200:s.object({items:{type:'array',maxItems:500,items:s.object({...venue.properties,distanceKm:{type:'number',minimum:0}})},truncated:{type:'boolean'}})}},
  },req=>r.nearby(pool,req.body,allowTest,req.userId));
  app.get<{Querystring:r.VenueQuery}>('/v1/venues/map',{schema:{...secure,querystring:s.object({q:query.q,city:query.city,type:query.type,bbox:query.bbox,scope:venueScope},['bbox']),response:{...s.errors,200:s.object({items:{type:'array',maxItems:500,items:s.object({id:s.uuid,name:{type:'string'},type:{type:'string'},latitude:{type:'number'},longitude:{type:'number'},testOnly:{type:'boolean'}})},truncated:{type:'boolean'}})}}},req=>r.list(pool,req.query,allowTest,true,req.userId));
- app.get<{Querystring:{q?:string}}>('/v1/venue-cities',{schema:{...secure,querystring:s.object({q:query.q},[]),response:{...s.errors,200:s.object({items:{type:'array',items:s.object({city:{type:'string'},count:{type:'integer'},latitude:nullableNumber,longitude:nullableNumber})}})}}},req=>r.cities(pool,req.query.q??'',allowTest));
+ const cityRow=s.object({city:{type:'string'},count:{type:'integer'},latitude:nullableNumber,longitude:nullableNumber});
+ const cityCenter=s.object({id:s.cityId,city:{type:'string'},regionCode:s.nullableText(20),latitude:{type:'number'},longitude:{type:'number'}});
+ app.get<{Querystring:{q?:string;includeCenters?:'true'|'false'}}>('/v1/venue-cities',{
+  schema:{...secure,querystring:s.object({q:query.q,includeCenters:{type:'string',enum:['true','false']}},[]),response:{...s.errors,
+   200:s.object({items:{type:'array',items:cityRow},centers:{type:'array',items:cityCenter}},['items'])}},
+ },async req=>{
+  const q=req.query.q??'';
+  const directory=await r.cities(pool,q,allowTest);
+  return req.query.includeCenters==='true'?{...directory,centers:await russianCityCenters(q)}:directory;
+ });
  const stats=s.object({scope:{type:'string',const:'visible_to_viewer'},totalCheckins:{type:'integer'},ratedCheckins:{type:'integer'},averageRating:nullableNumber});
  app.get<{Params:{id:string}}>('/v1/venues/:id',{schema:{...secure,params:s.idParams,response:{...s.errors,200:s.object({...venue.properties,statistics:stats,saved:{type:'boolean'}})}}},req=>r.detail(pool,req.userId,req.params.id,allowTest));
  for(const method of ['PUT','DELETE'] as const) app.route<{Params:{id:string}}>({

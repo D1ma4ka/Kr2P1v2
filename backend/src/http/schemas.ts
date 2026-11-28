@@ -16,7 +16,7 @@ export const profileFields = {
   bio: nullableText(2000), gender: nullableText(80), genderVisibility: visibility, profileVisibility: visibility,
 };
 export const countryId = {type:'string',pattern:'^[A-Z]{2}$'};
-const cityId = {type:'integer',minimum:1,maximum:2147483647};
+export const cityId = {type:'integer',minimum:1,maximum:2147483647};
 const optionalId = (id:unknown) => ({anyOf:[id,{type:'null'}]});
 const link = object({url:{type:'string',maxLength:2048,pattern:'^https://'},visibility});
 const socialLinkFields = Object.fromEntries(networks.map(network=>[network,optionalId(link)]));

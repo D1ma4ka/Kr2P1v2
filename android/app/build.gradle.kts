@@ -1,4 +1,5 @@
 import java.net.URI
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -24,22 +25,13 @@ fun apiAddress(variable: String, fallback: String = "", localHttp: Boolean = fal
     require(raw.none { it == '"' || it == '\\' || it.isISOControl() }) { "Invalid $variable characters" }
     return raw.trimEnd('/') + "/"
 }
-// Raster providers must be explicitly approved/configured outside local development.
-fun mapSetting(name: String, fallback: String = ""): String {
-    val value = providers.environmentVariable(name).orElse(fallback).get()
-    require(value.none { it == '"' || it == '\\' || it.isISOControl() }) { "Invalid $name" }
-    if(name.endsWith("TILES")&&value.isNotBlank()) {
-        require(listOf("{z}","{x}","{y}").all {it in value}) {"$name requires z/x/y placeholders"}
-        val uri=URI(value.replace("{z}","1").replace("{x}","1").replace("{y}","1"))
-        require(uri.scheme=="https"&&uri.host!=null&&uri.rawUserInfo==null&&uri.rawFragment==null) {"$name requires HTTPS without embedded credentials"}
-        require(name=="KRAPIVA_DEV_MAP_TILES"||uri.host!="tile.openstreetmap.org") {"Public OSM tiles are for limited local development only"}
-    }
-    return value
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.isFile) file.inputStream().use { load(it) }
 }
-val devTiles = mapSetting("KRAPIVA_DEV_MAP_TILES", "https://tile.openstreetmap.org/{z}/{x}/{y}.png")
-val devAttribution = mapSetting("KRAPIVA_DEV_MAP_ATTRIBUTION", "© OpenStreetMap contributors")
-val releaseTiles = mapSetting("KRAPIVA_MAP_TILES")
-val releaseAttribution = mapSetting("KRAPIVA_MAP_ATTRIBUTION")
+val mapkitKey = providers.environmentVariable("MAPKIT_API_KEY").orNull
+    ?: localProperties.getProperty("MAPKIT_API_KEY", "")
+require(mapkitKey.all { it.isLetterOrDigit() || it == '-' || it == '_' }) { "Invalid MAPKIT_API_KEY format" }
 val devApi = apiAddress("KRAPIVA_DEV_API_BASE_URL", "http://10.0.2.2:53000/", true)
 val stagingApi = apiAddress("KRAPIVA_STAGING_API_BASE_URL")
 val productionApi = apiAddress("KRAPIVA_PROD_API_BASE_URL")
@@ -51,6 +43,7 @@ android {
     defaultConfig {
         applicationId = "ru.krapiva.app"
         minSdk = 26
+        buildConfigField("String", "MAPKIT_API_KEY", quoted(mapkitKey))
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["class"] = "ru.krapiva.app.P3AcceptanceSuite"
@@ -63,8 +56,6 @@ android {
             buildConfigField("String", "API_BASE_URL", quoted(devApi))
             buildConfigField("String", "API_ENVIRONMENT", quoted("development"))
             buildConfigField("boolean", "ALLOW_LOCAL_HTTP", "true")
-            buildConfigField("String", "MAP_TILES", quoted(devTiles))
-            buildConfigField("String", "MAP_ATTRIBUTION", quoted(devAttribution))
         }
         create("staging") {
             initWith(getByName("debug"))
@@ -74,15 +65,11 @@ android {
             buildConfigField("String", "API_BASE_URL", quoted(stagingApi))
             buildConfigField("String", "API_ENVIRONMENT", quoted("staging"))
             buildConfigField("boolean", "ALLOW_LOCAL_HTTP", "false")
-            buildConfigField("String", "MAP_TILES", quoted(releaseTiles))
-            buildConfigField("String", "MAP_ATTRIBUTION", quoted(releaseAttribution))
         }
         release {
             buildConfigField("String", "API_BASE_URL", quoted(productionApi))
             buildConfigField("String", "API_ENVIRONMENT", quoted("production"))
             buildConfigField("boolean", "ALLOW_LOCAL_HTTP", "false")
-            buildConfigField("String", "MAP_TILES", quoted(releaseTiles))
-            buildConfigField("String", "MAP_ATTRIBUTION", quoted(releaseAttribution))
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -112,7 +99,7 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.4.2")
     implementation("androidx.camera:camera-view:1.4.2")
     implementation("com.google.zxing:core:3.5.3")
-    implementation("org.maplibre.gl:android-sdk:11.13.5")
+    implementation("com.yandex.android:maps.mobile:4.45.0-lite")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("com.vaadin.external.google:android-json:0.0.20131108.vaadin1")

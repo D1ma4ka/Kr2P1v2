@@ -47,7 +47,7 @@ internal fun rememberHomeDiscovery(api: AccountApi, city: DiscoveryCity?, radius
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             value = HomeDiscovery()
             try {
-                val center = if (city != null) city.center else if (hasLocationPermission(context)) {
+                val center = if (city != null) city.center else if (!emulatedDevice && hasLocationPermission(context)) {
                     value = HomeDiscovery(loading = true)
                     withTimeoutOrNull(8_000) { currentLocation(context) }?.let { Coordinates(it.latitude, it.longitude) }
                 } else null
@@ -157,47 +157,53 @@ internal fun DiscoveryContent(
         )
     }
     details?.let { entry ->
-        val context = LocalContext.current
-        var calendarError by remember(entry) { mutableStateOf(false) }
-        AlertDialog(
-            onDismissRequest = { details = null },
-            title = { Text(entry.getString("title")) },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(listOfNotNull(entry.text("venueName"), entry.text("address")).joinToString(" · "))
-                    Text("Начало · ${DiaryDates.display(entry.getString("startsAt"))}")
-                    Text("Окончание · ${DiaryDates.display(entry.getString("endsAt"))}")
-                    Text(entry.getString("description"))
-                    entry.optJSONArray("badgeTitles")?.strings()?.takeIf { it.isNotEmpty() }?.let {
-                        Text("Доступные значки · ${it.joinToString(", ")}")
-                    }
-                    if (entry.has("eventId")) {
-                        Text("Для получения значка модератор подтверждает посещение.")
-                    } else {
-                        OutlinedButton({
-                            val calendar = Intent(Intent.ACTION_INSERT, CalendarContract.Events.CONTENT_URI)
-                                .putExtra(CalendarContract.Events.TITLE, entry.getString("title"))
-                                .putExtra(CalendarContract.Events.DESCRIPTION, entry.getString("description"))
-                                .putExtra(CalendarContract.Events.EVENT_LOCATION,
-                                    listOfNotNull(entry.text("venueName"), entry.text("city"), entry.text("address"))
-                                        .joinToString(", "))
-                                .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, Instant.parse(entry.getString("startsAt")).toEpochMilli())
-                                .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, Instant.parse(entry.getString("endsAt")).toEpochMilli())
-                            try {
-                                context.startActivity(calendar)
-                                calendarError = false
-                            } catch (_: ActivityNotFoundException) {
-                                calendarError = true
-                            }
-                        }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("В календарь") }
-                        if (calendarError) Text("Приложение календаря недоступно.", color = MaterialTheme.colorScheme.error)
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton({ details = null; onVenue(entry.getString("venueId")) }) { Text("Открыть место") }
-            },
-            dismissButton = { TextButton({ details = null }) { Text("Закрыть") } },
-        )
+        DiscoveryDetails(entry, { details = null }, { details = null; onVenue(it) })
     }
+}
+
+@Composable
+internal fun DiscoveryDetails(entry: JSONObject, onClose: () -> Unit, onVenue: ((String) -> Unit)? = null) {
+    val context = LocalContext.current
+    var calendarError by remember(entry) { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(entry.getString("title")) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(listOfNotNull(entry.text("venueName"), entry.text("address")).joinToString(" · "))
+                Text("Начало · ${DiaryDates.display(entry.getString("startsAt"))}")
+                Text("Окончание · ${DiaryDates.display(entry.getString("endsAt"))}")
+                Text(entry.getString("description"))
+                entry.optJSONArray("badgeTitles")?.strings()?.takeIf { it.isNotEmpty() }?.let {
+                    Text("Доступные значки · ${it.joinToString(", ")}")
+                }
+                if (entry.has("eventId")) {
+                    Text("Для получения значка модератор подтверждает посещение.")
+                } else {
+                    OutlinedButton({
+                        val calendar = Intent(Intent.ACTION_INSERT, CalendarContract.Events.CONTENT_URI)
+                            .putExtra(CalendarContract.Events.TITLE, entry.getString("title"))
+                            .putExtra(CalendarContract.Events.DESCRIPTION, entry.getString("description"))
+                            .putExtra(CalendarContract.Events.EVENT_LOCATION,
+                                listOfNotNull(entry.text("venueName"), entry.text("city"), entry.text("address"))
+                                    .joinToString(", "))
+                            .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, Instant.parse(entry.getString("startsAt")).toEpochMilli())
+                            .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, Instant.parse(entry.getString("endsAt")).toEpochMilli())
+                        try {
+                            context.startActivity(calendar)
+                            calendarError = false
+                        } catch (_: ActivityNotFoundException) {
+                            calendarError = true
+                        }
+                    }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("В календарь") }
+                    if (calendarError) Text("Приложение календаря недоступно.", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            if (onVenue != null) TextButton({ onVenue(entry.getString("venueId")) }) { Text("Открыть место") }
+            else TextButton(onClose) { Text("Закрыть") }
+        },
+        dismissButton = { if (onVenue != null) TextButton(onClose) { Text("Закрыть") } },
+    )
 }

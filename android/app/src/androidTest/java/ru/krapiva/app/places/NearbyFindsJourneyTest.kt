@@ -1,6 +1,5 @@
 package ru.krapiva.app.places
 
-import android.graphics.RectF
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.ui.test.*
@@ -14,10 +13,9 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
-import org.maplibre.android.camera.CameraPosition
-import org.maplibre.android.geometry.LatLng
-import org.maplibre.android.maps.MapLibreMap
-import org.maplibre.android.maps.MapView
+import com.yandex.mapkit.map.CameraPosition
+import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.mapview.MapView
 import ru.krapiva.app.MainActivity
 import ru.krapiva.app.TestEvidence
 import ru.krapiva.app.account.AccountScreen
@@ -117,22 +115,19 @@ class NearbyFindsJourneyTest {
         compose.onNodeWithTag("find-radius").assert(hasText("3 км"))
 
         compose.onNodeWithText("Карта").performClick()
-        compose.waitUntil(60_000) { compose.onAllNodesWithTag("find-map").fetchSemanticsNodes().isNotEmpty() }
-        var native: MapLibreMap? = null
-        compose.runOnIdle {
-            requireNotNull(nativeView(compose.activity.window.decorView)).getMapAsync { map ->
-                native = map
-                map.cameraPosition = CameraPosition.Builder().target(LatLng(55.7, 37.6)).zoom(19.0).build()
-            }
+        if (mapConfigured) {
+            compose.waitUntil(60_000) { compose.onAllNodesWithTag("find-map").fetchSemanticsNodes().isNotEmpty() }
+            val point = Point(55.7, 37.6)
+            val native = compose.runOnIdle { requireNotNull(nativeView(compose.activity.window.decorView)) }
+            compose.runOnIdle { native.mapWindow.map.move(CameraPosition(point, 20f, 0f, 0f)) }
+            val tap = compose.runOnIdle { requireNotNull(native.mapWindow.worldToScreen(point)) }
+            compose.onNodeWithTag("find-map").performTouchInput { click(androidx.compose.ui.geometry.Offset(tap.x, tap.y)) }
+            awaitText("Подходящих позиций · 48")
+            if (captureScreenshots) TestEvidence.screenshot("p87-find-map.png")
+        } else {
+            awaitText(missingMapKey)
+            compose.onNodeWithTag("find-list").assertExists()
         }
-        compose.waitUntil(60_000) {
-            compose.runOnIdle {
-                native?.queryRenderedFeatures(RectF(0f, 0f, 10000f, 10000f), "points")?.any {
-                    it.getNumberProperty("match_count")?.toInt() == 48
-                } == true
-            }
-        }
-        if (captureScreenshots) TestEvidence.screenshot("p87-find-map.png")
         compose.onNodeWithText("Список").performClick()
         compose.onNodeWithTag("find-list").assertExists()
     }

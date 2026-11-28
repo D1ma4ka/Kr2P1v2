@@ -8,10 +8,11 @@ import * as repo from './repository.js';
 const distance={type:'number',minimum:0};
 const place=s.object({...venue.properties,distanceKm:distance});
 const window={startsAt:s.timestamp,endsAt:s.timestamp};
-const event=s.object({
+const venueEvent=s.object({
   id:s.uuid,title:{type:'string'},description:{type:'string'},...window,venueId:s.uuid,venueName:{type:'string'},
-  city:{type:'string'},address:s.nullableText(1000),distanceKm:distance,badgeTitles:{type:'array',items:{type:'string'}},
+  city:{type:'string'},address:s.nullableText(1000),badgeTitles:{type:'array',items:{type:'string'}},
 });
+const event=s.object({...venueEvent.properties,distanceKm:distance});
 const badge=s.object({
   id:s.uuid,title:{type:'string'},description:{type:'string'},...window,venueId:s.uuid,venueName:{type:'string'},
   eventId:{anyOf:[s.uuid,{type:'null'}]},eventTitle:s.nullableText(300),distanceKm:distance,
@@ -31,6 +32,11 @@ export async function discoveryRoutes(app:FastifyInstance,pool:pg.Pool,allowTest
       places:{type:'array',items:place},events:{type:'array',items:event},badges:{type:'array',items:badge},
     })}},
   },req=>repo.nearbyDiscovery(pool,req.body,allowTest));
+  app.get<{Params:{id:string}}>('/v1/venues/:id/events',{
+    schema:{...secure,params:s.idParams,response:{...s.errors,200:s.object({
+      items:{type:'array',items:venueEvent},truncated:{type:'boolean'},
+    })}},
+  },req=>repo.venueEvents(pool,req.params.id,allowTest));
   app.put<{Params:{id:string};Body:EventInput}>('/v1/moderation/events/:id',{
     schema:{...secure,params:s.idParams,body:s.object({...entry,source:{type:'string',minLength:1,maxLength:2000},
       published:{type:'boolean'}}),response:{...s.errors,200:response}},

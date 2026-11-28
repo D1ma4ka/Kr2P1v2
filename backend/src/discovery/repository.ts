@@ -27,6 +27,20 @@ async function verifyVenue(db:pg.PoolClient,id:string,allowTest:boolean) {
   if(!result.rowCount) throw notFound();
 }
 
+const eventFields=`e.id,e.title,e.description,e.starts_at AS "startsAt",e.ends_at AS "endsAt",
+       p.id AS "venueId",p.name AS "venueName",p.city,p.address,
+       ARRAY(SELECT r.title FROM local_badge_targets t JOIN badge_rules r ON r.id=t.rule_id
+         WHERE t.event_id=e.id AND r.active ORDER BY r.title,r.id) AS "badgeTitles"`;
+
+export async function venueEvents(pool:pg.Pool,venueId:string,allowTest:boolean) {
+  const result=await pool.query(`SELECT ${eventFields}
+    FROM discovery_events e JOIN venues p ON p.id=e.venue_id
+    WHERE p.id=$1 AND p.status='verified' AND (NOT p.is_test OR $2)
+      AND e.published AND e.ends_at>now()
+    ORDER BY e.starts_at,e.id LIMIT 31`,[venueId,allowTest]);
+  return {items:result.rows.slice(0,30),truncated:result.rows.length>30};
+}
+
 export async function nearbyDiscovery(pool:pg.Pool,q:NearbyQuery,allowTest:boolean) {
   const args=[q.latitude,q.longitude,q.radiusKm,allowTest];
   const scope=`SELECT v.id,v.name,v.city,v.address,${distanceSql('$1','$2')} AS distance
@@ -34,10 +48,7 @@ export async function nearbyDiscovery(pool:pg.Pool,q:NearbyQuery,allowTest:boole
    AND abs(v.latitude-$1::float8) <= $3::float8 / 110`;
   const [places,events,badges]=await Promise.all([
     nearby(pool,{...q,limit:4},allowTest),
-    pool.query(`WITH places AS (${scope}) SELECT e.id,e.title,e.description,e.starts_at AS "startsAt",e.ends_at AS "endsAt",
-       p.id AS "venueId",p.name AS "venueName",p.city,p.address,p.distance AS "distanceKm",
-       ARRAY(SELECT r.title FROM local_badge_targets t JOIN badge_rules r ON r.id=t.rule_id
-         WHERE t.event_id=e.id AND r.active ORDER BY r.title,r.id) AS "badgeTitles"
+    pool.query(`WITH places AS (${scope}) SELECT ${eventFields},p.distance AS "distanceKm"
        FROM discovery_events e JOIN places p ON p.id=e.venue_id
        WHERE e.published AND e.ends_at>now() AND p.distance<=$3 ORDER BY e.starts_at,p.distance,e.id LIMIT 30`,args),
     pool.query(`WITH places AS (${scope}) SELECT r.id,r.title,r.description,t.event_id AS "eventId",e.title AS "eventTitle",
