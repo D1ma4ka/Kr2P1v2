@@ -79,7 +79,10 @@ export async function creditPublishedCheckin(db:pg.PoolClient,user:string,checki
 }
 export async function adopt(pool:pg.Pool,user:string,definition:string,name:string) {
   name=name.trim();
-  if(!name || /[\p{Cc}\p{Cf}]/u.test(name)) throw new ApiError(400,'INVALID_PET_NAME','Проверьте имя питомца');
+  // Joiners are used in writing systems and emoji. Other format/control characters
+  // are rejected, along with a name made up only of joiners and whitespace.
+  const visible=name.replace(/[\u200c\u200d]/g,'').trim();
+  if(!visible || /[\p{Cc}\p{Cf}]/u.test(visible)) throw new ApiError(400,'INVALID_PET_NAME','Проверьте имя питомца');
   await transaction(pool,async db=>{
     await lockAccount(db,user);
     const existing=(await db.query<{id:string;definition_id:string;name:string}>(

@@ -69,7 +69,11 @@ test('KraPet real PostgreSQL: account isolation, verified publication, wallet, c
     assert.equal((await pet('redeem','POST',{code:qr})).json().itemId,reward.itemId);
     assert.equal((await pet('decor/shelf_slot_01','PUT',{itemId:reward.itemId})).json().decor.shelf_slot_01,reward.itemId);
     assert.equal((await pet('decor/shelf_slot_02','PUT',{itemId:reward.itemId})).statusCode,409);
-    assert.equal((await pet('adopt','POST',{definitionId:'starter_tap',name:'Краник'},f.b.token)).statusCode,200);
+    const unicodeName='Краник 李 👩‍🔧';
+    const unicodePet=await pet('adopt','POST',{definitionId:'starter_tap',name:unicodeName},f.b.token);
+    assert.equal(unicodePet.statusCode,200);
+    assert.equal(unicodePet.json().pet.name,unicodeName);
+    assert.equal((await pet('state','GET',undefined,f.b.token)).json().pet.name,unicodeName);
     assert.equal((await pet('redeem','POST',{code:qr},f.b.token)).statusCode,409);
     assert.equal((await pet('decor/shelf_slot_01','PUT',{itemId:reward.itemId},f.b.token)).statusCode,404);
     assert.equal((await pet('wallet')).json().items.filter((e:{reason:string})=>e.reason==='checkin').length,1);

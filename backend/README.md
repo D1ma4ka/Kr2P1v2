@@ -58,6 +58,28 @@ version conflicts, HTTPS links, gender/link visibility и независимые
 Это запрос, а не сообщение об уже выполненном стирании: production erasure/
 legal retention/backups требуют операционного процесса до эксплуатации (ADR-0004).
 
+### P10.2 · Местоположение и ссылки профиля
+
+Миграция 020 добавляет необязательные `countryId` (ISO 3166-1 alpha-2) и
+`cityId` (GeoNames ID) и четыре дополнительных места для ссылок. Прежние
+названия и десять исходных мест остаются в базе. Клиенты могут отправлять
+старый формат профиля. Android выбирает значения через
+`/v1/me/profile/locations/countries` и `/v1/me/profile/locations/cities`.
+Сервер проверяет принадлежность города стране.
+
+Поле `socialLinks` обновляет только переданные сети. Распознанные прежние ссылки
+попадают в соответствующее поле вместе с исходной видимостью. Остальные
+сохраняются в `links`. Закрытые ссылки и закрытое значение пола доступны
+владельцу и аудитории, определённой настройками видимости.
+
+Справочник работает на сервере из локальной выборки GeoNames cities1000.
+Данные GeoNames предоставлены по CC BY 4.0. Версия выборки зафиксирована
+в lockfile через `cities-1000-structured`. Для обновления проверьте поиск
+на русском и английском, транслитерацию и сохранённые GeoNames ID.
+[GeoNames](https://www.geonames.org/about.html) ·
+[Лицензия данных](https://creativecommons.org/licenses/by/4.0/) ·
+[Пакет с выборкой](https://github.com/adamaveray/geonames/tree/main/packages/cities-1000-structured)
+
 Dev/test: SMTP_HOST только localhost/127.0.0.1/mailpit, recipient только
 `@example.invalid`; письма остаются в Mailpit. Production отдельно конфигурирует
 `SMTP_DELIVERY_ENABLED=true`, `SMTP_HOST`, `SMTP_PORT=465|587`, `SMTP_FROM`,

@@ -15,8 +15,8 @@ import { authenticate, tokenHash } from "../identity/sessions.js";
 import {diaryRoutes} from "../checkins/routes.js";
 import * as s from "./schemas.js";
 declare module "fastify" { interface FastifyRequest { userId: string; } }
-import {profile,updateProfile,type ProfileUpdate} from '../profiles/repository.js';
-import {normalizeHandle,handleConflict} from '../identity/handles.js';
+import {profile,updateProfile,claimProfileHandle,type ProfileUpdate} from '../profiles/repository.js';
+import {searchCities,searchCountries} from '../profiles/locations.js';
 export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media?: MediaService, environment='production') {
   app.decorateRequest("userId", "");
   app.addHook("onRequest",async request => { request.userId = await authenticate(pool,request.headers.authorization); });
@@ -26,17 +26,22 @@ export async function foundationRoutes(app: FastifyInstance,pool: pg.Pool, media
     return profile(pool,request.userId);
   });
   app.put<{Body:{handle:string}}>('/v1/me/handle',{schema:{...secure,
-    body:s.object({handle:{type:'string',minLength:3,maxLength:24}}),response:{...s.errors,200:s.profileSchema}}},async req=>{
-    const handle=normalizeHandle(req.body.handle);
-    const result=await pool.query("UPDATE users SET handle=$2,updated_at=now() WHERE id=$1 AND (handle IS NULL OR handle=$2) RETURNING id",[req.userId,handle]).catch(handleConflict);
-    if(!result.rowCount) {const {ApiError}=await import('./errors.js');throw new ApiError(409,'HANDLE_LOCKED','Никнейм уже выбран');}
+    body:s.object({handle:s.handleInput}),response:{...s.errors,200:s.profileSchema}}},async req=>{
+    await claimProfileHandle(pool,req.userId,req.body.handle);
     return profile(pool,req.userId);
   });
   app.get<{Params:{id:string}}>("/v1/users/:id",{schema:{...secure,params:s.idParams,response:{...s.errors,200:s.profileSchema}}},
     request=>profile(pool,request.params.id,request.userId));
   app.patch<{ Body: ProfileUpdate }>("/v1/me/profile", { schema: { ...secure,
-    body:s.object({...s.profileFields,...s.extraProfileFields,version:s.version},[...Object.keys(s.profileFields),'version']),
+    body:s.object({...s.profileFields,...s.extraProfileFields,version:s.version,handle:s.handleInput},[...Object.keys(s.profileFields),'version']),
     response:{...s.errors,200:s.profileSchema} } },request=>updateProfile(pool,request.userId,request.body));
+  const placeQuery={type:'string',maxLength:120};
+  app.get<{Querystring:{q?:string}}>('/v1/me/profile/locations/countries',{schema:{...secure,
+    querystring:s.object({q:placeQuery},[]),response:{...s.errors,200:s.countrySuggestions}}},
+    request=>({items:searchCountries(request.query.q??'')}));
+  app.get<{Querystring:{countryId:string;q?:string}}>('/v1/me/profile/locations/cities',{schema:{...secure,
+    querystring:s.object({countryId:s.countryId,q:placeQuery},['countryId']),response:{...s.errors,200:s.citySuggestions}}},
+    async request=>({items:await searchCities(request.query.countryId,request.query.q??'')}));
   app.post('/v1/me/deletion-request',{schema:{...secure,response:{...s.errors,202:s.object({eraseAfter:s.timestamp,message:{type:'string'}})}}},async(request,reply)=>{
     const {transaction}=await import('../db/pool.js');
     const row=await transaction(pool,async client=>{
