@@ -1,6 +1,10 @@
 # Kr2P1v2
 A modern social platform for craft beer enthusiasts and bars
 
+## Карта и места рядом · P10.3
+
+Android использует Яндекс MapKit Lite. Для настройки ключа, проверки условий использования и локального запуска см. [инструкцию владельца](docs/places/YANDEX_MAPKIT.md) и [передачу P10.3](docs/p10/P10_3_HANDOFF.md).
+
 ## KraPet P10
 
 Ветка `p10/krapet` объединяет Android и PostgreSQL-backend P8.7.2 с вкладкой «Питомец». Порядок запуска и установки APK описан в [P10 Recovery](docs/p10/P10_RECOVERY.md), состояние приёмки — в [матрице P10](docs/p10/P10_REQUIREMENTS.md).
